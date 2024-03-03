@@ -79,7 +79,15 @@ in
 		relativenumber = true;
 	};
 	plugins = {
-		lsp.enable = true;
+		lsp = {
+			enable = true;
+			servers = {
+				nil_ls.enable = true;
+				rust-analyzer.enable = true;
+				bashls.enable = true;
+				ruff-lsp.enable = true;
+			};
+		};
 		copilot-vim.enable = true;
 		conform-nvim = {
 			formatOnSave = {
