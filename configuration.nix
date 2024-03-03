@@ -7,7 +7,6 @@ let
   nixvim = import (builtins.fetchGit {
     url = "https://github.com/nix-community/nixvim";
     # If you are not running an unstable channel of nixpkgs, select the corresponding branch of nixvim.
-    #ref = "nixos-23.05";
   });
 in
 {
@@ -72,13 +71,23 @@ in
 
    programs.nixvim = {
 	enable = true;
+	defaultEditor = true;
 	colorschemes.gruvbox.enable = true;
    	plugins.lightline.enable = true;
 	options = {
 		number = true;
 		relativenumber = true;
 	};
-	plugins.lsp.enable = true;
+	plugins = {
+		lsp.enable = true;
+		copilot-vim.enable = true;
+		conform-nvim = {
+			formatOnSave = {
+				lspFallback = true;
+				timeoutMs = 500;
+			};
+		};
+	};
 
    };
 
