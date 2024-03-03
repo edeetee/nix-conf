@@ -7,7 +7,7 @@ let
   nixvim = import (builtins.fetchGit {
     url = "https://github.com/nix-community/nixvim";
     # If you are not running an unstable channel of nixpkgs, select the corresponding branch of nixvim.
-    ref = "nixos-23.05";
+    #ref = "nixos-23.05";
   });
 in
 {
@@ -64,8 +64,7 @@ in
      	vim
 	wget
 	git
-	neovim
-	rocm-smi
+	rocmPackages.rocm-smi
 	tmux
 	nvtop-amd
 	blender
@@ -75,10 +74,12 @@ in
 	enable = true;
 	colorschemes.gruvbox.enable = true;
    	plugins.lightline.enable = true;
-	option = {
+	options = {
 		number = true;
 		relativenumber = true;
 	};
+	plugins.lsp.enable = true;
+
    };
 
   # Some programs need SUID wrappers, can be configured further or are
@@ -160,7 +161,7 @@ nix.settings.auto-optimise-store = true;
 
 # HIP for amd
 systemd.tmpfiles.rules = [
-    "L+    /opt/rocm/hip   -    -    -     -    ${pkgs.hip}"
+    "L+    /opt/rocm/hip   -    -    -     -    ${pkgs.rocmPackages.clr}"
   ];
 
 #NETWORK SHARE
