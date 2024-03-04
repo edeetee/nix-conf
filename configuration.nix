@@ -83,7 +83,11 @@ in
 			enable = true;
 			servers = {
 				nil_ls.enable = true;
-				rust-analyzer.enable = true;
+				rust-analyzer = {
+					enable = true;
+					installCargo = true;
+					installRustc = true;
+				};
 				bashls.enable = true;
 				ruff-lsp.enable = true;
 			};
@@ -112,9 +116,11 @@ in
   # Enable the OpenSSH daemon.
   services.openssh = {
   enable = true;
+  settings = {
+ 	 PasswordAuthentication = false;
+ 	 KbdInteractiveAuthentication = false;
+  };	
   # require public key authentication for better security
-  passwordAuthentication = false;
-  kbdInteractiveAuthentication = false;
 };
 
   # Open ports in the firewall.
@@ -179,9 +185,17 @@ nix.settings.auto-optimise-store = true;
 # HIP for amd
 systemd.tmpfiles.rules = [
     "L+    /opt/rocm/hip   -    -    -     -    ${pkgs.rocmPackages.clr}"
+    "d /mnt/render 0770 render video - -"
   ];
 
 #NETWORK SHARE
+
+ users.users.render = {
+ isNormalUser = true;
+     extraGroups = [ "video" "networkmanager"]; # Enable ‘sudo’ for the user.
+     packages = with pkgs; [
+     ];
+   };
 
 services.samba-wsdd = {
   # make shares visible for Windows clients
@@ -202,19 +216,19 @@ services.samba = {
     # note: localhost is the ipv6 localhost ::1
     hosts allow = 192.168.1. 127.0.0.1 localhost
     hosts deny = 0.0.0.0/0
-    guest account = nobody
+    guest account = render
     map to guest = bad user
   '';
   shares = {
     public = {
-      path = "/mnt/Shares/Public";
+      path = "/mnt/render";
       browseable = "yes";
       "read only" = "no";
       "guest ok" = "yes";
-      "create mask" = "0644";
-      "directory mask" = "0755";
-      "force user" = "username";
-      "force group" = "groupname";
+      "create mask" = "0666";
+      "directory mask" = "0777";
+      "force user" = "render";
+#      "force group" = "groupname";
     };
     edeetee = {
       path = "/home/edeetee";
