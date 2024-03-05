@@ -91,6 +91,7 @@ in
 				ruff-lsp.enable = true;
 			};
 		};
+		navigator.enable = true;
 		copilot-vim.enable = true;
 		conform-nvim = {
 			formatOnSave = {
