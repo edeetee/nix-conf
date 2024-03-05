@@ -66,7 +66,7 @@ in
 	rocmPackages.rocm-smi
 	tmux
 	nvtop-amd
-	blender
+	blender-hip
    ];
 
    programs.nixvim = {
