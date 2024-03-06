@@ -6,11 +6,11 @@
 		inputs.nixpkgs.follows = "nixpkgs";
 	};
 
-	outputs = { self, nixpkgs, nixvim, ... }@attrs: {
+	outputs = { self, nixpkgs, nixvim, flamenco, ... }@attrs: {
 		nixosConfigurations.nixos-desktop = nixpkgs.lib.nixosSystem {
 			system = "x86_64-linux";
 			specialArgs = { inherit attrs; };
-			modules = [ ./configuration.nix nixvim.nixosModules.nixvim ./ati-server-hardware-configuration.nix  ];
+			modules = [ ./configuration.nix nixvim.nixosModules.nixvim ./ati-server-hardware-configuration.nix flamenco.nixosModules.flamenco ];
 		};
 	};
 }

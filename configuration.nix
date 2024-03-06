@@ -27,6 +27,8 @@
 				desktopManager.gnome.enable = true;
 		};
 
+		services.flamenco.enable = true;
+
 		security.polkit.extraConfig = ''
 				polkit.addRule(function(action, subject) {
 								if (action.id == "org.freedesktop.login1.suspend" ||
@@ -89,6 +91,19 @@
 						action = "<Nop>";
 				}];
 
+				extraConfigLua = ''
+						vim.keymap.set("i", '<Tab>', function()
+							if require("copilot.suggestion").is_visible() then
+							require("copilot.suggestion").accept()
+							else
+							vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<Tab>", true, false, true), "n", false)
+							end
+							end, {
+							silent = true,
+						})
+						vim.keymap.set("n", '<leader> <Tab>', ":NvimTreeToggle<cr>", {silent = true, noremap = true})
+				'';
+
 
 				globals.mapleader = " ";
 
@@ -111,6 +126,14 @@
 								enable = true;
 								autoStart = true;
 								alwaysComplete = true;
+								installArtifacts = true;
+						};
+						coq-thirdparty = {
+							sources = [{
+								acceptKey = "<TAB>";
+								short_name = "COP";
+								src = "copilot";
+							}];
 						};
 						persistence.enable = true;
 						floaterm.enable = true;
@@ -124,7 +147,16 @@
 						};
 						telescope.enable = true;
 						#dashboard.enable = true;
-						copilot-vim.enable = true;
+						#copilot-vim.enable = true;
+						copilot-lua = {
+							enable = true;
+							suggestion = {
+								autoTrigger = true;
+								keymap = {
+									accept = "<C-i>";
+								};
+							};	
+						};
 						conform-nvim = {
 								formatOnSave = {
 										lspFallback = true;
