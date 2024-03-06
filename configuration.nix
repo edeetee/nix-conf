@@ -3,107 +3,135 @@
 # and in the NixOS manual (accessible by running ‘nixos-help’).
 
 { config, pkgs, lib, ... }:
-let
-nixvim = import (builtins.fetchGit {
-		url = "https://github.com/nix-community/nixvim";
-# If you are not running an unstable channel of nixpkgs, select the corresponding branch of nixvim.
-		});
-in
 {
-	imports =
-		[ # Include the results of the hardware scan.
-		./ati-server-hardware-configuration.nix
-		nixvim.nixosModules.nixvim
-		];
 
 # Use the systemd-boot EFI boot loader.
-	boot.loader.systemd-boot.enable = true;
-	boot.loader.efi.canTouchEfiVariables = true;
-	boot.loader.systemd-boot.configurationLimit = 5;
+		boot.loader.systemd-boot.enable = true;
+		boot.loader.efi.canTouchEfiVariables = true;
+		boot.loader.systemd-boot.configurationLimit = 5;
 
-	networking.networkmanager.enable = true;  # Easiest to use and most distros use this by default.
-		networking.nameservers = ["1.1.1.1" "8.8.8.8"];
-	networking.hostName = "nixos-desktop";
-	time.timeZone = "Pacific/Auckland";
+		networking.networkmanager.enable = true;  # Easiest to use and most distros use this by default.
+				networking.nameservers = ["1.1.1.1" "8.8.8.8"];
+		networking.hostName = "nixos-desktop";
+		time.timeZone = "Pacific/Auckland";
 
+		
 # Select internationalisation properties.
 
 # Enable the X11 windowing system.
-	services.xserver = {
-		enable = true;
-		displayManager.gdm.enable = true;
-		displayManager.gdm.autoSuspend = false;
+		services.xserver = {
+				enable = true;
+				displayManager.gdm.enable = true;
+				displayManager.gdm.autoSuspend = false;
 
-		desktopManager.gnome.enable = true;
-	};
+				desktopManager.gnome.enable = true;
+		};
 
-	security.polkit.extraConfig = ''
-		polkit.addRule(function(action, subject) {
-				if (action.id == "org.freedesktop.login1.suspend" ||
-						action.id == "org.freedesktop.login1.suspend-multiple-sessions" ||
-						action.id == "org.freedesktop.login1.hibernate" ||
-						action.id == "org.freedesktop.login1.hibernate-multiple-sessions")
-				{
-				return polkit.Result.NO;
-				}
-				});
-	'';
+		security.polkit.extraConfig = ''
+				polkit.addRule(function(action, subject) {
+								if (action.id == "org.freedesktop.login1.suspend" ||
+												action.id == "org.freedesktop.login1.suspend-multiple-sessions" ||
+												action.id == "org.freedesktop.login1.hibernate" ||
+												action.id == "org.freedesktop.login1.hibernate-multiple-sessions")
+								{
+								return polkit.Result.NO;
+								}
+								});
+		'';
 
 # Define a user account. Don't forget to set a password with ‘passwd’.
-	users.users.edeetee = {
-		isNormalUser = true;
-		extraGroups = [ "wheel" "video" "networkmanager"]; # Enable ‘sudo’ for the user.
-			packages = with pkgs; [
-			];
-	};
+		users.users.edeetee = {
+				isNormalUser = true;
+				extraGroups = [ "wheel" "video" "networkmanager"]; # Enable ‘sudo’ for the user.
+						packages = with pkgs; [
+						];
+		};
 
 # List packages installed in system profile. To search, run:
 # $ nix search wget
-	environment.systemPackages = with pkgs; [
-		vim
-			wget
-			git
-			rocmPackages.rocm-smi
-			tmux
-			nvtop-amd
-			blender-hip
-	];
+		environment.systemPackages = with pkgs; [
+				vim
+						wget
+						git
+						rocmPackages.rocm-smi
+						tmux
+						nvtop-amd
+						blender-hip
+		];
 
-	programs.nixvim = {
-		enable = true;
-		defaultEditor = true;
-		colorschemes.gruvbox.enable = true;
-		plugins.lightline.enable = true;
-		options = {
-			number = true;
-			relativenumber = true;
-			tabstop = 4;
+		fonts = {
+			packages = with pkgs; [
+				julia-mono
+			];
+			fontconfig.defaultFonts = {
+				monospace = ["Julia Mono"];
+			};
 		};
-		plugins = {
-			lsp = {
+
+# https://github.com/nix-community/nixvim/tree/main
+		programs.nixvim = {
 				enable = true;
-				servers = {
-					nil_ls.enable = true;
-					rust-analyzer = {
-						enable = true;
-						installCargo = true;
-						installRustc = true;
-					};
-					bashls.enable = true;
-					ruff-lsp.enable = true;
+				defaultEditor = true;
+
+
+				colorschemes.gruvbox.enable = true;
+				options = {
+						number = true;
+						relativenumber = true;
+						tabstop = 4;
+						shiftwidth = 4;
+						smartindent = true;
 				};
-			};
-			navigator.enable = true;
-			copilot-vim.enable = true;
-			conform-nvim = {
-				formatOnSave = {
-					lspFallback = true;
-					timeoutMs = 500;
+
+				keymaps = [{
+						key = " ";
+						mode = "n";
+						action = "<Nop>";
+				}];
+
+
+				globals.mapleader = " ";
+
+				plugins = {
+						lightline.enable = true;
+						lsp = {
+								enable = true;
+								servers = {
+										nil_ls.enable = true;
+										rust-analyzer = {
+												enable = true;
+												installCargo = true;
+												installRustc = true;
+										};
+										bashls.enable = true;
+										ruff-lsp.enable = true;
+								};
+						};
+						coq-nvim = {
+								enable = true;
+								autoStart = true;
+								alwaysComplete = true;
+						};
+						persistence.enable = true;
+						floaterm.enable = true;
+						goyo.enable = true;
+						noice.enable = true;
+						which-key.enable = true;
+						neogit.enable = true;
+						nvim-tree.enable = true;
+						telescope.enable = true;
+						copilot-vim.enable = true;
+						conform-nvim = {
+								formatOnSave = {
+										lspFallback = true;
+										timeoutMs = 500;
+								};
+						};
 				};
-			};
+
 		};
 
-	};
+
 
 # Some programs need SUID wrappers, can be configured further or are
 # started in user sessions.
@@ -116,20 +144,20 @@ in
 # List services that you want to enable:
 
 # Enable the OpenSSH daemon.
-	services.openssh = {
-		enable = true;
-		settings = {
-			PasswordAuthentication = false;
-			KbdInteractiveAuthentication = false;
-		};	
+		services.openssh = {
+				enable = true;
+				settings = {
+						PasswordAuthentication = false;
+						KbdInteractiveAuthentication = false;
+				};	
 # require public key authentication for better security
-	};
+		};
 
 # Open ports in the firewall.
 # networking.firewall.allowedTCPPorts = [ ... ];
 # networking.firewall.allowedUDPPorts = [ ... ];
 # Or disable the firewall altogether.
-	networking.firewall.enable = false;
+		networking.firewall.enable = false;
 
 # Copy the NixOS configuration file and link it from the resulting system
 # (/run/current-system/configuration.nix). This is useful in case you
@@ -142,11 +170,11 @@ in
 # this value at the release version of the first install of this system.
 # Before changing this value read the documentation for this option
 # (e.g. man configuration.nix or on https://nixos.org/nixos/options.html).
-	system.stateVersion = "23.11"; # Did you read the comment?
+		system.stateVersion = "23.11"; # Did you read the comment?
 
 
 #MY EDITS
-		programs.nix-ld.enable = true;
+				programs.nix-ld.enable = true;
 
 #  environment.variables = {
 #      NIX_LD_LIBRARY_PATH = lib.makeLibraryPath [
@@ -154,95 +182,115 @@ in
 #      ];
 #      NIX_LD = lib.fileContents "${pkgs.stdenv.cc}/nix-support/dynamic-linker";
 #  };
+		
+		
+		programs.zsh = {
+			enable = true;
+			enableCompletion = true;
+			autosuggestions.enable = true;
+			syntaxHighlighting.enable = true;
 
-	nix.settings.experimental-features = "nix-command flakes";
+			shellAliases = {
+    			ll = "ls -l";
+    			update = "sudo nixos-rebuild switch";
+				v = "nvim";
+ 	 		};
+			    promptInit = ''
+      eval "$(${pkgs.starship}/bin/starship init zsh)"
+    '';
 
-	boot.supportedFilesystems = [ "ntfs" ];
 
-	nixpkgs.config.allowUnfree = true;
+		};
+		users.defaultUserShell = pkgs.zsh;
 
-	nix.gc = {
-		automatic = true;
-		randomizedDelaySec = "14m";
-		options = "--delete-older-than 10d";
-	};
+		nix.settings.experimental-features = "nix-command flakes";
 
-	boot.initrd.kernelModules = ["amdgpu"];
-	services.xserver.videoDrivers = [ "amdgpu" ];
-	hardware.opengl.extraPackages = with pkgs; [
-		rocm-opencl-icd
-			rocm-opencl-runtime
-	];
+		boot.supportedFilesystems = [ "ntfs" ];
 
-	boot.binfmt.emulatedSystems = [ "aarch64-linux" ];
+		nixpkgs.config.allowUnfree = true;
 
-	hardware.opengl.driSupport = true;
+		nix.gc = {
+				automatic = true;
+				randomizedDelaySec = "14m";
+				options = "--delete-older-than 10d";
+		};
+
+		boot.initrd.kernelModules = ["amdgpu"];
+		services.xserver.videoDrivers = [ "amdgpu" ];
+		hardware.opengl.extraPackages = with pkgs; [
+				rocm-opencl-icd
+						rocm-opencl-runtime
+		];
+
+		boot.binfmt.emulatedSystems = [ "aarch64-linux" ];
+
+		hardware.opengl.driSupport = true;
 # For 32 bit applications
-	hardware.opengl.driSupport32Bit = true;
-	hardware.opengl.enable = true;
+		hardware.opengl.driSupport32Bit = true;
+		hardware.opengl.enable = true;
 
 #auto delete
-	nix.settings.auto-optimise-store = true;
+		nix.settings.auto-optimise-store = true;
 
 # HIP for amd
-	systemd.tmpfiles.rules = [
-		"L+    /opt/rocm/hip   -    -    -     -    ${pkgs.rocmPackages.clr}"
-			"d /mnt/render 0770 render video - -"
-	];
+		systemd.tmpfiles.rules = [
+				"L+    /opt/rocm/hip   -    -    -     -    ${pkgs.rocmPackages.clr}"
+						"d /mnt/render 0770 render video - -"
+		];
 
 #NETWORK SHARE
 
-	users.users.render = {
-		isNormalUser = true;
-		extraGroups = [ "video" "networkmanager"]; # Enable ‘sudo’ for the user.
-			packages = with pkgs; [
-			];
-	};
+		users.users.render = {
+				isNormalUser = true;
+				extraGroups = [ "video" "networkmanager"]; # Enable ‘sudo’ for the user.
+						packages = with pkgs; [
+						];
+		};
 
-	services.samba-wsdd = {
+		services.samba-wsdd = {
 # make shares visible for Windows clients
-		enable = true;
+				enable = true;
 # openFirewall = true;
-	};
+		};
 
-	services.samba = {
-		enable = true;
-		securityType = "user";
-		extraConfig = ''
-			workgroup = WORKGROUP
-			server string = smbnix
-			netbios name = smbnix
-			security = user 
+		services.samba = {
+				enable = true;
+				securityType = "user";
+				extraConfig = ''
+						workgroup = WORKGROUP
+						server string = smbnix
+						netbios name = smbnix
+						security = user 
 #use sendfile = yes
 #max protocol = smb2
 # note: localhost is the ipv6 localhost ::1
-			hosts allow = 192.168.1. 127.0.0.1 localhost
-			hosts deny = 0.0.0.0/0
-			guest account = render
-			map to guest = bad user
-			'';
-		shares = {
-			public = {
-				path = "/mnt/render";
-				browseable = "yes";
-				"read only" = "no";
-				"guest ok" = "yes";
-				"create mask" = "0666";
-				"directory mask" = "0777";
-				"force user" = "render";
+						hosts allow = 192.168.1. 127.0.0.1 localhost
+						hosts deny = 0.0.0.0/0
+						guest account = render
+						map to guest = bad user
+						'';
+				shares = {
+						public = {
+								path = "/mnt/render";
+								browseable = "yes";
+								"read only" = "no";
+								"guest ok" = "yes";
+								"create mask" = "0666";
+								"directory mask" = "0777";
+								"force user" = "render";
 #      "force group" = "groupname";
-			};
-			edeetee = {
-				path = "/home/edeetee";
-				browseable = "yes";
-				"read only" = "no";
-				"guest ok" = "no";
-				"create mask" = "0644";
-				"directory mask" = "0755";
-				"force user" = "edeetee";
-				"force group" = "wheel";
-			};
+						};
+						edeetee = {
+								path = "/home/edeetee";
+								browseable = "yes";
+								"read only" = "no";
+								"guest ok" = "no";
+								"create mask" = "0644";
+								"directory mask" = "0755";
+								"force user" = "edeetee";
+								"force group" = "wheel";
+						};
+				};
 		};
-	};
 
 }
