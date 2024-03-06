@@ -118,8 +118,12 @@
 						noice.enable = true;
 						which-key.enable = true;
 						neogit.enable = true;
-						nvim-tree.enable = true;
+						nvim-tree = {
+							enable = true;
+							openOnSetup = true;
+						};
 						telescope.enable = true;
+						#dashboard.enable = true;
 						copilot-vim.enable = true;
 						conform-nvim = {
 								formatOnSave = {
