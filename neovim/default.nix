@@ -4,7 +4,7 @@
     # https://github.com/nix-community/nixvim/tree/main
     programs.nixvim = {
             enable = true;
-            defaultEditor = true;
+        #     defaultEditor = true;
 
             colorschemes.gruvbox.enable = true;
             options = {
