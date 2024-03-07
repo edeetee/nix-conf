@@ -5,60 +5,57 @@
 { config, pkgs, lib, ... }:
 {
 
-# Use the systemd-boot EFI boot loader.
-		boot.loader.systemd-boot.enable = true;
-		boot.loader.efi.canTouchEfiVariables = true;
-		boot.loader.systemd-boot.configurationLimit = 5;
+	# Use the systemd-boot EFI boot loader.
+	boot.loader.systemd-boot.enable = true;
+	boot.loader.efi.canTouchEfiVariables = true;
+	boot.loader.systemd-boot.configurationLimit = 5;
 
-		networking.networkmanager.enable = true;  # Easiest to use and most distros use this by default.
-				networking.nameservers = ["1.1.1.1" "8.8.8.8"];
-		networking.hostName = "nixos-desktop";
-		time.timeZone = "Pacific/Auckland";
+	networking.networkmanager.enable = true;  # Easiest to use and most distros use this by default.
+	networking.nameservers = ["1.1.1.1" "8.8.8.8"];
+	networking.hostName = "nixos-desktop";
+	time.timeZone = "Pacific/Auckland";
 
-		
-# Select internationalisation properties.
+	# Enable the X11 windowing system.
+	services.xserver = {
+			enable = true;
+			displayManager.gdm.enable = true;
+			displayManager.gdm.autoSuspend = false;
 
-# Enable the X11 windowing system.
-		services.xserver = {
-				enable = true;
-				displayManager.gdm.enable = true;
-				displayManager.gdm.autoSuspend = false;
+			desktopManager.gnome.enable = true;
+	};
 
-				desktopManager.gnome.enable = true;
-		};
+	services.flamenco.enable = true;
 
-		services.flamenco.enable = true;
-
-		security.polkit.extraConfig = ''
-				polkit.addRule(function(action, subject) {
-								if (action.id == "org.freedesktop.login1.suspend" ||
-												action.id == "org.freedesktop.login1.suspend-multiple-sessions" ||
-												action.id == "org.freedesktop.login1.hibernate" ||
-												action.id == "org.freedesktop.login1.hibernate-multiple-sessions")
-								{
-								return polkit.Result.NO;
-								}
-								});
-		'';
+	security.polkit.extraConfig = ''
+			polkit.addRule(function(action, subject) {
+							if (action.id == "org.freedesktop.login1.suspend" ||
+											action.id == "org.freedesktop.login1.suspend-multiple-sessions" ||
+											action.id == "org.freedesktop.login1.hibernate" ||
+											action.id == "org.freedesktop.login1.hibernate-multiple-sessions")
+							{
+							return polkit.Result.NO;
+							}
+							});
+	'';
 
 # Define a user account. Don't forget to set a password with ‘passwd’.
-		users.users.edeetee = {
-				isNormalUser = true;
-				extraGroups = [ "wheel" "video" "networkmanager"]; # Enable ‘sudo’ for the user.
-						packages = with pkgs; [
-						];
-		};
+	users.users.edeetee = {
+			isNormalUser = true;
+			extraGroups = [ "wheel" "video" "networkmanager"]; # Enable ‘sudo’ for the user.
+					packages = with pkgs; [
+					];
+	};
 
 # List packages installed in system profile. To search, run:
 # $ nix search wget
 		environment.systemPackages = with pkgs; [
-				vim
-						wget
-						git
-						rocmPackages.rocm-smi
-						tmux
-						nvtop-amd
-						blender-hip
+			vim
+			wget
+			git
+			rocmPackages.rocm-smi
+			tmux
+			nvtop-amd
+			blender-hip
 		];
 
 		fonts = {
@@ -71,17 +68,6 @@
 		};
 
 
-
-# Some programs need SUID wrappers, can be configured further or are
-# started in user sessions.
-# programs.mtr.enable = true;
-# programs.gnupg.agent = {
-#   enable = true;
-#   enableSSHSupport = true;
-# };
-
-# List services that you want to enable:
-
 # Enable the OpenSSH daemon.
 		services.openssh = {
 				enable = true;
@@ -89,8 +75,8 @@
 						PasswordAuthentication = false;
 						KbdInteractiveAuthentication = false;
 				};	
-# require public key authentication for better security
 		};
+
 
 # Open ports in the firewall.
 # networking.firewall.allowedTCPPorts = [ ... ];
@@ -98,21 +84,12 @@
 # Or disable the firewall altogether.
 		networking.firewall.enable = false;
 
-# Copy the NixOS configuration file and link it from the resulting system
-# (/run/current-system/configuration.nix). This is useful in case you
-# accidentally delete configuration.nix.
-# system.copySystemConfiguration = true;
 
-# This value determines the NixOS release from which the default
-# settings for stateful data, like file locations and database versions
-# on your system were taken. It‘s perfectly fine and recommended to leave
-# this value at the release version of the first install of this system.
-# Before changing this value read the documentation for this option
-# (e.g. man configuration.nix or on https://nixos.org/nixos/options.html).
+
+## DO NOT CHANGE, used for backwards compatibility and upgrade logic
 		system.stateVersion = "23.11"; # Did you read the comment?
 
 
-#MY EDITS
 				programs.nix-ld.enable = true;
 
 #  environment.variables = {
@@ -122,6 +99,7 @@
 #      NIX_LD = lib.fileContents "${pkgs.stdenv.cc}/nix-support/dynamic-linker";
 #  };
 		
+	programs.nixvim.defaultEditor = true;
 		
 		programs.zsh = {
 			enable = true;

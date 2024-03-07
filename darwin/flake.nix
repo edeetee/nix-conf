@@ -20,7 +20,8 @@
       environment.systemPackages =
         [ 
             # pkgs.vim
-            # pkgs.nixfmt
+            pkgs.nixfmt
+            pkgs.nil
         ];
 
       # Auto upgrade nix package and the daemon service.
@@ -29,7 +30,6 @@
 
       # Necessary for using flakes on this system.
       nix.settings.experimental-features = "nix-command flakes";
-
 
       # Create /etc/zshrc that loads the nix-darwin environment.
       programs.zsh.enable = true;  # default shell on catalina
@@ -50,7 +50,11 @@
     # Build darwin flake using:
     # $ darwin-rebuild build --flake .#simple
     darwinConfigurations."Edwards-MacBook-Max" = nix-darwin.lib.darwinSystem {
-      modules = [ configuration nixvim.nixDarwinModules.nixvim ../neovim];
+      modules = [ 
+        configuration 
+        nixvim.nixDarwinModules.nixvim 
+        ../neovim
+      ];
     };
 
     # Expose the package set, including overlays, for convenience.
