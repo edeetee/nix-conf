@@ -25,6 +25,10 @@
 					key = "<leader><Tab>";
 					action = "<cmd>NvimTreeFocus<CR>";
 				}
+				{
+					key = "<leader>g";
+					action = "<cmd>Neogit<CR>";
+				}
 			];
 
             extraConfigLua = ''
