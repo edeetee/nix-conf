@@ -1,10 +1,14 @@
 #!/usr/bin/env bash
 
+set -e
+
 cd "$(dirname "$0")"
 
-set -e
+sudo su
 
 nixos-rebuild "$@"
 git add .
 git commit -a
 git push
+
+exit

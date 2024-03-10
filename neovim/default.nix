@@ -15,11 +15,17 @@
                     smartindent = true;
             };
 
-            keymaps = [{
+            keymaps = [
+				{
                     key = " ";
                     mode = "n";
                     action = "<Nop>";
-            }];
+            	}
+				{
+					key = "<leader><Tab>";
+					action = "<cmd>NvimTreeFocus<CR>";
+				}
+			];
 
             extraConfigLua = ''
                     vim.keymap.set("i", '<Tab>', function()
@@ -31,7 +37,6 @@
                         end, {
                         silent = true,
                     })
-                    vim.keymap.set("n", '<leader> <Tab>', ":NvimTreeToggle<cr>", {silent = true, noremap = true})
             '';
 
 

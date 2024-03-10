@@ -89,7 +89,6 @@
 ## DO NOT CHANGE, used for backwards compatibility and upgrade logic
 		system.stateVersion = "23.11"; # Did you read the comment?
 
-
 				programs.nix-ld.enable = true;
 
 #  environment.variables = {
