@@ -9,7 +9,7 @@
 	outputs = 
 	{ self, nixpkgs, nixvim, flamenco, ... }@attrs: 
 	let
-		flake-conf = {self, ...}: {
+		flake-conf = {...}: {
 			environment.shellAliases = {
 				nrebuild = "${self}/rebuild.sh";
 			};
