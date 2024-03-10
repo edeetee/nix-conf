@@ -24,7 +24,6 @@
 			desktopManager.gnome.enable = true;
 	};
 
-	services.flamenco.enable = true;
 
 	security.polkit.extraConfig = ''
 			polkit.addRule(function(action, subject) {
@@ -125,34 +124,17 @@
 
 		nixpkgs.config.allowUnfree = true;
 
+#auto delete
+		nix.settings.auto-optimise-store = true;
 		nix.gc = {
 				automatic = true;
 				randomizedDelaySec = "14m";
 				options = "--delete-older-than 10d";
 		};
 
-		boot.initrd.kernelModules = ["amdgpu"];
-		services.xserver.videoDrivers = [ "amdgpu" ];
-		hardware.opengl.extraPackages = with pkgs; [
-				rocm-opencl-icd
-						rocm-opencl-runtime
-		];
 
 		boot.binfmt.emulatedSystems = [ "aarch64-linux" ];
 
-		hardware.opengl.driSupport = true;
-# For 32 bit applications
-		hardware.opengl.driSupport32Bit = true;
-		hardware.opengl.enable = true;
-
-#auto delete
-		nix.settings.auto-optimise-store = true;
-
-# HIP for amd
-		systemd.tmpfiles.rules = [
-				"L+    /opt/rocm/hip   -    -    -     -    ${pkgs.rocmPackages.clr}"
-						"d /mnt/render 0770 render video - -"
-		];
 
 #NETWORK SHARE
 
@@ -162,6 +144,10 @@
 						packages = with pkgs; [
 						];
 		};
+
+
+
+	services.flamenco.enable = true;
 
 		services.samba-wsdd = {
 # make shares visible for Windows clients
