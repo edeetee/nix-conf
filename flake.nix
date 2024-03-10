@@ -7,14 +7,15 @@
 	};
 
 	outputs = 
+	{ self, nixpkgs, nixvim, flamenco, ... }@attrs: 
 	let
 		flake-conf = {self, ...}: {
 			environment.shellAliases = {
 				nrebuild = "${self}/rebuild.sh";
 			};
 		};
-	in
-	{ self, nixpkgs, nixvim, flamenco, ... }@attrs: {
+	in 
+	{
 		nixosConfigurations.nixos-desktop = nixpkgs.lib.nixosSystem {
 			system = "x86_64-linux";
 			specialArgs = { inherit attrs; };
