@@ -13,6 +13,7 @@
                     tabstop = 4;
                     shiftwidth = 4;
                     smartindent = true;
+					scrolloff = 6;
             };
 
             keymaps = [
@@ -28,6 +29,10 @@
 				{
 					key = "<leader>g";
 					action = "<cmd>Neogit<CR>";
+				}
+				{
+					key = "<leader>t";
+					action = "<cmd>FloatermToggle<CR>";
 				}
 			];
 
@@ -48,6 +53,11 @@
 
             plugins = {
                     lightline.enable = true;
+
+					dap = {
+						enable = true;
+					};
+
                     lsp = {
                             enable = true;
                             servers = {
