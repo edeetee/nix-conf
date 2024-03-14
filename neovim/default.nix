@@ -70,7 +70,8 @@
                         	require("copilot.suggestion").accept()
                         else
 							if vim.fn.pumvisible() == 1 then
-								return '<c-n>'
+								--return '<C-n>'
+								vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes('<C-n>', true, false, true), "n", false)
 							else
 								require("intellitab").indent()
 							end
