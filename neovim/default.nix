@@ -110,6 +110,7 @@
 									"gt" = "type_definition";
 									"gi" = "implementation";
 									"K" = "hover";
+									"ga" = "code_action";
 								};
 							};
                             servers = {
@@ -130,7 +131,10 @@
                             installArtifacts = true;
 							recommendedKeymaps = false;
                     };
+					rustaceanvim = {
+						enable = true;
 
+					};	
                     # coq-thirdparty = {
                     #    sources = [{
                     #        accept_key = "<Tab>";
@@ -146,12 +150,31 @@
                     noice.enable = true;
                     which-key.enable = true;
                     neogit.enable = true;
+					diffview.enable = true;
                     nvim-tree = {
                         enable = true;
                         openOnSetup = true;
                     };
 					treesitter.enable = true;
-                    telescope.enable = true;
+                    telescope = {
+						enable = true;
+						extensions = {
+							fzf-native.enable = true;
+							ui-select.enable = true;
+						};
+						keymaps = {
+							"<leader>ff" = "find_files";
+							"<leader>fg" = "live_grep";
+							"<leader>fb" = "buffers";
+							"<leader>fh" = "help_tags";
+							"<leader>fr" = "oldfiles";
+							"<leader>ft" = "tags";
+							"<leader>fs" = "lsp_document_symbols";
+							"<leader>fw" = "lsp_workspace_symbols";
+							"<leader>fp" = "lsp_references";
+							"<leader>fl" = "lsp_definitions";
+						};
+					};
                     #dashboard.enable = true;
                     #copilot-vim.enable = true;
                     copilot-lua = {
