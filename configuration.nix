@@ -15,13 +15,17 @@
 	networking.hostName = "nixos-desktop";
 	time.timeZone = "Pacific/Auckland";
 
+	#services.devmon.enable = true;
+	#services.gvfs.enable = true; 
+	services.udisks2.enable = true;
+
 	# Enable the X11 windowing system.
 	services.xserver = {
 			enable = true;
-			displayManager.gdm.enable = true;
-			displayManager.gdm.autoSuspend = false;
+			#displayManager.gdm.enable = true;
+			#displayManager.gdm.autoSuspend = false;
 
-			desktopManager.gnome.enable = true;
+			#desktopManager.gnome.enable = true;
 	};
 
 
@@ -40,7 +44,7 @@
 # Define a user account. Don't forget to set a password with ‘passwd’.
 	users.users.edeetee = {
 			isNormalUser = true;
-			extraGroups = [ "wheel" "video" "networkmanager"]; # Enable ‘sudo’ for the user.
+			extraGroups = [ "wheel" "video" "networkmanager" "gdm"]; # Enable ‘sudo’ for the user.
 					packages = with pkgs; [
 					];
 	};
@@ -153,6 +157,15 @@
 # make shares visible for Windows clients
 				enable = true;
 # openFirewall = true;
+		};
+
+		fileSystems."/mnt/OPTIPHONIC" = {
+			fsType = "exfat";
+			device = "/dev/disk/by-uuid/80A1-F7DE";
+			options = [
+				"x-systemd.automount"
+				"nofail"
+			];
 		};
 
 		services.samba = {
