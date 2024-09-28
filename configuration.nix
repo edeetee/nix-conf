@@ -22,10 +22,10 @@
 # Enable the X11 windowing system.
 	services.xserver = {
 		enable = true;
-#displayManager.gdm.enable = true;
-#displayManager.gdm.autoSuspend = false;
+displayManager.gdm.enable = true;
+displayManager.gdm.autoSuspend = false;
 
-#desktopManager.gnome.enable = true;
+desktopManager.gnome.enable = true;
 	};
 
 	services.zerotierone = {
