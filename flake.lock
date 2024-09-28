@@ -113,8 +113,8 @@
         "utils": "utils_2"
       },
       "locked": {
-        "lastModified": 1727494278,
-        "narHash": "sha256-uuGf0FxcYKCC+T0pSkZ2afuOxY5sbsPrnr8R/Tk1cnk=",
+        "lastModified": 1727498698,
+        "narHash": "sha256-TkE4oGFBJvQso6Xu50oUUC8G/LaP97BO4Bf0EInHkls=",
         "path": "/home/edeetee/dev/flamenco-nix",
         "type": "path"
       },

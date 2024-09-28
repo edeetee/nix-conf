@@ -7,7 +7,7 @@
         #     defaultEditor = true;
 			
             colorschemes.gruvbox.enable = true;
-            options = {
+            opts = {
                     number = true;
                     relativenumber = true;
                     tabstop = 4;
@@ -131,10 +131,6 @@
                             installArtifacts = true;
 							recommendedKeymaps = false;
                     };
-					rustaceanvim = {
-						enable = true;
-
-					};	
                     # coq-thirdparty = {
                     #    sources = [{
                     #        accept_key = "<Tab>";
@@ -186,8 +182,8 @@
                             };
                         };	
                     };
-                    conform-nvim = {
-                            formatOnSave = {
+                    conform-nvim.settings = {
+                            format_on_save = {
                                     lspFallback = true;
                                     timeoutMs = 500;
                             };
