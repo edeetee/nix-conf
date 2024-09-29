@@ -173,7 +173,7 @@ desktopManager.gnome.enable = true;
 #NETWORK SHARE
 
 	users.users.render = {
-		isNormalUser = true;
+		# isNormalUser = true;
 		extraGroups = [ "video" "networkmanager"]; # Enable ‘sudo’ for the user.
 			packages = with pkgs; [
 			];
@@ -181,7 +181,18 @@ desktopManager.gnome.enable = true;
 
 
 
-	services.flamenco.enable = true;
+	services.flamenco = {
+		enable = true;
+		role = ["manager" "worker"];
+		user = "render";
+		listen = {
+			ip = "";
+			port = 8080;
+		};
+		managerConfig = {
+			shared_storage_path = "/mnt/render";
+		};
+	};
 
 # systemd.services.comfyui = {
 # 	wantedBy = [ "multi-user.target" ];
