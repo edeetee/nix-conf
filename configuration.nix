@@ -61,7 +61,7 @@ desktopManager.gnome.enable = true;
 # Define a user account. Don't forget to set a password with ‘passwd’.
 	users.users.edeetee = {
 		isNormalUser = true;
-		extraGroups = [ "wheel" "video" "networkmanager" "gdm"]; # Enable ‘sudo’ for the user.
+		extraGroups = [ "wheel" "video" "networkmanager" "gdm" "render"]; # Enable ‘sudo’ for the user.
 			packages = with pkgs; [
 			];
 	};
@@ -173,10 +173,16 @@ desktopManager.gnome.enable = true;
 #NETWORK SHARE
 
 	users.users.render = {
-		# isNormalUser = true;
-		extraGroups = [ "video" "networkmanager"]; # Enable ‘sudo’ for the user.
+		isNormalUser = true;
+		# isSystemUser = true;
+		group = "render";
+		extraGroups = [ "video" "networkmanager" "gdm" "wheel"]; # Enable ‘sudo’ for the user.
 			packages = with pkgs; [
 			];
+	};
+
+	users.groups.render = {
+		# gid = 1000;
 	};
 
 
@@ -191,6 +197,12 @@ desktopManager.gnome.enable = true;
 		};
 		managerConfig = {
 			shared_storage_path = "/mnt/render";
+			variables."blenderArgs".values = [
+				{
+					platform = "all";
+					value = ''-b -y --python-expr "import bpy; c = bpy.context.preferences.addons[\"cycles\"]; cp = c.preferences; cp.compute_device_type = \"HIP\"; print(cp.compute_device_type); cp.get_devices(); [print(x[\"name\"], x[\"use\"]) for x in cp.devices]; print(bpy.data.scenes[0].render.engine)"'';
+				}
+			];
 		};
 	};
 
@@ -260,7 +272,7 @@ desktopManager.gnome.enable = true;
 				"create mask" = "0666";
 				"directory mask" = "0777";
 				"force user" = "render";
-#      "force group" = "groupname";
+     "force group" = "render";
 			};
 			optiphonic = {
 				path = "/mnt/OPTIPHONIC/";

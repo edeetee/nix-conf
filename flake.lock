@@ -113,8 +113,8 @@
         "utils": "utils_2"
       },
       "locked": {
-        "lastModified": 1727650359,
-        "narHash": "sha256-zwKZrbKz2keAv8iRGwqj1hgshk2etQ5hIVpM7Sv7YrE=",
+        "lastModified": 1727870970,
+        "narHash": "sha256-Sz5exOns2P1s7BiiZO9vJA01Y1lTEl4s/VaU0sbzwQ8=",
         "path": "/home/edeetee/dev/flamenco-nix",
         "type": "path"
       },
@@ -234,11 +234,11 @@
     },
     "nixpkgs_2": {
       "locked": {
-        "lastModified": 1727524699,
-        "narHash": "sha256-k6YxGj08voz9NvuKExojiGXAVd69M8COtqWSKr6sQS4=",
+        "lastModified": 1727716680,
+        "narHash": "sha256-uMVkVHL4r3QmlZ1JM+UoJwxqa46cgHnIfqGzVlw5ca4=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "b5b2fecd0cadd82ef107c9583018f381ae70f222",
+        "rev": "b5b22b42c0d10c7d2463e90a546c394711e3a724",
         "type": "github"
       },
       "original": {
