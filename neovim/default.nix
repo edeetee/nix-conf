@@ -122,6 +122,7 @@
                                     };
                                     bashls.enable = true;
                                     ruff-lsp.enable = true;
+									pylsp.enable = true;
                             };
                     };
                     coq-nvim = {
@@ -192,6 +193,7 @@
                                     timeoutMs = 500;
                             };
                     };
+					direnv.enable = true;
             };
 
 		};
