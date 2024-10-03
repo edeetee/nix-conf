@@ -131,6 +131,12 @@ desktopManager.gnome.enable = true;
 
 	programs.nixvim.defaultEditor = true;
 
+	programs.tmux = {
+		enable = true;
+		keyMode = "vi";
+		plugins = [pkgs.tmuxPlugins.catppuccin pkgs.tmuxPlugins.continuum];
+	};
+
 	programs.zsh = {
 		enable = true;
 		enableCompletion = true;
@@ -200,7 +206,7 @@ desktopManager.gnome.enable = true;
 			variables."blenderArgs".values = [
 				{
 					platform = "all";
-					value = ''-b -y --python-expr "import bpy; c = bpy.context.preferences.addons[\"cycles\"]; cp = c.preferences; cp.compute_device_type = \"HIP\"; print(cp.compute_device_type); cp.get_devices(); [print(x[\"name\"], x[\"use\"]) for x in cp.devices]; print(bpy.data.scenes[0].render.engine)"'';
+					value = ''-b -y --python-expr "import bpy; c = bpy.context.preferences.addons[\"cycles\"]; cp = c.preferences; cp.compute_device_type = \"HIP\"; print(cp.compute_device_type); cp.get_devices(); [print(x[\"name\"], x[\"use\"]) for x in cp.devices]; print(bpy.data.scenes[0].render.engine); (obj.select_set(True) for obj in bpy.context.scene.objects); bpy.ops.object.simulation_nodes_cache_bake(selected=True)"'';
 				}
 			];
 		};
@@ -262,6 +268,13 @@ desktopManager.gnome.enable = true;
 #hosts deny = 0.0.0.0/0
 			"guest account" = "render";
 			"map to guest" = "bad user";
+
+			      # Performance
+      "socket options" = "TCP_NODELAY SO_SNDBUF=131072 SO_RCVBUF=131072";
+      "use sendfile" = "yes";
+      "min receivefile size" = 16384;
+      "aio read size" = 16384;
+      "aio write size" = 16384;
 			};
 
 			public = {
