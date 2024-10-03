@@ -7,7 +7,7 @@
         #     defaultEditor = true;
 			
             colorschemes.gruvbox.enable = true;
-            options = {
+            opts = {
                     number = true;
                     relativenumber = true;
                     tabstop = 4;
@@ -16,6 +16,7 @@
 					scrolloff = 6;
             };
 
+			
 			
 
             keymaps = [
@@ -44,6 +45,56 @@
 					action = ''<C-\><C-n>'';
 					mode = "t";
 				}
+			{
+          key = "f";
+          action.__raw = ''
+            function()
+              require'hop'.hint_char1({
+                direction = require'hop.hint'.HintDirection.AFTER_CURSOR,
+                -- current_line_only = true
+              })
+            end
+          '';
+          options.remap = true;
+        }
+        {
+          key = "F";
+          action.__raw = ''
+            function()
+              require'hop'.hint_char1({
+                direction = require'hop.hint'.HintDirection.BEFORE_CURSOR,
+                -- current_line_only = true
+              })
+            end
+          '';
+          options.remap = true;
+        }
+        {
+          key = "t";
+          action.__raw = ''
+            function()
+              require'hop'.hint_char1({
+                direction = require'hop.hint'.HintDirection.AFTER_CURSOR,
+                -- current_line_only = true,
+                hint_offset = -1
+              })
+            end
+          '';
+          options.remap = true;
+        }
+        {
+          key = "T";
+          action.__raw = ''
+            function()
+              require'hop'.hint_char1({
+                direction = require'hop.hint'.HintDirection.BEFORE_CURSOR,
+                -- current_line_only = true,
+                hint_offset = 1
+              })
+            end
+          '';
+          options.remap = true;
+        }
 			];
 
 
@@ -82,6 +133,18 @@
                     end, {
                         silent = true,
                     })
+
+					vim.g.clipboard = {
+  name = 'OSC 52',
+  copy = {
+    ['+'] = require('vim.ui.clipboard.osc52').copy('+'),
+    ['*'] = require('vim.ui.clipboard.osc52').copy('*'),
+  },
+  paste = {
+    ['+'] = require('vim.ui.clipboard.osc52').paste('+'),
+    ['*'] = require('vim.ui.clipboard.osc52').paste('*'),
+  },
+}
             '';
 
 			extraPlugins = with pkgs.vimPlugins; [
@@ -95,6 +158,10 @@
 
 					dap = {
 						enable = true;
+					};
+
+					hop = {
+						enable = true;	
 					};
 
                     lsp = {
@@ -132,10 +199,6 @@
                             installArtifacts = true;
 							recommendedKeymaps = false;
                     };
-					rustaceanvim = {
-						enable = true;
-
-					};	
                     # coq-thirdparty = {
                     #    sources = [{
                     #        accept_key = "<Tab>";
@@ -187,8 +250,8 @@
                             };
                         };	
                     };
-                    conform-nvim = {
-                            formatOnSave = {
+                    conform-nvim.settings = {
+                            format_on_save = {
                                     lspFallback = true;
                                     timeoutMs = 500;
                             };
