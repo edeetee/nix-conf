@@ -17,14 +17,8 @@
     configuration = { pkgs, ... }: {
       # List packages installed in system profile. To search by name, run:
       # $ nix-env -qaP | grep wget
-      environment.systemPackages =
-        [ 
-            # pkgs.vim
-            pkgs.nixfmt
-            pkgs.nil
-        ];
 
-		environment.variables.EDITOR = "nvim";
+	  environment.variables.EDITOR = "nvim";
 
       # Auto upgrade nix package and the daemon service.
       services.nix-daemon.enable = true;
@@ -33,9 +27,21 @@
       # Necessary for using flakes on this system.
       nix.settings.experimental-features = "nix-command flakes";
 
+	environment.shellAliases = {
+			nixrs = "darwin-rebuild switch --flake ~/dev/nix-conf/darwin/";
+ 			ssh="kitty +kitten ssh";
+			"'?'"="gh copilot";
+		};
+
       # Create /etc/zshrc that loads the nix-darwin environment.
-      programs.zsh.enable = true;  # default shell on catalina
+      programs.zsh = {
+				enableSyntaxHighlighting = true;
+				};
       # programs.fish.enable = true;
+	nix.gc = {
+		automatic = true;
+		options = "--delete-older-than 30d";
+	};
 
 
       # Set Git commit hash for darwin-version.
@@ -57,6 +63,7 @@
         configuration 
         nixvim.nixDarwinModules.nixvim 
         ../neovim
+		../common-configuration.nix
       ];
     };
 

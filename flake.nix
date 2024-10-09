@@ -22,7 +22,7 @@
 		in
 		{
 			environment.shellAliases = {
-				nrebuild = "${self}/rebuild.sh";
+				nixrs = "sudo nixos-rebuild switch";
 			};
 
 			# systemd.services.comfyui = {
@@ -45,6 +45,7 @@
 			system = "x86_64-linux";
 			specialArgs = { inherit attrs; };
 			modules = [ 
+				./common-configuration.nix
 				./configuration.nix 
 				nixvim.nixosModules.nixvim 
 				./ati-server-hardware-configuration.nix 

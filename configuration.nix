@@ -5,13 +5,16 @@
 { config, pkgs, lib, ... }:
 {
 
+## DO NOT CHANGE, used for backwards compatibility and upgrade logic
+	system.stateVersion = "23.11"; # Did you read the comment?
+
 # Use the systemd-boot EFI boot loader.
 	boot.loader.systemd-boot.enable = true;
 	boot.loader.efi.canTouchEfiVariables = true;
 	boot.loader.systemd-boot.configurationLimit = 5;
 
 	networking.networkmanager.enable = true;  # Easiest to use and most distros use this by default.
-		networking.nameservers = ["1.1.1.1" "8.8.8.8"];
+	networking.nameservers = ["1.1.1.1" "8.8.8.8"];
 	networking.hostName = "nixos-desktop";
 	time.timeZone = "Pacific/Auckland";
 
@@ -22,10 +25,10 @@
 # Enable the X11 windowing system.
 	services.xserver = {
 		enable = true;
-displayManager.gdm.enable = true;
-displayManager.gdm.autoSuspend = false;
+		displayManager.gdm.enable = true;
+		displayManager.gdm.autoSuspend = false;
 
-desktopManager.gnome.enable = true;
+		desktopManager.gnome.enable = true;
 	};
 
 	services.zerotierone = {
@@ -35,7 +38,6 @@ desktopManager.gnome.enable = true;
 		];
 	};
 
-	programs.direnv.enable = true;
 
 	services.avahi.enable = true;
 	services.avahi.publish.enable = true;
@@ -45,8 +47,7 @@ desktopManager.gnome.enable = true;
 	services.avahi.nssmdns4 = true;
 	services.avahi.publish.workstation = true; # ADDED TO DESKTOP MACHINES
 
-
-		security.polkit.extraConfig = ''
+	security.polkit.extraConfig = ''
 		polkit.addRule(function(action, subject) {
 				if (action.id == "org.freedesktop.login1.suspend" ||
 						action.id == "org.freedesktop.login1.suspend-multiple-sessions" ||
@@ -85,7 +86,6 @@ desktopManager.gnome.enable = true;
 			rocmPackages.rocm-smi
 			nvtop-amd
 			blender-hip
-			screen
 	];
 
 
@@ -117,8 +117,6 @@ desktopManager.gnome.enable = true;
 
 
 
-## DO NOT CHANGE, used for backwards compatibility and upgrade logic
-	system.stateVersion = "23.11"; # Did you read the comment?
 
 	programs.nix-ld.enable = true;
 
@@ -137,41 +135,23 @@ desktopManager.gnome.enable = true;
 		plugins = [pkgs.tmuxPlugins.catppuccin pkgs.tmuxPlugins.continuum];
 	};
 
-	programs.zsh = {
-		enable = true;
-		enableCompletion = true;
-		autosuggestions.enable = true;
-		syntaxHighlighting.enable = true;
-
-		shellAliases = {
-			l = "${pkgs.eza}/bin/eza --icons";
-			ll = "l -l";
-			update = "sudo nixos-rebuild switch";
-			v = "nvim";
-		};
-		promptInit = ''
-			eval "$(${pkgs.starship}/bin/starship init zsh)"
-			'';
-
-
-	};
 	users.defaultUserShell = pkgs.zsh;
 
-	nix.settings.experimental-features = "nix-command flakes";
+	programs.zsh = {
+		autosuggestions.enable = true;
+		syntaxHighlighting.enable = true;
+	};
+
 
 	boot.supportedFilesystems = [ "ntfs" ];
 
-	nixpkgs.config.allowUnfree = true;
-
 #auto delete
-	nix.settings.auto-optimise-store = true;
+
 	nix.gc = {
 		automatic = true;
-		randomizedDelaySec = "14m";
 		dates = "weekly";
 		options = "--delete-older-than 30d";
 	};
-
 
 	boot.binfmt.emulatedSystems = [ "aarch64-linux" ];
 
@@ -180,7 +160,7 @@ desktopManager.gnome.enable = true;
 
 	users.users.render = {
 		isNormalUser = true;
-		# isSystemUser = true;
+# isSystemUser = true;
 		group = "render";
 		extraGroups = [ "video" "networkmanager" "gdm" "wheel"]; # Enable ‘sudo’ for the user.
 			packages = with pkgs; [
@@ -188,7 +168,6 @@ desktopManager.gnome.enable = true;
 	};
 
 	users.groups.render = {
-		# gid = 1000;
 	};
 
 
@@ -204,10 +183,10 @@ desktopManager.gnome.enable = true;
 		managerConfig = {
 			shared_storage_path = "/mnt/render";
 			variables."blenderArgs".values = [
-				{
-					platform = "all";
-					value = ''-b -y --python-expr "import bpy; c = bpy.context.preferences.addons[\"cycles\"]; cp = c.preferences; cp.compute_device_type = \"HIP\"; print(cp.compute_device_type); cp.get_devices(); [print(x[\"name\"], x[\"use\"]) for x in cp.devices]; print(bpy.data.scenes[0].render.engine); (obj.select_set(True) for obj in bpy.context.scene.objects); bpy.ops.object.simulation_nodes_cache_bake(selected=True)"'';
-				}
+			{
+				platform = "all";
+				value = ''-b -y --python-expr "import bpy; c = bpy.context.preferences.addons[\"cycles\"]; cp = c.preferences; cp.compute_device_type = \"HIP\"; print(cp.compute_device_type); cp.get_devices(); [print(x[\"name\"], x[\"use\"]) for x in cp.devices]; print(bpy.data.scenes[0].render.engine); (obj.select_set(True) for obj in bpy.context.scene.objects); bpy.ops.object.simulation_nodes_cache_bake(selected=True)"'';
+			}
 			];
 		};
 	};
@@ -256,25 +235,25 @@ desktopManager.gnome.enable = true;
 		securityType = "user";
 
 		settings = {
-		global = {
-			"workgroup" = "WORKGROUP";
-			"server string" = "smbnix";
-			"netbios name" = "smbnix";
-			"security" = "user"; 
+			global = {
+				"workgroup" = "WORKGROUP";
+				"server string" = "smbnix";
+				"netbios name" = "smbnix";
+				"security" = "user"; 
 #use sendfile = yes
 #max protocol = smb2
 # note: localhost is the ipv6 localhost ::1
-				#"hosts allow" = "192.168.1. 192.168.0. 127.0.0.1 localhost";
+#"hosts allow" = "192.168.1. 192.168.0. 127.0.0.1 localhost";
 #hosts deny = 0.0.0.0/0
-			"guest account" = "render";
-			"map to guest" = "bad user";
+				"guest account" = "render";
+				"map to guest" = "bad user";
 
-			      # Performance
-      "socket options" = "TCP_NODELAY SO_SNDBUF=131072 SO_RCVBUF=131072";
-      "use sendfile" = "yes";
-      "min receivefile size" = 16384;
-      "aio read size" = 16384;
-      "aio write size" = 16384;
+# Performance
+				"socket options" = "TCP_NODELAY SO_SNDBUF=131072 SO_RCVBUF=131072";
+				"use sendfile" = "yes";
+				"min receivefile size" = 16384;
+				"aio read size" = 16384;
+				"aio write size" = 16384;
 			};
 
 			public = {
@@ -285,7 +264,7 @@ desktopManager.gnome.enable = true;
 				"create mask" = "0666";
 				"directory mask" = "0777";
 				"force user" = "render";
-     "force group" = "render";
+				"force group" = "render";
 			};
 			optiphonic = {
 				path = "/mnt/OPTIPHONIC/";
