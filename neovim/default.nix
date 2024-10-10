@@ -24,10 +24,10 @@
 				key = " ";
 				action = "<Nop>";
 			}
-			{
-				key = "<leader><Tab>";
-				action = "<cmd>NvimTreeFocus<CR>";
-			}
+			# {
+			# 	key = "<leader><Tab>";
+			# 	action = "<cmd>NvimTreeFocus<CR>";
+			# }
 			{
 				key = "<leader>g";
 				action = "<cmd>Neogit<CR>";
@@ -181,7 +181,16 @@
 					};
 				};
 				servers = {
-					nil-ls.enable = true;
+					nil-ls = {
+						enable = true;
+						settings = {
+							nix = {
+								flake = {
+									autoArchive = true;
+								};
+							};
+						};
+					};
 					# rust-analyzer = {
 					#         enable = true;
 					#         installCargo = true;
@@ -200,12 +209,12 @@
 						always = true;
 					};
 					installArtifacts = true;
-					recommendedKeymaps = false;
 					keymap = {
 						recommended = false;
 					};
 				};
 			};
+			notify.enable = true;
 
 			rustaceanvim = {
 				enable = true;
@@ -224,16 +233,17 @@
 			which-key.enable = true;
 			neogit.enable = true;
 			diffview.enable = true;
-			nvim-tree = {
-				enable = true;
-				openOnSetup = true;
-			};
+			# nvim-tree = {
+			# 	enable = true;
+			# 	openOnSetup = true;
+			# };
 			treesitter.enable = true;
 			telescope = {
 				enable = true;
 				extensions = {
 					fzf-native.enable = true;
 					ui-select.enable = true;
+					file-browser.enable = true;
 				};
 				keymaps = {
 					"<leader>ff" = "find_files";
@@ -246,8 +256,21 @@
 					"<leader>fw" = "lsp_workspace_symbols";
 					"<leader>fp" = "lsp_references";
 					"<leader>fl" = "lsp_definitions";
+					"<leader>f." = "file_browser path=%:p:h select_buffer=true";
+					"<leader>fa" = "file_browser";
+				};
+				settings = {
+					defaults = {
+						layout_strategy = "vertical";
+						layout_config = {
+							width = 100;
+							height = 0.7;
+							anchor = "SE";
+						};
+					};
 				};
 			};
+			
 			#dashboard.enable = true;
 			#copilot-vim.enable = true;
 			copilot-lua = {

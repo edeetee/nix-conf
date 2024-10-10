@@ -1,24 +1,24 @@
 {
 	inputs.nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
-	inputs.flamenco.url = "path:/home/edeetee/dev/flamenco-nix";
+	inputs.flamenco.url = "github:edeetee/flamenco-nix";
 	inputs.nixvim = {
 		url = "github:nix-community/nixvim";
 		inputs.nixpkgs.follows = "nixpkgs";
 	};
-	inputs.comfyui.url = "path:/home/edeetee/dev/comfyui-nix";
+	# inputs.comfyui.url = "path:/home/edeetee/dev/comfyui-nix";
 
 	outputs = 
-	{ self, nixpkgs, nixvim, flamenco, comfyui, ... }@attrs: 
+	{ self, nixpkgs, nixvim, flamenco, ... }@attrs: 
 	let
 
 		flake-conf = {pkgs, ...}: 
 		let
-			optiphonic-comfyui = pkgs.writeShellScriptBin "optiphonic-comfyui" ''
-				#!/usr/bin/env bash
-				${pkgs.udisks}/bin/udisksctl mount -b /dev/disk/by-label/OPTIPHONIC
-				OPTIPHONIC=$(${pkgs.util-linux}/bin/lsblk /dev/sdb1 -o mountpoints -lpn)
-				${comfyui.packages.${pkgs.stdenv.hostPlatform.system}.comfyui}/bin/comfyui $OPTIPHONIC/AI/ComfyUI --listen 0.0.0.0
-			'';
+			# optiphonic-comfyui = pkgs.writeShellScriptBin "optiphonic-comfyui" ''
+			# 	#!/usr/bin/env bash
+			# 	${pkgs.udisks}/bin/udisksctl mount -b /dev/disk/by-label/OPTIPHONIC
+			# 	OPTIPHONIC=$(${pkgs.util-linux}/bin/lsblk /dev/sdb1 -o mountpoints -lpn)
+			# 	${comfyui.packages.${pkgs.stdenv.hostPlatform.system}.comfyui}/bin/comfyui $OPTIPHONIC/AI/ComfyUI --listen 0.0.0.0
+			# '';
 		in
 		{
 			environment.shellAliases = {
