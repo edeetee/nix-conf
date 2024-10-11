@@ -102,7 +102,6 @@
 				" 🐓 Coq completion settings
 
 				" Set recommended to false
-				let g:coq_settings = { "keymap.recommended": v:false }
 
 				" Keybindings
 				ino <silent><expr> <Esc>   pumvisible() ? "\<C-e><Esc>" : "\<Esc>"
@@ -116,24 +115,6 @@
 		# https://github.com/zbirenbaum/copilot.lua/issues/91#issuecomment-1345190310
 
 		extraConfigLua = ''
-					vim.keymap.set("i", '<Tab>', function()
-						if require("copilot.suggestion").is_visible() then
-							require("copilot.suggestion").accept()
-						else
-							if vim.fn.pumvisible() == 1 then
-								--return '<C-n>'
-								vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes('<C-n>', true, false, true), "n", false)
-							else
-								require("intellitab").indent()
-							end
-							--new_key = vim.fn.pumvisible() == 1 and '<c-n>' or '<tab>'
-							--return new_key
-							--vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes(new_key, true, false, true), "n", false)
-						end
-					end, {
-							silent = true,
-						})
-
 					vim.g.clipboard = {
 						name = 'OSC 52',
 						copy = {
@@ -191,34 +172,66 @@
 							};
 						};
 					};
-					# rust-analyzer = {
-					#         enable = true;
-					#         installCargo = true;
-					#         installRustc = true;
-					# };
+					rust-analyzer = {
+					        enable = true;
+					        installCargo = true;
+					        installRustc = true;
+					};
 					bashls.enable = true;
 					ruff-lsp.enable = true;
 					pylsp.enable = true;
 				};
 			};
-			coq-nvim = {
+			# coq-nvim = {
+			# 	enable = true;
+			# 	settings = {
+			# 		auto_start = "shut-up";
+			# 		# installArtifacts = true;
+			# 		keymap = {
+			# 			recommended = false;
+			# 		};
+			# 	};
+			# };
+
+			cmp = {
 				enable = true;
+				autoEnableSources = true;
 				settings = {
-					auto_start = true;
-					completion = {
-						always = true;
+					mapping = {
+						"<C-d>" = "cmp.mapping.scroll_docs(-4)";
+						"<C-f>" = "cmp.mapping.scroll_docs(4)";
+						"<C-Space>" = "cmp.mapping.complete()";
+						"<C-e>" = "cmp.mapping.close()";
+					# 	"<Tab>" = "cmp.mapping(cmp.mapping.select_next_item(), {'i', 's'})";
+						"<S-Tab>" = "cmp.mapping(cmp.mapping.select_prev_item(), {'i', 's'})";
+						"<CR>" = "cmp.mapping.confirm({ select = true })";
+						"<Tab>" = ''
+		  cmp.mapping(
+			function(fallback)
+			  if cmp.visible() then
+				cmp.select_next_item()
+			  elseif require("copilot.suggestion").is_visible() then
+				require("copilot.suggestion").accept()
+			  else
+				require("intellitab").indent()
+			  end
+			end,
+			{ "i", "s" }
+		  )
+						'';
 					};
-					installArtifacts = true;
-					keymap = {
-						recommended = false;
-					};
+					sources = [
+						{ name = "nvim_lsp"; }
+						{ name = "path"; }
+						{ name = "buffer"; }
+					];
 				};
 			};
+
+
 			notify.enable = true;
 
-			rustaceanvim = {
-				enable = true;
-			};
+			# rustaceanvim.enable = true;
 
 			web-devicons.enable = true;
 
@@ -276,9 +289,15 @@
 			copilot-lua = {
 				enable = true;
 				suggestion = {
+					enabled = true;
 					autoTrigger = true;
 					keymap = {
-						accept = false;
+						accept = "<M-l>";
+						acceptWord = false;
+						acceptLine = false;
+						next = "<M-]>";
+						prev = "<M-[>";
+						dismiss = "<C-]>";
 					};
 				};	
 			};
