@@ -14,6 +14,7 @@
 			shiftwidth = 4;
 			smartindent = true;
 			scrolloff = 6;
+			title = true;
 		};
 
 
@@ -28,6 +29,14 @@
 			# 	key = "<leader><Tab>";
 			# 	action = "<cmd>NvimTreeFocus<CR>";
 			# }
+			{
+				key = "<leader>w";
+				action = "<cmd>write<CR>";
+			}
+			{
+				key = "<leader>q";
+				action = "<cmd>quitall<CR>";
+			}
 			{
 				key = "<leader>g";
 				action = "<cmd>Neogit<CR>";
@@ -44,6 +53,15 @@
 				key = "<Esc>";
 				action = ''<C-\><C-n>'';
 				mode = "t";
+			}
+			{
+				key = "<Right>";
+				mode = ["i"];
+				action.__raw = ''
+			function()
+				require("copilot.suggestion").accept()
+			end
+			'';
 			}
 			{
 				key = "f";
@@ -180,6 +198,7 @@
 					bashls.enable = true;
 					ruff-lsp.enable = true;
 					pylsp.enable = true;
+					dartls.enable = true;
 				};
 			};
 			# coq-nvim = {
@@ -204,7 +223,7 @@
 						"<C-e>" = "cmp.mapping.close()";
 					# 	"<Tab>" = "cmp.mapping(cmp.mapping.select_next_item(), {'i', 's'})";
 						"<S-Tab>" = "cmp.mapping(cmp.mapping.select_prev_item(), {'i', 's'})";
-						"<CR>" = "cmp.mapping.confirm({ select = true })";
+						# "<CR>" = "cmp.mapping.confirm({ select = true })";
 						"<Tab>" = ''
 		  cmp.mapping(
 			function(fallback)
@@ -224,6 +243,7 @@
 						{ name = "nvim_lsp"; }
 						{ name = "path"; }
 						{ name = "buffer"; }
+						{ name = "copilot"; }
 					];
 				};
 			};
@@ -288,18 +308,15 @@
 			#copilot-vim.enable = true;
 			copilot-lua = {
 				enable = true;
-				suggestion = {
-					enabled = true;
-					autoTrigger = true;
-					keymap = {
-						accept = "<M-l>";
-						acceptWord = false;
-						acceptLine = false;
-						next = "<M-]>";
-						prev = "<M-[>";
-						dismiss = "<C-]>";
-					};
-				};	
+				suggestion.enabled = true;
+				panel.enabled = true;
+				# suggestion = {
+				# 	enabled = true;
+				# 	autoTrigger = true;
+				# 	keymap = {
+				# 		accept = false;
+				# 	};
+				# };	
 			};
 
 			conform-nvim.settings = {
