@@ -256,7 +256,8 @@
 			web-devicons.enable = true;
 
 			auto-session.enable = true;
-
+			
+			surround.enable = true;
 			intellitab.enable = true;
 			comment.enable = true;
 			persistence.enable = true;
