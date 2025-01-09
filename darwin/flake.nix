@@ -44,13 +44,25 @@
 					options = "--delete-older-than 30d";
 				};
 
-				system.defaults.finder = {
-					FXDefaultSearchScope = "SCcf";
-					FXEnableExtensionChangeWarning = false;
-					FXPreferredViewStyle = "clmv";
-					FXRemoveOldTrashItems = true;
-					NewWindowTarget = "Other";
-					NewWindowTargetPath = "file:///Users/edeetee/dev";
+				system.defaults = {
+					NSGlobalDomain = {
+						ApplePressAndHoldEnabled = false;
+						AppleScrollerPagingBehavior = true;
+						AppleShowAllExtensions = true;
+						AppleShowAllFiles = true;
+						InitialKeyRepeat = 0;
+						KeyRepeat = 4;
+						NSWindowResizeTime = .05;
+					};
+
+					finder = {
+						FXDefaultSearchScope = "SCcf";
+						FXEnableExtensionChangeWarning = false;
+						FXPreferredViewStyle = "clmv";
+						FXRemoveOldTrashItems = true;
+						NewWindowTarget = "Other";
+						NewWindowTargetPath = "file:///Users/edeetee/dev";
+					};
 				};
 
 				# Set Git commit hash for darwin-version.

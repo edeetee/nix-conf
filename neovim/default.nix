@@ -180,7 +180,7 @@
 					};
 				};
 				servers = {
-					nil-ls = {
+					nil_ls = {
 						enable = true;
 						settings = {
 							nix = {
@@ -190,13 +190,13 @@
 							};
 						};
 					};
-					rust-analyzer = {
+					rust_analyzer = {
 					        enable = true;
 					        installCargo = true;
 					        installRustc = true;
 					};
 					bashls.enable = true;
-					ruff-lsp.enable = true;
+					ruff_lsp.enable = true;
 					pylsp.enable = true;
 					dartls.enable = true;
 				};
@@ -257,7 +257,7 @@
 
 			auto-session.enable = true;
 			
-			surround.enable = true;
+			vim-surround.enable = true;
 			intellitab.enable = true;
 			comment.enable = true;
 			persistence.enable = true;
@@ -309,8 +309,10 @@
 			#copilot-vim.enable = true;
 			copilot-lua = {
 				enable = true;
-				suggestion.enabled = true;
-				panel.enabled = true;
+				settings = {
+					suggestion.enabled = false;
+					panel.enabled = false;
+				};
 				# suggestion = {
 				# 	enabled = true;
 				# 	autoTrigger = true;
