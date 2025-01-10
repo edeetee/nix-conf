@@ -50,8 +50,8 @@
 						AppleScrollerPagingBehavior = true;
 						AppleShowAllExtensions = true;
 						AppleShowAllFiles = true;
-						InitialKeyRepeat = 0;
-						KeyRepeat = 4;
+						InitialKeyRepeat = 15;
+						KeyRepeat = 12;
 						NSWindowResizeTime = .05;
 					};
 
