@@ -196,7 +196,7 @@
 					        installRustc = true;
 					};
 					bashls.enable = true;
-					ruff_lsp.enable = true;
+					# ruff_lsp.enable = true;
 					pylsp.enable = true;
 					dartls.enable = true;
 				};
@@ -312,6 +312,8 @@
 				settings = {
 					suggestion.enabled = false;
 					panel.enabled = false;
+					# copilot_node_command = "${pkgs.nodejs_24}/bin/node";
+					# node_command = "${pkgs.nodejs_24}/bin/node";
 				};
 				# suggestion = {
 				# 	enabled = true;

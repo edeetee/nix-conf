@@ -2,17 +2,27 @@
 	description = "Example Darwin system flake";
 
 	inputs = {
-		nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
-		nix-darwin.url = "github:LnL7/nix-darwin";
+		nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.05";
+		nix-darwin.url = "github:LnL7/nix-darwin/nix-darwin-25.05";
 		nix-darwin.inputs.nixpkgs.follows = "nixpkgs";
 
 		nixvim = {
 			url = "github:nix-community/nixvim";
 			inputs.nixpkgs.follows = "nixpkgs";
 		};
+		nix-homebrew.url = "github:zhaofengli-wip/nix-homebrew";
+
+		homebrew-core = {
+			url = "github:homebrew/homebrew-core";
+			flake = false;
+		};
+		homebrew-cask = {
+			url = "github:homebrew/homebrew-cask";
+			flake = false;
+		};
 	};
 
-	outputs = inputs@{ self, nix-darwin, nixpkgs, nixvim, ...}:
+	outputs = inputs@{ self, nix-darwin, nixpkgs, nixvim, homebrew-core, homebrew-cask, nix-homebrew, ...}:
 		let
 			configuration = { pkgs, ... }: {
 				# List packages installed in system profile. To search by name, run:
@@ -20,15 +30,35 @@
 
 				environment.variables.EDITOR = "nvim";
 
-				# Auto upgrade nix package and the daemon service.
-				services.nix-daemon.enable = true;
+				nix-homebrew = {
+					enable = true;
+					# enableRosetta = true;
+					user = "edt";
+
+					taps = {
+						"homebrew/homebrew-core" = homebrew-core;
+						"homebrew/homebrew-cask" = homebrew-cask;
+					};
+				};
+
+				homebrew = {
+					enable = true;
+					onActivation.cleanup = "uninstall";
+					taps = [];
+					brews = [];
+					casks = [ "kitty"  ];
+				};
+
+				# Enable Touch ID support
+				# security.pam.enableSudoTouchIdAuth = true;
+
 				# nix.package = pkgs.nix;
 
 				# Necessary for using flakes on this system.
-				nix.settings.experimental-features = "nix-command flakes";
+				# nix.settings.experimental-features = "nix-command flakes";
 
 				environment.shellAliases = {
-					nixrs = "darwin-rebuild switch --flake ~/dev/nix-conf/darwin/";
+					nixrs = "sudo darwin-rebuild switch --flake ~/dev/nix-conf/darwin/";
 					ssh="kitty +kitten ssh";
 					"'?'"="gh copilot";
 				};
@@ -38,11 +68,18 @@
 					enableSyntaxHighlighting = true;
 				};
 
+				# determinate nix
+				nix.enable = false;
+
 				# programs.fish.enable = true;
-				nix.gc = {
-					automatic = true;
-					options = "--delete-older-than 30d";
-				};
+				# nix.gc = {
+					# automatic = true;
+					# options = "--delete-older-than 30d";
+				# };
+
+				nix.extraOptions = ''
+		extra-platforms = x86_64-darwin aarch64-darwin
+				'';
 
 				system.defaults = {
 					NSGlobalDomain = {
@@ -63,7 +100,13 @@
 						NewWindowTarget = "Other";
 						NewWindowTargetPath = "file:///Users/edeetee/dev";
 					};
+
+					dock = {
+						autohide = true;
+						mru-spaces = false;
+					};
 				};
+
 
 				# Set Git commit hash for darwin-version.
 				system.configurationRevision = self.rev or self.dirtyRev or null;
@@ -85,8 +128,25 @@
 					nixvim.nixDarwinModules.nixvim 
 					../neovim
 					../common-configuration.nix
+					{
+						system.primaryUser = "edeetee";
+					}
 				];
 			};
+
+			darwinConfigurations."Edwards-MacBook-Air" = nix-darwin.lib.darwinSystem {
+				modules = [
+					nix-homebrew.darwinModules.nix-homebrew
+					configuration
+					nixvim.nixDarwinModules.nixvim
+					../neovim
+					../common-configuration.nix
+					{
+						system.primaryUser = "edt";
+					}
+				];
+			};
+
 
 			# Expose the package set, including overlays, for convenience.
 			darwinPackages = self.darwinConfigurations."Edwards-MacBook-Max".pkgs;
