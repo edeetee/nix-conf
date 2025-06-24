@@ -50,7 +50,7 @@
 				};
 
 				# Enable Touch ID support
-				# security.pam.enableSudoTouchIdAuth = true;
+				security.pam.services.sudo_local.touchIdAuth = true;
 
 				# nix.package = pkgs.nix;
 
@@ -87,8 +87,8 @@
 						AppleScrollerPagingBehavior = true;
 						AppleShowAllExtensions = true;
 						AppleShowAllFiles = true;
-						InitialKeyRepeat = 15;
-						KeyRepeat = 12;
+						InitialKeyRepeat = 10;
+						KeyRepeat = 2;
 						NSWindowResizeTime = .05;
 					};
 
