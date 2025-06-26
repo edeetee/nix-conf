@@ -24,7 +24,7 @@
 
 	outputs = inputs@{ self, nix-darwin, nixpkgs, nixvim, homebrew-core, homebrew-cask, nix-homebrew, ...}:
 		let
-			configuration = { pkgs, ... }: {
+			configuration = {user}: { pkgs, ... }: {
 				# List packages installed in system profile. To search by name, run:
 				# $ nix-env -qaP | grep wget
 
@@ -33,20 +33,24 @@
 				nix-homebrew = {
 					enable = true;
 					# enableRosetta = true;
-					user = "edt";
+					user = user;
 
 					taps = {
 						"homebrew/homebrew-core" = homebrew-core;
 						"homebrew/homebrew-cask" = homebrew-cask;
 					};
+
+					autoMigrate = true;
 				};
 
 				homebrew = {
 					enable = true;
-					onActivation.cleanup = "uninstall";
+					onActivation = {
+						cleanup = "uninstall";
+					};
 					taps = [];
-					brews = [];
-					casks = [ "kitty" "raycast" ];
+					brews = ["yt-dlp" "uv" "gh" "ffmpeg" ];
+					casks = [ "kitty" "deskflow"  "hot" "stats" "raycast" ];
 				};
 
 				# Enable Touch ID support
@@ -63,9 +67,14 @@
 					"'?'"="gh copilot";
 				};
 
+				# programs.starship.enable = true;
+
 				# Create /etc/zshrc that loads the nix-darwin environment.
 				programs.zsh = {
 					enableSyntaxHighlighting = true;
+					interactiveShellInit = ''
+						eval "$(${pkgs.starship}/bin/starship init zsh)"		
+					'';
 				};
 
 				# determinate nix
@@ -117,6 +126,8 @@
 
 				# The platform the configuration will be used on.
 				nixpkgs.hostPlatform = "aarch64-darwin";
+
+				system.primaryUser = user;
 			};
 		in
 			{
@@ -124,26 +135,21 @@
 			# $ darwin-rebuild build --flake .#simple
 			darwinConfigurations."Edwards-MacBook-Max" = nix-darwin.lib.darwinSystem {
 				modules = [ 
-					configuration 
+					nix-homebrew.darwinModules.nix-homebrew
+					(configuration { user = "edeetee"; })
 					nixvim.nixDarwinModules.nixvim 
 					../neovim
 					../common-configuration.nix
-					{
-						system.primaryUser = "edeetee";
-					}
 				];
 			};
 
 			darwinConfigurations."Edwards-MacBook-Air" = nix-darwin.lib.darwinSystem {
 				modules = [
 					nix-homebrew.darwinModules.nix-homebrew
-					configuration
+					(configuration { user = "edt"; })
 					nixvim.nixDarwinModules.nixvim
 					../neovim
 					../common-configuration.nix
-					{
-						system.primaryUser = "edt";
-					}
 				];
 			};
 
