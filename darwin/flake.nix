@@ -46,7 +46,7 @@
 					onActivation.cleanup = "uninstall";
 					taps = [];
 					brews = [];
-					casks = [ "kitty"  ];
+					casks = [ "kitty" "raycast" ];
 				};
 
 				# Enable Touch ID support
