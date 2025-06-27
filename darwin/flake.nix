@@ -55,7 +55,7 @@
 					};
 					taps = [];
 					brews = ["yt-dlp" "uv" "gh" "ffmpeg" ];
-					casks = [ "deskflow"  "hot" "stats" ];
+					casks = [ "kitty" "deskflow"  "hot" "stats" "raycast" ];
 				};
 
 
