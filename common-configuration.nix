@@ -2,9 +2,13 @@
 {
     # SHELL CONFIGURATION
 	environment.systemPackages =
-		[ 
+		with pkgs; [ 
 			pkgs.nixfmt
 			pkgs.nil
+			nodejs
+			bun
+
+			
 		];
 
 	environment.shellAliases = {

@@ -6,6 +6,11 @@
 		nix-darwin.url = "github:LnL7/nix-darwin/nix-darwin-25.05";
 		nix-darwin.inputs.nixpkgs.follows = "nixpkgs";
 
+		home-manager = {
+			url = "github:nix-community/home-manager/release-25.05";
+			inputs.nixpkgs.follows = "nixpkgs";
+		};
+
 		nixvim = {
 			url = "github:nix-community/nixvim";
 			inputs.nixpkgs.follows = "nixpkgs";
@@ -22,7 +27,7 @@
 		};
 	};
 
-	outputs = inputs@{ self, nix-darwin, nixpkgs, nixvim, homebrew-core, homebrew-cask, nix-homebrew, ...}:
+	outputs = inputs@{ self, nix-darwin, nixpkgs, home-manager, nixvim, homebrew-core, homebrew-cask, nix-homebrew, ...}:
 		let
 			configuration = {user}: { pkgs, ... }: {
 				# List packages installed in system profile. To search by name, run:
@@ -50,8 +55,9 @@
 					};
 					taps = [];
 					brews = ["yt-dlp" "uv" "gh" "ffmpeg" ];
-					casks = [ "kitty" "deskflow"  "hot" "stats" ];
+					casks = [ "deskflow"  "hot" "stats" ];
 				};
+
 
 				# Enable Touch ID support
 				security.pam.services.sudo_local.touchIdAuth = true;
@@ -140,6 +146,15 @@
 					nixvim.nixDarwinModules.nixvim 
 					../neovim
 					../common-configuration.nix
+					home-manager.darwinModules.home-manager
+					{
+						home-manager.useGlobalPkgs = true;
+						home-manager.useUserPackages = true;
+						home-manager.users.edeetee = import ./home.nix {
+							homeDirectory = "/Users/edeetee";
+							username = "edeetee";
+						};
+					}
 				];
 			};
 
@@ -150,6 +165,15 @@
 					nixvim.nixDarwinModules.nixvim
 					../neovim
 					../common-configuration.nix
+					home-manager.darwinModules.home-manager
+					{
+						home-manager.useGlobalPkgs = true;
+						home-manager.useUserPackages = true;
+						home-manager.users.edt = import ./home.nix { 
+							homeDirectory = "/Users/edt";
+							username = "edt";
+						};
+					}
 				];
 			};
 
