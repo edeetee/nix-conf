@@ -8,6 +8,13 @@
   programs.home-manager.enable = true;
 
   home.file.".config/kitty/kitty.conf".source = config.lib.file.mkOutOfStoreSymlink ./kitty.conf;
+  home.file.".config/kitty/kitty.app.png" = config.lib.file.mkOutOfStoreSymlink ./kitty.app.png;
+
+  home.file.".config/karabiner/karabiner.json".source = config.lib.file.mkOutOfStoreSymlink ./karabiner.json;
+
+  home.file."Library/Services/Kitty Finder.workflow".source = config.lib.file.mkOutOfStoreSymlink "./kitty Finder.workflow";
+
+  home.file."Library/Preferences/eu.exelban.Stats.plist".source = config.lib.file.mkOutOfStoreSymlink ./Stats.plist;
 
   # home.file.".config/kitty/current-theme.conf".text = ''
   #   # Tokyo Night theme
