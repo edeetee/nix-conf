@@ -8,7 +8,7 @@
   programs.home-manager.enable = true;
 
   home.file.".config/kitty/kitty.conf".source = config.lib.file.mkOutOfStoreSymlink ./kitty.conf;
-  home.file.".config/kitty/kitty.app.png" = config.lib.file.mkOutOfStoreSymlink ./kitty.app.png;
+  home.file.".config/kitty/kitty.app.png".source = config.lib.file.mkOutOfStoreSymlink ./kitty.app.png;
 
   home.file.".config/karabiner/karabiner.json".source = config.lib.file.mkOutOfStoreSymlink ./karabiner.json;
 

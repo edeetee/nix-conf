@@ -154,6 +154,7 @@
 							homeDirectory = "/Users/edeetee";
 							username = "edeetee";
 						};
+						home-manager.backupFileExtension = "home-manager-backup";
 					}
 				];
 			};
