@@ -66,8 +66,10 @@
 						"stats"
 						"raycast"
 						"ghostty"
-						# "monitorcontrol"
-						"betterdisplay"
+						"monitorcontrol"
+						# "betterdisplay"
+						"visual-studio-code"
+						"obsidian"
 					];
 				};
 
@@ -84,6 +86,9 @@
 					nixrs = "sudo darwin-rebuild switch --flake ~/dev/nix-conf/darwin/";
 					nixe = "v ~/dev/nix-conf/";
 					nixcd = "cd ~/dev/nix-conf/";
+					gemcli = "npx https://github.com/google-gemini/gemini-cli";
+					gcam = "git commit -a -m";
+					gp = "git push";
 					ssh="kitty +kitten ssh";
 					"'?'"="gh copilot";
 				};
@@ -95,6 +100,14 @@
 					enableSyntaxHighlighting = true;
 					interactiveShellInit = ''
 						eval "$(${pkgs.starship}/bin/starship init zsh)"		
+
+						# Kitty zsh integration
+						if test -n "$KITTY_INSTALLATION_DIR"; then
+							export KITTY_SHELL_INTEGRATION="enabled"
+							autoload -Uz -- "$KITTY_INSTALLATION_DIR"/shell-integration/zsh/kitty-integration
+							kitty-integration
+							unfunction kitty-integration
+						fi
 					'';
 				};
 

@@ -7,9 +7,11 @@
 			pkgs.nil
 			nodejs
 			bun
-
-			
 		];
+	
+	fonts.packages = with pkgs; [
+			julia-mono
+	];
 
 	environment.shellAliases = {
 			l = "${pkgs.eza}/bin/eza --icons";

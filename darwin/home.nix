@@ -7,6 +7,8 @@
 
   programs.home-manager.enable = true;
 
+  home.file.".hushlogin".text = "";
+
   home.file.".config/kitty/kitty.conf".source = config.lib.file.mkOutOfStoreSymlink ./kitty.conf;
   home.file.".config/kitty/kitty.app.png".source = config.lib.file.mkOutOfStoreSymlink ./kitty.app.png;
 
