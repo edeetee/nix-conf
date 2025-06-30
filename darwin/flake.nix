@@ -58,6 +58,7 @@
 					onActivation = {
 						cleanup = "uninstall";
 					};
+					
 					taps = ["deskflow/homebrew-tap" "homebrew/cask"];
 					brews = ["yt-dlp" "uv" "gh" "ffmpeg" ];
 					casks = [
@@ -70,6 +71,7 @@
 						# "betterdisplay"
 						"visual-studio-code"
 						"obsidian"
+						"eqmac"
 					];
 				};
 
