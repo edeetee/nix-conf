@@ -25,9 +25,13 @@
 			url = "github:homebrew/homebrew-cask";
 			flake = false;
 		};
+		deskflow-tap = {
+			url = "https://github.com/deskflow/homebrew-tap";
+			flake = false;
+		};
 	};
 
-	outputs = inputs@{ self, nix-darwin, nixpkgs, home-manager, nixvim, homebrew-core, homebrew-cask, nix-homebrew, ...}:
+	outputs = inputs@{ self, nix-darwin, nixpkgs, home-manager, nixvim, homebrew-core, homebrew-cask, nix-homebrew, deskflow-tap, ...}:
 		let
 			configuration = {user}: { pkgs, ... }: {
 				# List packages installed in system profile. To search by name, run:
@@ -43,6 +47,7 @@
 					taps = {
 						"homebrew/homebrew-core" = homebrew-core;
 						"homebrew/homebrew-cask" = homebrew-cask;
+						# "deskflow/homebrew-tap" = deskflow-tap;
 					};
 
 					autoMigrate = true;
@@ -53,9 +58,17 @@
 					onActivation = {
 						cleanup = "uninstall";
 					};
-					taps = [];
+					taps = ["deskflow/homebrew-tap" "homebrew/cask"];
 					brews = ["yt-dlp" "uv" "gh" "ffmpeg" ];
-					casks = [ "kitty" "deskflow"  "hot" "stats" "raycast" ];
+					casks = [
+						"kitty" 
+						"hot" 
+						"stats"
+						"raycast"
+						"ghostty"
+						# "monitorcontrol"
+						"betterdisplay"
+					];
 				};
 
 
@@ -69,6 +82,8 @@
 
 				environment.shellAliases = {
 					nixrs = "sudo darwin-rebuild switch --flake ~/dev/nix-conf/darwin/";
+					nixe = "v ~/dev/nix-conf/";
+					nixcd = "cd ~/dev/nix-conf/";
 					ssh="kitty +kitten ssh";
 					"'?'"="gh copilot";
 				};
@@ -174,6 +189,7 @@
 							homeDirectory = "/Users/edt";
 							username = "edt";
 						};
+						home-manager.backupFileExtension = "home-manager-backup";
 					}
 				];
 			};

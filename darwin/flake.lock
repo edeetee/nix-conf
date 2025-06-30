@@ -17,6 +17,18 @@
         "type": "github"
       }
     },
+    "deskflow-tap": {
+      "flake": false,
+      "locked": {
+        "narHash": "sha256-E1M5B8HgDSBxfNi7pOVEqAoiboUF2883xicJ40UqgR8=",
+        "type": "file",
+        "url": "https://github.com/deskflow/homebrew-tap"
+      },
+      "original": {
+        "type": "file",
+        "url": "https://github.com/deskflow/homebrew-tap"
+      }
+    },
     "flake-parts": {
       "inputs": {
         "nixpkgs-lib": [
@@ -240,6 +252,7 @@
     },
     "root": {
       "inputs": {
+        "deskflow-tap": "deskflow-tap",
         "home-manager": "home-manager",
         "homebrew-cask": "homebrew-cask",
         "homebrew-core": "homebrew-core",
