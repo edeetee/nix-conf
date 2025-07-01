@@ -7,6 +7,10 @@
 			pkgs.nil
 			nodejs
 			bun
+			git-lfs
+			docker-compose
+			docker
+			yarn
 		];
 	
 	fonts.packages = with pkgs; [
