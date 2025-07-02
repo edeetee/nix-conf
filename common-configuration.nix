@@ -3,14 +3,15 @@
     # SHELL CONFIGURATION
 	environment.systemPackages =
 		with pkgs; [ 
-			pkgs.nixfmt
-			pkgs.nil
+			nixfmt
+			nil
 			nodejs
 			bun
 			git-lfs
 			docker-compose
 			docker
 			yarn
+			go
 		];
 	
 	fonts.packages = with pkgs; [

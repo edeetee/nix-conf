@@ -60,7 +60,13 @@
 					};
 					
 					taps = ["deskflow/homebrew-tap" "homebrew/cask"];
-					brews = ["yt-dlp" "uv" "gh" "ffmpeg" ];
+					brews = [
+						"yt-dlp"
+						"uv"
+						"gh"
+						"ffmpeg"
+						"nvm"
+					];
 					casks = [
 						"kitty" 
 						"hot" 
@@ -149,6 +155,7 @@
 					dock = {
 						autohide = true;
 						mru-spaces = false;
+						appswitcher-all-displays = true;
 					};
 				};
 
