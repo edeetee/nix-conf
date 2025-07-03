@@ -9,6 +9,8 @@
 
   home.file.".hushlogin".text = "";
 
+  home.file.".gitconfig".source = config.lib.file.mkOutOfStoreSymlink ./gitconfig;
+
   home.file.".config/kitty/kitty.conf".source = config.lib.file.mkOutOfStoreSymlink ./kitty.conf;
   home.file.".config/kitty/kitty.app.png".source = config.lib.file.mkOutOfStoreSymlink ./kitty.app.png;
 
