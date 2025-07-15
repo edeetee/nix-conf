@@ -68,6 +68,7 @@
 						"nvm"
 					];
 					casks = [
+						"karabiner-elements"
 						"kitty" 
 						"hot" 
 						"stats"
@@ -78,6 +79,7 @@
 						"visual-studio-code"
 						"obsidian"
 						"eqmac"
+						"altair-graphql-client"
 					];
 				};
 
