@@ -66,6 +66,7 @@
 						"gh"
 						"ffmpeg"
 						"nvm"
+						"colima"
 					];
 					casks = [
 						"karabiner-elements"
