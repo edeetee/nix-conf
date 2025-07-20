@@ -12,7 +12,7 @@
 			<key>NSMenuItem</key>
 			<dict>
 				<key>default</key>
-				<string>Kitty Finder</string>
+				<string>kitty_finder</string>
 			</dict>
 			<key>NSMessage</key>
 			<string>runWorkflowAsService</string>

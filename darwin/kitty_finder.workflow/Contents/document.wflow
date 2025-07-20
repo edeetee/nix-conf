@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>AMApplicationBuild</key>
-	<string>523</string>
+	<string>528</string>
 	<key>AMApplicationVersion</key>
 	<string>2.10</string>
 	<key>AMDocumentVersion</key>
@@ -20,46 +20,45 @@
 					<key>Optional</key>
 					<true/>
 					<key>Types</key>
-					<array/>
+					<array>
+						<string>com.apple.applescript.object</string>
+					</array>
 				</dict>
 				<key>AMActionVersion</key>
-				<string>1.1.1</string>
+				<string>1.0.2</string>
 				<key>AMApplication</key>
 				<array>
-					<string>Finder</string>
+					<string>Automator</string>
 				</array>
 				<key>AMParameterProperties</key>
 				<dict>
-					<key>appPath</key>
-					<dict>
-						<key>isPathPopUp</key>
-						<true/>
-						<key>variableUUIDsInMenu</key>
-						<array/>
-					</dict>
+					<key>source</key>
+					<dict/>
 				</dict>
 				<key>AMProvides</key>
 				<dict>
 					<key>Container</key>
 					<string>List</string>
 					<key>Types</key>
-					<array/>
+					<array>
+						<string>com.apple.applescript.object</string>
+					</array>
 				</dict>
 				<key>ActionBundlePath</key>
-				<string>/System/Library/Automator/Launch Application.action</string>
+				<string>/System/Library/Automator/Run AppleScript.action</string>
 				<key>ActionName</key>
-				<string>Launch Application</string>
+				<string>Run AppleScript</string>
 				<key>ActionParameters</key>
 				<dict>
-					<key>appPath</key>
-					<string>/Applications/Kitty Finder.app</string>
+					<key>source</key>
+					<string>tell application "Finder"	set textToType to ""	try		set pathList to (quoted form of POSIX path of (folder of the front window as alias))		set textToType to "clear; cd " &amp; pathList	end try	end telltell application "System Events"	set isRunning to (exists (processes where name is "kitty"))end telltell application "kitty" to activateset activeApp to ""repeat while activeApp is not "kitty"	tell application "System Events"		set activeApp to name of first application process whose frontmost is true	end tellend repeatif isRunning then	tell application "System Events"		keystroke "n" using {command down}	end tellend ifif textToType is not "" then	tell application "System Events"		keystroke textToType		keystroke return	end tellend if</string>
 				</dict>
 				<key>BundleIdentifier</key>
-				<string>com.apple.Automator.OpenApplication</string>
+				<string>com.apple.Automator.RunScript</string>
 				<key>CFBundleVersion</key>
-				<string>1.1.1</string>
+				<string>1.0.2</string>
 				<key>CanShowSelectedItemsWhenRun</key>
-				<true/>
+				<false/>
 				<key>CanShowWhenRun</key>
 				<true/>
 				<key>Category</key>
@@ -67,30 +66,34 @@
 					<string>AMCategoryUtilities</string>
 				</array>
 				<key>Class Name</key>
-				<string>AMLaunchApplicationAction</string>
+				<string>RunScriptAction</string>
 				<key>InputUUID</key>
-				<string>384ACE6D-5B92-4183-934A-5DBC2EF1BFB5</string>
+				<string>A10411AF-CE06-423A-B804-86067CD93C66</string>
 				<key>Keywords</key>
 				<array>
-					<string>File</string>
-					<string>Open</string>
+					<string>Run</string>
 				</array>
 				<key>OutputUUID</key>
-				<string>3157409D-918D-4578-A8A2-D2D3108E3503</string>
+				<string>1E18D42D-FBC0-442F-991F-E9CF14C92BAD</string>
 				<key>UUID</key>
-				<string>8673F5F5-F56C-4403-B0AB-253F790236CC</string>
+				<string>40846AE5-F699-4529-AA2F-069AC467B790</string>
 				<key>UnlocalizedApplications</key>
 				<array>
-					<string>Finder</string>
+					<string>Automator</string>
 				</array>
 				<key>arguments</key>
 				<dict>
 					<key>0</key>
 					<dict>
 						<key>default value</key>
-						<string>/System/Applications/Contacts.app</string>
+						<string>on run {input, parameters}
+	
+	(* Your script goes here *)
+	
+	return input
+end run</string>
 						<key>name</key>
-						<string>appPath</string>
+						<string>source</string>
 						<key>required</key>
 						<string>0</string>
 						<key>type</key>
@@ -104,9 +107,9 @@
 				<key>isViewVisible</key>
 				<integer>1</integer>
 				<key>location</key>
-				<string>431.000000:223.000000</string>
+				<string>431.000000:566.000000</string>
 				<key>nibPath</key>
-				<string>/System/Library/Automator/Launch Application.action/Contents/Resources/Base.lproj/main.nib</string>
+				<string>/System/Library/Automator/Run AppleScript.action/Contents/Resources/Base.lproj/main.nib</string>
 			</dict>
 			<key>isViewVisible</key>
 			<integer>1</integer>
