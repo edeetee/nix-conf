@@ -12,6 +12,7 @@
 			docker
 			yarn
 			go
+			jujutsu
 		];
 	
 	fonts.packages = with pkgs; [
@@ -22,6 +23,11 @@
 			l = "${pkgs.eza}/bin/eza --icons";
 			ll = "l -l";
 			v = "nvim";
+			gemcli = "npx https://github.com/google-gemini/gemini-cli";
+			gcam = "git commit -a -m";
+			gp = "git push";
+			gpf = "git push --force-with-lease";
+			gpfnv = "git push --force-with-lease --no-verify";
 	};
 
 	programs.direnv.enable = true;

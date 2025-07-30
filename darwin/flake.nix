@@ -97,9 +97,6 @@
 					nixrs = "sudo darwin-rebuild switch --flake ~/dev/nix-conf/darwin/";
 					nixe = "v ~/dev/nix-conf/";
 					nixcd = "cd ~/dev/nix-conf/";
-					gemcli = "npx https://github.com/google-gemini/gemini-cli";
-					gcam = "git commit -a -m";
-					gp = "git push";
 					ssh="kitty +kitten ssh";
 					"'?'"="gh copilot";
 				};
