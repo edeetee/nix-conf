@@ -309,12 +309,12 @@
 			#copilot-vim.enable = true;
 			copilot-lua = {
 				enable = true;
-				settings = {
+				# settings = {
 					suggestion.enabled = false;
 					panel.enabled = false;
 					# copilot_node_command = "${pkgs.nodejs_24}/bin/node";
 					# node_command = "${pkgs.nodejs_24}/bin/node";
-				};
+				# };
 				# suggestion = {
 				# 	enabled = true;
 				# 	autoTrigger = true;

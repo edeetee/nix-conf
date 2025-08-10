@@ -29,15 +29,23 @@
 			url = "https://github.com/deskflow/homebrew-tap";
 			flake = false;
 		};
+
+		nixvim-vsc = {
+			url = "path:../nvim-vsc";
+		};
 	};
 
-	outputs = inputs@{ self, nix-darwin, nixpkgs, home-manager, nixvim, homebrew-core, homebrew-cask, nix-homebrew, deskflow-tap, ...}:
+	outputs = inputs@{ self, nix-darwin, nixpkgs, home-manager, nixvim, homebrew-core, homebrew-cask, nix-homebrew, deskflow-tap, nixvim-vsc, ...}:
 		let
-			configuration = {user}: { pkgs, ... }: {
+
+			configuration = {user}: { pkgs, lib, ... }: {
 				# List packages installed in system profile. To search by name, run:
 				# $ nix-env -qaP | grep wget
+				# nvim-vsc = lib.getExe nixvim-vsc.packages.${pkgs.stdenv.hostPlatform.system}.default;
 
 				environment.variables.EDITOR = "nvim";
+
+				environment.variables.DOCKER_DEFAULT_PLATFORM="linux/amd64";
 
 				nix-homebrew = {
 					enable = true;
@@ -53,6 +61,10 @@
 					autoMigrate = true;
 				};
 
+				environment.systemPackages = [
+					(pkgs.writeShellScriptBin "nvim-vsc" "exec -a $0 ${nixvim-vsc.packages.${pkgs.stdenv.hostPlatform.system}.default}/bin/nvim $@")
+				];
+
 				homebrew = {
 					enable = true;
 					onActivation = {
@@ -67,6 +79,7 @@
 						"ffmpeg"
 						"nvm"
 						"colima"
+						"cloud-sql-proxy"
 					];
 					casks = [
 						"karabiner-elements"
