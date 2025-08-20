@@ -2,6 +2,9 @@ theme = ayu
 background-opacity=0.8
 background-blur=16
 
+keybind = cmd+minus=new_split:down
+keybind = cmd+equal=new_split:right
+
 # This is the configuration file for Ghostty.
 #
 # This template file has been automatically created at the following
