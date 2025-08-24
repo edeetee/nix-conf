@@ -51,7 +51,7 @@
 				<key>ActionParameters</key>
 				<dict>
 					<key>source</key>
-					<string>on run {input, parameters}	tell application "Finder"		set pathList to (POSIX path of (folder of the front window as alias))		return pathList	end tellend run</string>
+					<string>on run {input, parameters}	try		tell application "Finder"			set pathList to (POSIX path of (folder of the front window as alias))			return pathList		end tell	end tryend run</string>
 				</dict>
 				<key>BundleIdentifier</key>
 				<string>com.apple.Automator.RunScript</string>
@@ -102,12 +102,10 @@ end run</string>
 						<string>0</string>
 					</dict>
 				</dict>
-				<key>conversionLabel</key>
-				<integer>0</integer>
 				<key>isViewVisible</key>
 				<integer>1</integer>
 				<key>location</key>
-				<string>507.500000:548.000000</string>
+				<string>507.500000:368.000000</string>
 				<key>nibPath</key>
 				<string>/System/Library/Automator/Run AppleScript.action/Contents/Resources/Base.lproj/main.nib</string>
 			</dict>
@@ -273,12 +271,10 @@ end run</string>
 						<string>4</string>
 					</dict>
 				</dict>
-				<key>conversionLabel</key>
-				<integer>0</integer>
 				<key>isViewVisible</key>
 				<integer>1</integer>
 				<key>location</key>
-				<string>507.500000:910.000000</string>
+				<string>507.500000:550.000000</string>
 				<key>nibPath</key>
 				<string>/System/Library/Automator/Run Shell Script.action/Contents/Resources/Base.lproj/main.nib</string>
 			</dict>
@@ -288,7 +284,7 @@ end run</string>
 	</array>
 	<key>connectors</key>
 	<dict>
-		<key>6E20A3FD-705D-40C8-B634-F62526E1AE65</key>
+		<key>1838B76B-0048-4414-A98A-93D6554A3CCF</key>
 		<dict>
 			<key>from</key>
 			<string>F2B939F4-FD3C-408C-9A77-32AFAC025FBB - F2B939F4-FD3C-408C-9A77-32AFAC025FBB</string>
