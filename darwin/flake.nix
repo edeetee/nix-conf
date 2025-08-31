@@ -80,6 +80,7 @@
 						"nvm"
 						"colima"
 						"cloud-sql-proxy"
+						"kubectl"
 					];
 					casks = [
 						"karabiner-elements"
