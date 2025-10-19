@@ -9,11 +9,11 @@
 
   home.file.".hushlogin".text = "";
 
-  home.file.".gitconfig".source = config.lib.file.mkOutOfStoreSymlink ./.gitconfig;
+  home.file.".gitconfig".source = ./.gitconfig;
 
   home.file.".config/kitty".source = config.lib.file.mkOutOfStoreSymlink ./kitty;
 
-  home.file.".config/karabiner/karabiner.json".source = config.lib.file.mkOutOfStoreSymlink ./karabiner.json;
+  home.file.".config/karabiner/karabiner.json".source = ./karabiner.json;
 
   home.file."Library/Services/Kitty Finder.workflow".source = config.lib.file.mkOutOfStoreSymlink ./kitty_finder.workflow;
   home.file."Library/Services/ghostty_finder.workflow".source = config.lib.file.mkOutOfStoreSymlink ./ghostty_finder.workflow;
