@@ -27,8 +27,28 @@
 			gcam = "git commit -a -m";
 			gp = "git push";
 			gpf = "git push --force-with-lease";
+			gpnv = "git push --no-verify";
 			gpfnv = "git push --force-with-lease --no-verify";
 	};
+
+
+	environment.shellInit = ''
+		function gpp() {
+			git push origin "HEAD:$1"
+		}
+
+		function gppf() {
+			git push --force-with-lease origin "HEAD:$1"
+		}
+
+		function gppnv() {
+			git push --no-verify origin "HEAD:$1"
+		}
+
+		function gppfnv() {
+			git push --force-with-lease --no-verify origin "HEAD:$1"
+		}
+	'';
 
 	programs.direnv.enable = true;
 
