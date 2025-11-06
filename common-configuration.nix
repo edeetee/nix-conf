@@ -35,19 +35,19 @@
 		export GOPATH="$HOME/go"
 		export PATH="$GOPATH/bin:$PATH"
 
-		function gpp() {
+		function gop() {
 			git push origin "HEAD:$1"
 		}
 
-		function gppf() {
+		function gopf() {
 			git push --force-with-lease origin "HEAD:$1"
 		}
 
-		function gppnv() {
+		function gopnv() {
 			git push --no-verify origin "HEAD:$1"
 		}
 
-		function gppfnv() {
+		function gopfnv() {
 			git push --force-with-lease --no-verify origin "HEAD:$1"
 		}
 	'';
