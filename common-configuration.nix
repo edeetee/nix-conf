@@ -31,8 +31,10 @@
 			gpfnv = "git push --force-with-lease --no-verify";
 	};
 
+	environment.interactiveShellInit = ''
+		export GOPATH="$HOME/go"
+		export PATH="$GOPATH/bin:$PATH"
 
-	environment.shellInit = ''
 		function gpp() {
 			git push origin "HEAD:$1"
 		}
