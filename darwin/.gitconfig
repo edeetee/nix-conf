@@ -21,3 +21,6 @@
 
 [submodule]
 	recurse = true
+
+[rebase]
+	updateRefs = true

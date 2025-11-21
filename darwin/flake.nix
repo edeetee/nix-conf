@@ -68,10 +68,13 @@
 				homebrew = {
 					enable = true;
 					onActivation = {
-						cleanup = "uninstall";
+						# cleanup = "uninstall";
 					};
 					
-					taps = ["deskflow/homebrew-tap" "homebrew/cask"];
+					taps = [
+						# "deskflow/homebrew-tap" 
+						"homebrew/cask"
+					];
 					brews = [
 						"yt-dlp"
 						"uv"
@@ -224,6 +227,26 @@
 						home-manager.users.edt = import ./home.nix { 
 							homeDirectory = "/Users/edt";
 							username = "edt";
+						};
+						home-manager.backupFileExtension = "home-manager-backup";
+					}
+				];
+			};
+
+			darwinConfigurations."Edwards-MacBook-Pro" = nix-darwin.lib.darwinSystem {
+				modules = [
+					nix-homebrew.darwinModules.nix-homebrew
+					(configuration { user = "edwardtaylor"; })
+					nixvim.nixDarwinModules.nixvim
+					../neovim
+					../common-configuration.nix
+					home-manager.darwinModules.home-manager
+					{
+						home-manager.useGlobalPkgs = true;
+						home-manager.useUserPackages = true;
+						home-manager.users.edt = import ./home.nix { 
+							homeDirectory = "/Users/edwardtaylor";
+							username = "edwardtaylor";
 						};
 						home-manager.backupFileExtension = "home-manager-backup";
 					}
