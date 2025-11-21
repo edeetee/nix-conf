@@ -13,6 +13,7 @@
 			yarn
 			go
 			jujutsu
+			git-absorb
 		];
 	
 	fonts.packages = with pkgs; [
