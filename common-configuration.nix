@@ -61,6 +61,7 @@
 
 		promptInit = ''
 			eval "$(${pkgs.starship}/bin/starship init zsh)"
+			PATH="$HOME/.cargo/bin:$PATH"
 			'';
 	};
 
