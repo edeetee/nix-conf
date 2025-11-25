@@ -41,6 +41,10 @@
 				action = "<cmd>Neogit<CR>";
 			}
 			{
+				key = "<leader>/";
+				action = "<cmd>WhichKey<CR>";
+			}
+			{
 				key = "<leader>tf";
 				action = "<cmd>FloatermToggle<CR>";
 			}
