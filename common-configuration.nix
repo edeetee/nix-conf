@@ -14,6 +14,7 @@
 			go
 			jujutsu
 			git-absorb
+			ripgrep
 		];
 	
 	fonts.packages = with pkgs; [
