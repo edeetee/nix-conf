@@ -175,7 +175,13 @@
 						"gt" = "type_definition";
 						"gi" = "implementation";
 						"K" = "hover";
+						"gk" = "hover";
+						"gs" = "signature_help";
 						"ga" = "code_action";
+						"gr" = "rename";
+						"gf" = "format";
+						"gS" = "document_symbol";
+						"gW" = "workspace_symbol";
 					};
 				};
 				servers = {
