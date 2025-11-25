@@ -248,6 +248,7 @@
 				};
 			};
 
+			typescript-tools.enable = true;
 
 			notify.enable = true;
 

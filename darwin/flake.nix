@@ -9,15 +9,13 @@
 		home-manager = {
 			url = "github:nix-community/home-manager/release-25.05";
 			inputs.nixpkgs.follows = "nixpkgs";
-		};
+	};
 
-		nixvim = {
-			url = "github:nix-community/nixvim";
-			inputs.nixpkgs.follows = "nixpkgs";
-		};
-		nix-homebrew.url = "github:zhaofengli-wip/nix-homebrew";
-
-		homebrew-core = {
+	nixvim = {
+		url = "github:nix-community/nixvim/nixos-25.05";
+		inputs.nixpkgs.follows = "nixpkgs";
+	};
+	nix-homebrew.url = "github:zhaofengli-wip/nix-homebrew";		homebrew-core = {
 			url = "github:homebrew/homebrew-core";
 			flake = false;
 		};
