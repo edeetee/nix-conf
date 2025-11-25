@@ -3,7 +3,7 @@
     # SHELL CONFIGURATION
 	environment.systemPackages =
 		with pkgs; [ 
-			nixfmt
+			nixfmt-classic
 			nil
 			nodejs
 			bun

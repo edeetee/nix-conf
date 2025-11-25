@@ -13,11 +13,10 @@
 			tabstop = 4;
 			shiftwidth = 4;
 			smartindent = true;
+			expandtab = true;
 			scrolloff = 6;
 			title = true;
 		};
-
-
 
 
 		keymaps = [
@@ -196,6 +195,7 @@
 					        installRustc = true;
 					};
 					bashls.enable = true;
+					eslint.enable = true;
 					# ruff_lsp.enable = true;
 					pylsp.enable = true;
 					dartls.enable = true;
@@ -310,12 +310,12 @@
 			#copilot-vim.enable = true;
 			copilot-lua = {
 				enable = true;
-				# settings = {
+				settings = {
 					suggestion.enabled = false;
 					panel.enabled = false;
 					# copilot_node_command = "${pkgs.nodejs_24}/bin/node";
 					# node_command = "${pkgs.nodejs_24}/bin/node";
-				# };
+				};
 				# suggestion = {
 				# 	enabled = true;
 				# 	autoTrigger = true;
