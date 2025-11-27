@@ -57,15 +57,15 @@
 				action = ''<C-\><C-n>'';
 				mode = "t";
 			}
-			{
-				key = "<Right>";
-				mode = ["i"];
-				action.__raw = ''
-			function()
-				require("copilot.suggestion").accept()
-			end
-			'';
-			}
+			# {
+			# 	key = "<Right>";
+			# 	mode = ["i"];
+			# 	action.__raw = ''
+			# function()
+			# 	require("copilot.suggestion").accept()
+			# end
+			# '';
+			# }
 			{
 				key = "f";
 				action.__raw = ''
@@ -132,9 +132,8 @@
 				ino <silent><expr> <S-Tab> pumvisible() ? "\<C-p>" : "\<BS>"
 				'';
 
-
-		# https://github.com/zbirenbaum/copilot.lua/issues/91#issuecomment-1345190310
-
+# cross platform clipboard via OSC 52
+		clipboard.register = ["unnamed" "unnamedplus"];
 		extraConfigLua = ''
 					vim.g.clipboard = {
 						name = 'OSC 52',
@@ -199,6 +198,7 @@
 							};
 						};
 					};
+					gopls.enable = true;
 					rust_analyzer = {
 					        enable = true;
 					        installCargo = true;
@@ -222,6 +222,10 @@
 			# 	};
 			# };
 
+
+		# supertab
+		# https://github.com/zbirenbaum/copilot.lua/issues/91#issuecomment-1345190310
+
 			cmp = {
 				enable = true;
 				autoEnableSources = true;
@@ -234,6 +238,7 @@
 					# 	"<Tab>" = "cmp.mapping(cmp.mapping.select_next_item(), {'i', 's'})";
 						"<S-Tab>" = "cmp.mapping(cmp.mapping.select_prev_item(), {'i', 's'})";
 						# "<CR>" = "cmp.mapping.confirm({ select = true })";
+						"<Enter>" = "cmp.mapping.confirm({ select = true })";
 						"<Tab>" = ''
 		  cmp.mapping(
 			function(fallback)
