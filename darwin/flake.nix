@@ -202,10 +202,12 @@
 					{
 						home-manager.useGlobalPkgs = true;
 						home-manager.useUserPackages = true;
-						home-manager.users.edeetee = import ./home.nix {
-							homeDirectory = "/Users/edeetee";
-							username = "edeetee";
-						};
+					home-manager.users.edeetee = import ./home.nix {
+						homeDirectory = "/Users/edeetee";
+						username = "edeetee";
+						configDir = "${self}/darwin";
+						# karabinerSource = null;
+					};
 						home-manager.backupFileExtension = "home-manager-backup";
 					}
 				];
@@ -222,10 +224,12 @@
 					{
 						home-manager.useGlobalPkgs = true;
 						home-manager.useUserPackages = true;
-						home-manager.users.edt = import ./home.nix { 
-							homeDirectory = "/Users/edt";
-							username = "edt";
-						};
+					home-manager.users.edt = import ./home.nix { 
+						homeDirectory = "/Users/edt";
+						username = "edt";
+						configDir = "${self}/darwin";
+						# karabinerSource = ./karabiner.json;
+					};
 						home-manager.backupFileExtension = "home-manager-backup";
 					}
 				];
@@ -242,10 +246,12 @@
 					{
 						home-manager.useGlobalPkgs = true;
 						home-manager.useUserPackages = true;
-						home-manager.users.edt = import ./home.nix { 
-							homeDirectory = "/Users/edwardtaylor";
-							username = "edwardtaylor";
-						};
+					home-manager.users.edt = import ./home.nix { 
+						homeDirectory = "/Users/edwardtaylor";
+						username = "edwardtaylor";
+						configDir = "${self}/darwin";
+						karabinerSource = ./karabiner.json;
+					};
 						home-manager.backupFileExtension = "home-manager-backup";
 					}
 				];
