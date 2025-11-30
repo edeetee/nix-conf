@@ -157,6 +157,8 @@
 		plugins = {
 			lightline.enable = true;
 
+			fugitive.enable = true;
+
 			dap = {
 				enable = true;
 			};
@@ -293,7 +295,12 @@
 				extensions = {
 					fzf-native.enable = true;
 					ui-select.enable = true;
-					file-browser.enable = true;
+					file-browser = {
+						enable = true;
+						settings = {
+							hidden = true;
+						};
+					};
 				};
 				keymaps = {
 					"<leader>ff" = "find_files";
@@ -311,10 +318,11 @@
 				};
 				settings = {
 					defaults = {
-						layout_strategy = "vertical";
+						layout_strategy = "flex";
 						layout_config = {
-							width = 100;
-							height = 0.7;
+							# width = 100;
+							# width = 1;
+							# height = 1.0;
 							anchor = "SE";
 						};
 					};
