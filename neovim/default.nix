@@ -317,6 +317,11 @@
 					"<leader>fa" = "file_browser";
 				};
 				settings = {
+					pickers = {
+						find_files = {
+							hidden = true;
+						};
+					};
 					defaults = {
 						layout_strategy = "flex";
 						layout_config = {

@@ -75,7 +75,6 @@
 					];
 					brews = [
 						"yt-dlp"
-						"uv"
 						"gh"
 						"ffmpeg"
 						"nvm"

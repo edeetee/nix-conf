@@ -15,6 +15,7 @@
 			jujutsu
 			git-absorb
 			ripgrep
+			uv
 		];
 	
 	fonts.packages = with pkgs; [
@@ -31,6 +32,7 @@
 			gpf = "git push --force-with-lease";
 			gpnv = "git push --no-verify";
 			gpfnv = "git push --force-with-lease --no-verify";
+			stack-pr = "uv tool run stack-pr";
 	};
 
 	environment.interactiveShellInit = ''
