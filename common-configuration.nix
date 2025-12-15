@@ -13,6 +13,7 @@
 			yarn
 			go
 			jujutsu
+			lazyjj
 			git-absorb
 			ripgrep
 			uv

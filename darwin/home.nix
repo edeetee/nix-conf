@@ -13,9 +13,9 @@
 
   home.file.".config/kitty".source = config.lib.file.mkOutOfStoreSymlink "${configDir}/kitty";
 
-  home.file.".config/karabiner/karabiner.json" = lib.mkIf (karabinerSource != null) {
-    source = karabinerSource;
-  };
+  # home.file.".config/karabiner/karabiner.json" = lib.mkIf (karabinerSource != null) {
+  #   source = karabinerSource;
+  # };
 
   home.file."Library/Services/Kitty Finder.workflow".source = config.lib.file.mkOutOfStoreSymlink "${configDir}/kitty_finder.workflow";
   home.file."Library/Services/ghostty_finder.workflow".source = config.lib.file.mkOutOfStoreSymlink "${configDir}/ghostty_finder.workflow";
