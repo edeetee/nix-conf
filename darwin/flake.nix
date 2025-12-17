@@ -111,7 +111,7 @@
 					nixrs = "sudo darwin-rebuild switch --flake ~/dev/nix-conf/darwin/";
 					nixe = "v ~/dev/nix-conf/";
 					nixcd = "cd ~/dev/nix-conf/";
-					ssh="kitty +kitten ssh";
+					# ssh="kitt +kitten ssh";
 					"'?'"="gh copilot";
 				};
 
