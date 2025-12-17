@@ -1,8 +1,8 @@
 {
-	inputs.nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+	inputs.nixpkgs.url = "github:nixos/nixpkgs/nixos-25.11";
 	inputs.flamenco.url = "github:edeetee/flamenco-nix";
 	inputs.nixvim = {
-		url = "github:nix-community/nixvim";
+		url = "github:nix-community/nixvim/nixos-25.11";
 		inputs.nixpkgs.follows = "nixpkgs";
 	};
 	# inputs.comfyui.url = "path:/home/edeetee/dev/comfyui-nix";
@@ -42,7 +42,7 @@
 
 
 		nixosConfigurations.nixos-desktop = nixpkgs.lib.nixosSystem {
-			system = "x86_64-linux";
+			# system = "x86_64-linux";
 			specialArgs = { inherit attrs; };
 			modules = [ 
 				./common-configuration.nix

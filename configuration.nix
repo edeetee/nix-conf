@@ -26,13 +26,12 @@
 	nix.settings.experimental-features = "nix-command flakes";
 
 # Enable the X11 windowing system.
-	services.xserver = {
+	services.displayManager.gdm = {
 		enable = true;
-		displayManager.gdm.enable = true;
-		displayManager.gdm.autoSuspend = false;
-
-		desktopManager.gnome.enable = true;
+		autoSuspend = false;
 	};
+
+	services.desktopManager.gnome.enable = true;
 
 	services.zerotierone = {
 		enable = true;
@@ -41,14 +40,15 @@
 		];
 	};
 
-
-	services.avahi.enable = true;
-	services.avahi.publish.enable = true;
-	services.avahi.publish.userServices = true;
-	services.avahi.publish.addresses = true;
-	services.avahi.publish.domain = true;
-	services.avahi.nssmdns4 = true;
-	services.avahi.publish.workstation = true; # ADDED TO DESKTOP MACHINES
+	services.avahi = {
+		enable = true;
+		publish.enable = true;
+		publish.userServices = true;
+		publish.addresses = true;
+		publish.domain = true;
+		nssmdns4 = true;
+		publish.workstation = true; # ADDED TO DESKTOP MACHINES
+	};
 
 	security.polkit.extraConfig = ''
 		polkit.addRule(function(action, subject) {
@@ -87,7 +87,7 @@
 			wget
 			git
 			rocmPackages.rocm-smi
-			nvtop-amd
+			nvtopPackages.amd
 			blender-hip
 	];
 
@@ -235,7 +235,6 @@
 
 	services.samba = {
 		enable = true;
-		securityType = "user";
 
 		settings = {
 			global = {

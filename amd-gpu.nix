@@ -3,7 +3,7 @@
 		services.xserver.videoDrivers = [ "amdgpu" ];
 		hardware.opengl.extraPackages = with pkgs; [
 				rocm-opencl-icd
-						rocm-opencl-runtime
+				rocm-opencl-runtime
 		];
 
 			hardware.opengl.driSupport = true;
