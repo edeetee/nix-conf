@@ -21,7 +21,7 @@
 
 	networking.networkmanager.enable = true;  # Easiest to use and most distros use this by default.
 	networking.nameservers = ["1.1.1.1" "8.8.8.8"];
-	networking.hostName = "nixos-desktop";
+	networking.hostName = "homeserver-edt";
 	time.timeZone = "Pacific/Auckland";
 
 #services.devmon.enable = true;

@@ -39,8 +39,6 @@
 		};
 	in 
 	{
-
-
 		nixosConfigurations.nixos-desktop = nixpkgs.lib.nixosSystem {
 			# system = "x86_64-linux";
 			specialArgs = { inherit attrs; };

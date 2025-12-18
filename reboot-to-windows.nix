@@ -67,8 +67,28 @@ in
   users.users.windows = {
     isNormalUser = true;
     description = "Reboot to Windows";
-    hashedPassword = "!"; # Locked account - no password login possible
-    shell = "${reboot-to-windows-script}/bin/reboot-to-windows";
+    hashedPassword = ""; # Empty password - passwordless login
+    home = "/var/empty";
+    createHome = false;
+  };
+
+  # Configure GDM to allow passwordless login for windows user
+  security.pam.services.gdm-password.text = lib.mkAfter ''
+    auth sufficient pam_succeed_if.so user = windows
+  '';
+
+  # Create a systemd user service that runs on login for windows user
+  systemd.user.services.reboot-to-windows = {
+    description = "Reboot to Windows on login";
+    wantedBy = [ "default.target" ];
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStart = "${pkgs.sudo}/bin/sudo ${reboot-to-windows-script}/bin/reboot-to-windows";
+    };
+    # Only run for the windows user
+    unitConfig = {
+      ConditionUser = "windows";
+    };
   };
 
   # Allow the windows user to run reboot commands without password
