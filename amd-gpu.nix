@@ -6,10 +6,9 @@
 				rocm-opencl-runtime
 		];
 
-			hardware.opengl.driSupport = true;
+		hardware.opengl.driSupport = true;
 		hardware.opengl.driSupport32Bit = true;
 		hardware.opengl.enable = true;
-
 
 		systemd.tmpfiles.rules = [
 				"L+    /opt/rocm/hip   -    -    -     -    ${pkgs.rocmPackages.clr}"
