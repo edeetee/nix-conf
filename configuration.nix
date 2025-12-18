@@ -12,9 +12,12 @@
 	system.stateVersion = "23.11"; # Did you read the comment?
 
 # Use the systemd-boot EFI boot loader.
-	boot.loader.systemd-boot.enable = true;
-	boot.loader.efi.canTouchEfiVariables = true;
-	boot.loader.systemd-boot.configurationLimit = 5;
+	boot.loader = {
+		systemd-boot.enable = true;
+		efi.canTouchEfiVariables = true;
+		systemd-boot.configurationLimit = 5;
+		timeout = 1;
+	};
 
 	networking.networkmanager.enable = true;  # Easiest to use and most distros use this by default.
 	networking.nameservers = ["1.1.1.1" "8.8.8.8"];

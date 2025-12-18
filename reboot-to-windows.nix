@@ -5,19 +5,20 @@ let
     #!/usr/bin/env bash
     set -e
     
-    # Find Windows Boot Manager entry
-    WINDOWS_ENTRY=$(${pkgs.systemd}/bin/bootctl list | grep -i "windows" | grep -i "boot manager" | head -n 1 | awk '{print $1}' || true)
+    # Find Windows Boot Manager entry using efibootmgr
+    WINDOWS_ENTRY=$(${pkgs.efibootmgr}/bin/efibootmgr | grep -i "windows" | head -n 1 | sed 's/Boot\([0-9A-F]*\).*/\1/' || true)
     
     if [ -z "$WINDOWS_ENTRY" ]; then
       echo "Error: Could not find Windows Boot Manager entry"
-      ${pkgs.libnotify}/bin/notify-send "Reboot to Windows Failed" "Could not find Windows boot entry"
+      echo "Available boot entries:"
+      ${pkgs.efibootmgr}/bin/efibootmgr
       exit 1
     fi
     
-    echo "Setting next boot to Windows: $WINDOWS_ENTRY"
+    echo "Setting next boot to Windows (entry $WINDOWS_ENTRY)"
     
-    # Set next boot to Windows
-    ${pkgs.systemd}/bin/bootctl set-oneshot "$WINDOWS_ENTRY"
+    # Set next boot to Windows using efibootmgr
+    ${pkgs.efibootmgr}/bin/efibootmgr --bootnext "$WINDOWS_ENTRY"
     
     # Reboot
     ${pkgs.systemd}/bin/systemctl reboot
@@ -76,7 +77,7 @@ in
       users = [ "edeetee" "windows" ];
       commands = [
         {
-          command = "${pkgs.systemd}/bin/bootctl";
+          command = "${pkgs.efibootmgr}/bin/efibootmgr";
           options = [ "NOPASSWD" ];
         }
         {
