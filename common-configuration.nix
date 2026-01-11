@@ -14,6 +14,7 @@
 			go
 			jujutsu
 			lazyjj
+			jjui
 			git-absorb
 			ripgrep
 			uv

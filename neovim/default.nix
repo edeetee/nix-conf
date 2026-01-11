@@ -16,6 +16,13 @@
 			expandtab = true;
 			scrolloff = 6;
 			title = true;
+
+
+			foldmethod = "expr";
+			foldexpr = "nvim_treesitter#foldexpr()";
+			foldlevel = 99;
+			foldlevelstart = 99;
+			foldenable = true;
 		};
 
 
@@ -37,12 +44,75 @@
 				action = "<cmd>quitall<CR>";
 			}
 			{
-				key = "<leader>g";
-				action = "<cmd>Neogit<CR>";
+				key = "<leader>x";
+				action = "<cmd>exit<CR>";
 			}
+			# {
+			# 	key = "<leader>j";
+			# 	action = "<cmd>LazyJJ<CR>";
+			# }
+			# {
+			# 	key = "<leader>g";
+			# 	action = "<cmd>Neogit<CR>";
+			# }
 			{
 				key = "<leader>/";
 				action = "<cmd>WhichKey<CR>";
+			}
+			{
+				key = "<leader>s";
+				action = "<cmd>WhichKey <C-w><CR>";
+				options.desc = "Window commands";
+			}
+			{
+				key = "<leader>f";
+				action = "";
+				options.desc = "Find/Telescope";
+			}
+			{
+				key = "<leader>b";
+				action = "";
+				options.desc = "Buffers";
+			}
+			{
+				key = "<leader><Left>";
+				action = "<C-w>h";
+				options.desc = "Move to left window";
+			}
+			{
+				key = "<leader><Down>";
+				action = "<C-w>j";
+				options.desc = "Move to bottom window";
+			}
+			{
+				key = "<leader><Up>";
+				action = "<C-w>k";
+				options.desc = "Move to top window";
+			}
+			{
+				key = "<leader><Right>";
+				action = "<C-w>l";
+				options.desc = "Move to right window";
+			}
+			{
+				key = "<leader>bd";
+				action = "<cmd>bdelete<CR>";
+				options.desc = "Delete buffer";
+			}
+			{
+				key = "<leader>bn";
+				action = "<cmd>bnext<CR>";
+				options.desc = "Next buffer";
+			}
+			{
+				key = "<leader>bp";
+				action = "<cmd>bprevious<CR>";
+				options.desc = "Previous buffer";
+			}
+			{
+				key = "<leader>ba";
+				action = "<cmd>bufdo bd<CR>";
+				options.desc = "Close all buffers";
 			}
 			{
 				key = "<leader>tf";
@@ -134,7 +204,16 @@
 
 # cross platform clipboard via OSC 52
 		clipboard.register = ["unnamed" "unnamedplus"];
+
 		extraConfigLua = ''
+
+					-- Ignore deprecation warnings about neovim
+					-- vim.deprecate = function end 
+
+					require('lazyjj').setup({
+							mapping = '<leader>g'  -- Change the default keymap
+					})
+
 					vim.g.clipboard = {
 						name = 'OSC 52',
 						copy = {
@@ -149,6 +228,7 @@
 					'';
 
 		extraPlugins = with pkgs.vimPlugins; [
+			lazyjj-nvim
 			# supertab
 		];
 
@@ -317,6 +397,9 @@
 					"<leader>fa" = "file_browser";
 				};
 				settings = {
+					buffers = {
+						sort_lastused = true;
+					};
 					pickers = {
 						find_files = {
 							hidden = true;

@@ -1,18 +1,17 @@
-# This is Git's per-user configuration file.
 [user]
-# Please adapt and uncomment the following lines:
 	name = Edward Taylor
+	# home.nix will replace this email line
 	email = dev@edt.nz
 
 [pull]
 	rebase = true
+
 [merge]
 	ff = yes
 
 [url "ssh://git@github.com/"]
 	insteadOf = https://github.com/
 
-; for submodules
 [status]
 	submoduleSummary = true
 

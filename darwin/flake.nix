@@ -2,20 +2,22 @@
 	description = "Example Darwin system flake";
 
 	inputs = {
-		nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.05";
-		nix-darwin.url = "github:LnL7/nix-darwin/nix-darwin-25.05";
+		nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
+		nix-darwin.url = "github:LnL7/nix-darwin/nix-darwin-25.11";
 		nix-darwin.inputs.nixpkgs.follows = "nixpkgs";
 
 		home-manager = {
-			url = "github:nix-community/home-manager/release-25.05";
+			url = "github:nix-community/home-manager/release-25.11";
 			inputs.nixpkgs.follows = "nixpkgs";
-	};
+		};
 
-	nixvim = {
-		url = "github:nix-community/nixvim/nixos-25.05";
-		inputs.nixpkgs.follows = "nixpkgs";
-	};
-	nix-homebrew.url = "github:zhaofengli-wip/nix-homebrew";		homebrew-core = {
+		nixvim = {
+			url = "github:nix-community/nixvim/nixos-25.11";
+			inputs.nixpkgs.follows = "nixpkgs";
+		};
+
+		nix-homebrew.url = "github:zhaofengli-wip/nix-homebrew";		
+		homebrew-core = {
 			url = "github:homebrew/homebrew-core";
 			flake = false;
 		};
@@ -234,7 +236,7 @@
 				];
 			};
 
-			darwinConfigurations."Edwards-MacBook-Pro" = nix-darwin.lib.darwinSystem {
+			darwinConfigurations."edt-starboard-macbook-pro" = nix-darwin.lib.darwinSystem {
 				modules = [
 					nix-homebrew.darwinModules.nix-homebrew
 					(configuration { user = "edwardtaylor"; })
@@ -250,6 +252,7 @@
 						username = "edwardtaylor";
 						configDir = "${self}/darwin";
 						karabinerSource = ./karabiner.json;
+						gitEmail = "edward.taylor@starboard.nz";
 					};
 						home-manager.backupFileExtension = "home-manager-backup";
 					}

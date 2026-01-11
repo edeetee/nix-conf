@@ -1,4 +1,4 @@
-{username, homeDirectory, configDir, karabinerSource ? null}: { config, lib, ... }:
+{username, homeDirectory, configDir, karabinerSource ? null, gitEmail}: { config, lib, ... }:
 
 {
   home.username = lib.mkForce username;
@@ -9,7 +9,12 @@
 
   home.file.".hushlogin".text = "";
 
-  home.file.".gitconfig".source = ./.gitconfig;
+  home.file.".gitconfig".text = 
+    let gitconfigContent = builtins.readFile ./.gitconfig;
+    in lib.replaceStrings 
+      ["email = dev@edt.nz"] 
+      ["email = ${gitEmail}"]
+      gitconfigContent;
 
   home.file.".config/kitty".source = ./kitty;
 
