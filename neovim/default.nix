@@ -17,7 +17,6 @@
 			scrolloff = 6;
 			title = true;
 
-
 			foldmethod = "expr";
 			foldexpr = "nvim_treesitter#foldexpr()";
 			foldlevel = 99;
@@ -291,6 +290,8 @@
 					# ruff_lsp.enable = true;
 					pylsp.enable = true;
 					dartls.enable = true;
+                    golangci_lint_ls.enable = true;
+
 				};
 			};
 			# coq-nvim = {
