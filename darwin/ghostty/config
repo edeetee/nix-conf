@@ -10,8 +10,10 @@ keybind = cmd+equal=new_split:right
 clipboard-read = allow
 clipboard-read = allow
 
-shell-integration-features = ssh-terminfo, ssh-env, sudo
+shell-integration-features = ssh-terminfo,ssh-env,sudo
 macos-titlebar-style = tabs
+
+window-save-state = always
 
 # This is the configuration file for Ghostty.
 #
