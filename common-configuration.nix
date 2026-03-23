@@ -2,6 +2,7 @@
   config,
   pkgs,
   lib,
+  attrs,
   ...
 }:
 {
@@ -24,6 +25,7 @@
     uv
     golangci-lint
     fzf
+    attrs.workmux.packages.${pkgs.system}.default
   ];
 
   fonts.packages = with pkgs; [

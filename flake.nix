@@ -1,56 +1,64 @@
 {
-	inputs.nixpkgs.url = "github:nixos/nixpkgs/nixos-25.11";
-	inputs.flamenco.url = "github:edeetee/flamenco-nix";
-	inputs.nixvim = {
-		url = "github:nix-community/nixvim/nixos-25.11";
-		inputs.nixpkgs.follows = "nixpkgs";
-	};
-	# inputs.comfyui.url = "path:/home/edeetee/dev/comfyui-nix";
+  inputs.nixpkgs.url = "github:nixos/nixpkgs/nixos-25.11";
+  inputs.flamenco.url = "github:edeetee/flamenco-nix";
+  inputs.nixvim = {
+    url = "github:nix-community/nixvim/nixos-25.11";
+    inputs.nixpkgs.follows = "nixpkgs";
+  };
+  inputs.workmux.url = "github:raine/workmux";
+  # inputs.comfyui.url = "path:/home/edeetee/dev/comfyui-nix";
 
-	outputs = 
-	{ self, nixpkgs, nixvim, flamenco, ... }@attrs: 
-	let
+  outputs =
+    {
+      self,
+      nixpkgs,
+      nixvim,
+      flamenco,
+      ...
+    }@attrs:
+    let
 
-		flake-conf = {pkgs, ...}: 
-		let
-			# optiphonic-comfyui = pkgs.writeShellScriptBin "optiphonic-comfyui" ''
-			# 	#!/usr/bin/env bash
-			# 	${pkgs.udisks}/bin/udisksctl mount -b /dev/disk/by-label/OPTIPHONIC
-			# 	OPTIPHONIC=$(${pkgs.util-linux}/bin/lsblk /dev/sdb1 -o mountpoints -lpn)
-			# 	${comfyui.packages.${pkgs.stdenv.hostPlatform.system}.comfyui}/bin/comfyui $OPTIPHONIC/AI/ComfyUI --listen 0.0.0.0
-			# '';
-		in
-		{
-			environment.shellAliases = {
-				nixrs = "sudo nixos-rebuild switch";
-			};
+      flake-conf =
+        { pkgs, ... }:
+        let
+          # optiphonic-comfyui = pkgs.writeShellScriptBin "optiphonic-comfyui" ''
+          # 	#!/usr/bin/env bash
+          # 	${pkgs.udisks}/bin/udisksctl mount -b /dev/disk/by-label/OPTIPHONIC
+          # 	OPTIPHONIC=$(${pkgs.util-linux}/bin/lsblk /dev/sdb1 -o mountpoints -lpn)
+          # 	${comfyui.packages.${pkgs.stdenv.hostPlatform.system}.comfyui}/bin/comfyui $OPTIPHONIC/AI/ComfyUI --listen 0.0.0.0
+          # '';
+        in
+        {
+          environment.shellAliases = {
+            nixrs = "sudo nixos-rebuild switch";
+          };
 
-			# systemd.services.comfyui = {
-			# 	description = "Mount OPTIPHONIC drive and run ComfyUI";
-			# 	after = [ "network.target" ];
-			# 	wantedBy = [ "multi-user.target" ];
-			# 	serviceConfig = {
-			# 		Type = "simple";
-			# 		ExecStart = "${optiphonic-comfyui}/bin/optiphonic-comfyui";
-			# 		ExecStop = "${pkgs.udisks}/bin/udisksctl unmount -b /dev/disk/by-label/OPTIPHONIC";
-			# 	};
-			# };
+          # systemd.services.comfyui = {
+          # 	description = "Mount OPTIPHONIC drive and run ComfyUI";
+          # 	after = [ "network.target" ];
+          # 	wantedBy = [ "multi-user.target" ];
+          # 	serviceConfig = {
+          # 		Type = "simple";
+          # 		ExecStart = "${optiphonic-comfyui}/bin/optiphonic-comfyui";
+          # 		ExecStop = "${pkgs.udisks}/bin/udisksctl unmount -b /dev/disk/by-label/OPTIPHONIC";
+          # 	};
+          # };
 
-		};
-	in 
-	{
-		nixosConfigurations.nixos-desktop = nixpkgs.lib.nixosSystem {
-			# system = "x86_64-linux";
-			specialArgs = { inherit attrs; };
-			modules = [ 
-				./common-configuration.nix
-				./configuration.nix 
-				nixvim.nixosModules.nixvim 
-				./ati-server-hardware-configuration.nix 
-				flamenco.nixosModules.flamenco 
-				./neovim
-				flake-conf
-			];
-		};
-	};
+        };
+    in
+    {
+      nixosConfigurations.nixos-desktop = nixpkgs.lib.nixosSystem {
+        # system = "x86_64-linux";
+        specialArgs = { inherit attrs; };
+        modules = [
+          ./common-configuration.nix
+          ./configuration.nix
+          nixvim.nixosModules.nixvim
+          ./ati-server-hardware-configuration.nix
+          flamenco.nixosModules.flamenco
+          ./neovim
+          flake-conf
+        ];
+      };
+    };
 }

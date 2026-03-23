@@ -30,13 +30,17 @@
       flake = false;
     };
 
+    jjui.url = "github:idursun/jjui";
+
+    workmux.url = "github:raine/workmux";
+
     nixvim-vsc = {
       url = "path:../nvim-vsc";
     };
   };
 
   outputs =
-    inputs@{
+    {
       self,
       nix-darwin,
       nixpkgs,
@@ -48,13 +52,13 @@
       deskflow-tap,
       nixvim-vsc,
       ...
-    }:
+    }@attrs:
     let
 
       configuration =
         { user }:
         { pkgs, lib, ... }:
-        {
+        rec {
           # List packages installed in system profile. To search by name, run:
           # $ nix-env -qaP | grep wget
           # nvim-vsc = lib.getExe nixvim-vsc.packages.${pkgs.stdenv.hostPlatform.system}.default;
@@ -89,10 +93,7 @@
               # cleanup = "uninstall";
             };
 
-            taps = [
-              # "deskflow/homebrew-tap"
-              "homebrew/cask"
-            ];
+            taps = builtins.attrNames nix-homebrew.taps;
             brews = [
               "yt-dlp"
               "gh"
@@ -215,6 +216,7 @@
       # Build darwin flake using:
       # $ darwin-rebuild build --flake .#simple
       darwinConfigurations."Edwards-MacBook-Max" = nix-darwin.lib.darwinSystem {
+        specialArgs = { inherit attrs; };
         modules = [
           nix-homebrew.darwinModules.nix-homebrew
           (configuration { user = "edeetee"; })
@@ -237,6 +239,7 @@
       };
 
       darwinConfigurations."Edwards-MacBook-Air" = nix-darwin.lib.darwinSystem {
+        specialArgs = { inherit attrs; };
         modules = [
           nix-homebrew.darwinModules.nix-homebrew
           (configuration { user = "edt"; })
@@ -259,6 +262,7 @@
       };
 
       darwinConfigurations."edt-starboard-macbook-pro" = nix-darwin.lib.darwinSystem {
+        specialArgs = { inherit attrs; };
         modules = [
           nix-homebrew.darwinModules.nix-homebrew
           (configuration { user = "edwardtaylor"; })
