@@ -66,7 +66,7 @@
     		}
     	'';
 
-  programs.direnv.enable = pkgs.stdenv.isLinux;
+  programs.direnv.enable = pkgs.stdenv.isLinux; # TODO: re-enable after nixpkgs includes NixOS/nixpkgs#502769
 
   programs.zsh = {
     enable = true;

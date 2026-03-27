@@ -1,17 +1,17 @@
 {
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-25.11";
+    nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
 
     # NixOS-specific
     flamenco.url = "github:edeetee/flamenco-nix";
 
     # Darwin-specific
     nix-darwin = {
-      url = "github:LnL7/nix-darwin/nix-darwin-25.11";
+      url = "github:LnL7/nix-darwin";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     home-manager = {
-      url = "github:nix-community/home-manager/release-25.11";
+      url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     nix-homebrew.url = "github:zhaofengli-wip/nix-homebrew";
@@ -30,7 +30,7 @@
 
     # Shared
     nixvim = {
-      url = "github:nix-community/nixvim/nixos-25.11";
+      url = "github:nix-community/nixvim";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     workmux.url = "github:raine/workmux";
@@ -68,14 +68,26 @@
         ./neovim
       ];
 
-      darwinModules = user: commonModules ++ [
-        nix-homebrew.darwinModules.nix-homebrew
-        (import ./darwin/configuration.nix { inherit user self homebrew-core homebrew-cask nixvim-vsc; })
-        nixvim.nixDarwinModules.nixvim
-        home-manager.darwinModules.home-manager
-      ];
+      darwinModules =
+        user:
+        commonModules
+        ++ [
+          nix-homebrew.darwinModules.nix-homebrew
+          (import ./darwin/configuration.nix {
+            inherit
+              user
+              self
+              homebrew-core
+              homebrew-cask
+              nixvim-vsc
+              ;
+          })
+          nixvim.nixDarwinModules.nixvim
+          home-manager.darwinModules.home-manager
+        ];
     in
     {
+
       # NixOS
       nixosConfigurations.nixos-desktop = nixpkgs.lib.nixosSystem {
 

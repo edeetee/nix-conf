@@ -452,7 +452,7 @@
           timeoutMs = 500;
         };
       };
-      # direnv.enable = true; # broken on darwin: nixpkgs#433688
+      direnv.enable = false; # TODO: re-enable after nixpkgs includes NixOS/nixpkgs#502769
     };
 
   };
