@@ -1,12 +1,42 @@
 {
-  inputs.nixpkgs.url = "github:nixos/nixpkgs/nixos-25.11";
-  inputs.flamenco.url = "github:edeetee/flamenco-nix";
-  inputs.nixvim = {
-    url = "github:nix-community/nixvim/nixos-25.11";
-    inputs.nixpkgs.follows = "nixpkgs";
+  inputs = {
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-25.11";
+
+    # NixOS-specific
+    flamenco.url = "github:edeetee/flamenco-nix";
+
+    # Darwin-specific
+    nix-darwin = {
+      url = "github:LnL7/nix-darwin/nix-darwin-25.11";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    home-manager = {
+      url = "github:nix-community/home-manager/release-25.11";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    nix-homebrew.url = "github:zhaofengli-wip/nix-homebrew";
+    homebrew-core = {
+      url = "github:homebrew/homebrew-core";
+      flake = false;
+    };
+    homebrew-cask = {
+      url = "github:homebrew/homebrew-cask";
+      flake = false;
+    };
+    deskflow-tap = {
+      url = "https://github.com/deskflow/homebrew-tap";
+      flake = false;
+    };
+
+    # Shared
+    nixvim = {
+      url = "github:nix-community/nixvim/nixos-25.11";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    workmux.url = "github:raine/workmux";
+    jjui.url = "github:idursun/jjui";
+    nixvim-vsc.url = "path:./nvim-vsc";
   };
-  inputs.workmux.url = "github:raine/workmux";
-  # inputs.comfyui.url = "path:/home/edeetee/dev/comfyui-nix";
 
   outputs =
     {
@@ -14,51 +44,101 @@
       nixpkgs,
       nixvim,
       flamenco,
+      nix-darwin,
+      home-manager,
+      nix-homebrew,
+      homebrew-core,
+      homebrew-cask,
+      nixvim-vsc,
+      workmux,
       ...
-    }@attrs:
+    }:
     let
-
-      flake-conf =
+      # NixOS-specific inline config
+      nixos-flake-conf =
         { pkgs, ... }:
-        let
-          # optiphonic-comfyui = pkgs.writeShellScriptBin "optiphonic-comfyui" ''
-          # 	#!/usr/bin/env bash
-          # 	${pkgs.udisks}/bin/udisksctl mount -b /dev/disk/by-label/OPTIPHONIC
-          # 	OPTIPHONIC=$(${pkgs.util-linux}/bin/lsblk /dev/sdb1 -o mountpoints -lpn)
-          # 	${comfyui.packages.${pkgs.stdenv.hostPlatform.system}.comfyui}/bin/comfyui $OPTIPHONIC/AI/ComfyUI --listen 0.0.0.0
-          # '';
-        in
         {
           environment.shellAliases = {
             nixrs = "sudo nixos-rebuild switch";
           };
-
-          # systemd.services.comfyui = {
-          # 	description = "Mount OPTIPHONIC drive and run ComfyUI";
-          # 	after = [ "network.target" ];
-          # 	wantedBy = [ "multi-user.target" ];
-          # 	serviceConfig = {
-          # 		Type = "simple";
-          # 		ExecStart = "${optiphonic-comfyui}/bin/optiphonic-comfyui";
-          # 		ExecStop = "${pkgs.udisks}/bin/udisksctl unmount -b /dev/disk/by-label/OPTIPHONIC";
-          # 	};
-          # };
-
         };
+
+      commonModules = [
+        (import ./common-configuration.nix { inherit workmux; })
+        ./neovim
+      ];
+
+      darwinModules = user: commonModules ++ [
+        nix-homebrew.darwinModules.nix-homebrew
+        (import ./darwin/configuration.nix { inherit user self homebrew-core homebrew-cask nixvim-vsc; })
+        nixvim.nixDarwinModules.nixvim
+        home-manager.darwinModules.home-manager
+      ];
     in
     {
+      # NixOS
       nixosConfigurations.nixos-desktop = nixpkgs.lib.nixosSystem {
-        # system = "x86_64-linux";
-        specialArgs = { inherit attrs; };
-        modules = [
-          ./common-configuration.nix
+
+        modules = commonModules ++ [
           ./configuration.nix
           nixvim.nixosModules.nixvim
           ./ati-server-hardware-configuration.nix
           flamenco.nixosModules.flamenco
-          ./neovim
-          flake-conf
+          nixos-flake-conf
         ];
       };
+
+      # Darwin
+      darwinConfigurations."Edwards-MacBook-Max" = nix-darwin.lib.darwinSystem {
+
+        modules = darwinModules "edeetee" ++ [
+          {
+            home-manager.useGlobalPkgs = true;
+            home-manager.useUserPackages = true;
+            home-manager.users.edeetee = import ./darwin/home.nix {
+              homeDirectory = "/Users/edeetee";
+              username = "edeetee";
+              configDir = "${self}/darwin";
+            };
+            home-manager.backupFileExtension = "home-manager-backup";
+          }
+        ];
+      };
+
+      darwinConfigurations."Edwards-MacBook-Air" = nix-darwin.lib.darwinSystem {
+
+        modules = darwinModules "edt" ++ [
+          {
+            home-manager.useGlobalPkgs = true;
+            home-manager.useUserPackages = true;
+            home-manager.users.edt = import ./darwin/home.nix {
+              homeDirectory = "/Users/edt";
+              username = "edt";
+              configDir = "${self}/darwin";
+            };
+            home-manager.backupFileExtension = "home-manager-backup";
+          }
+        ];
+      };
+
+      darwinConfigurations."edt-starboard-macbook-pro" = nix-darwin.lib.darwinSystem {
+
+        modules = darwinModules "edwardtaylor" ++ [
+          {
+            home-manager.useGlobalPkgs = true;
+            home-manager.useUserPackages = true;
+            home-manager.users.edt = import ./darwin/home.nix {
+              homeDirectory = "/Users/edwardtaylor";
+              username = "edwardtaylor";
+              configDir = "${self}/darwin";
+              karabinerSource = ./darwin/karabiner.json;
+              gitEmail = "edward.taylor@starboard.nz";
+            };
+            home-manager.backupFileExtension = "home-manager-backup";
+          }
+        ];
+      };
+
+      darwinPackages = self.darwinConfigurations."Edwards-MacBook-Max".pkgs;
     };
 }

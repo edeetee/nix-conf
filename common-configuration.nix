@@ -1,8 +1,8 @@
+{ workmux }:
 {
   config,
   pkgs,
   lib,
-  attrs,
   ...
 }:
 {
@@ -25,7 +25,7 @@
     uv
     golangci-lint
     fzf
-    attrs.workmux.packages.${pkgs.system}.default
+    workmux.packages.${pkgs.system}.default
   ];
 
   fonts.packages = with pkgs; [
@@ -66,7 +66,7 @@
     		}
     	'';
 
-  programs.direnv.enable = true;
+  programs.direnv.enable = pkgs.stdenv.isLinux;
 
   programs.zsh = {
     enable = true;

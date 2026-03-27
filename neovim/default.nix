@@ -452,7 +452,7 @@
           timeoutMs = 500;
         };
       };
-      direnv.enable = true;
+      # direnv.enable = true; # broken on darwin: nixpkgs#433688
     };
 
   };
