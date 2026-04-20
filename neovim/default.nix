@@ -232,7 +232,7 @@
           owner = "nicolasgb";
           repo = "jj.nvim";
           rev = "main";
-          sha256 = "sha256-8POSGuNYdAR2peyzN92vWR87GqWf+Y6I1arOwNxwd6U="; # You'll need to update this
+          sha256 = "sha256-hoU+DenrgxNwvLNmDtIsJ5yB5fhRjDRPOOL8WW9bpZM=";
         };
       })
     ];

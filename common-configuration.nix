@@ -29,6 +29,8 @@
     workmux.packages.${pkgs.system}.default
   ];
 
+  programs.nix-index-database.comma.enable = true;
+
   fonts.packages = with pkgs; [
     julia-mono
   ];
@@ -67,6 +69,8 @@
     		}
     	'';
 
+  programs.nix-index.enable = true;
+
   programs.direnv.enable = pkgs.stdenv.isLinux; # TODO: re-enable after nixpkgs includes NixOS/nixpkgs#502769
 
   programs.zsh = {
@@ -82,10 +86,26 @@
       eval "$(${pkgs.starship}/bin/starship init zsh)"
       PATH="$HOME/.cargo/bin:$PATH"
       source <(COMPLETE=zsh jj)
+
+      # comma command-not-found handler
+      command_not_found_handler() {
+        comma "$@"
+      }
     '';
   };
 
   # NIX CONFIGURATION
+  nix.settings = {
+    substituters = [
+      "https://cache.nixos.org"
+      "https://nix-community.cachix.org"
+    ];
+    trusted-public-keys = [
+      "cache.nixos.org-1:6NCHdD59X431o0gWypQydGvjwydLr35063fzsOi6CPE="
+      "nix-community.cachix.org-1:mB278NcDjwwy0OjdVaKg1XVjbYf5Xzsm2y8aLkCjaja4="
+    ];
+  };
+
   # nix.settings.auto-optimise-store = true;
 
   nixpkgs.config.allowUnfree = true;

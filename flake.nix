@@ -36,6 +36,9 @@
     workmux.url = "github:raine/workmux";
     jjui.url = "github:idursun/jjui";
     nixvim-vsc.url = "path:./nvim-vsc";
+
+    nix-index-database.url = "github:nix-community/nix-index-database";
+    nix-index-database.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs =
@@ -51,6 +54,7 @@
       homebrew-cask,
       nixvim-vsc,
       workmux,
+      nix-index-database,
       ...
     }:
     let
@@ -84,6 +88,7 @@
           })
           nixvim.nixDarwinModules.nixvim
           home-manager.darwinModules.home-manager
+          nix-index-database.darwinModules.nix-index
         ];
     in
     {
@@ -97,6 +102,7 @@
           ./ati-server-hardware-configuration.nix
           flamenco.nixosModules.flamenco
           nixos-flake-conf
+          nix-index-database.nixosModules.default
         ];
       };
 
