@@ -1,4 +1,4 @@
-{username, homeDirectory, configDir, karabinerSource ? null, gitEmail}: { config, lib, ... }:
+{username, homeDirectory, configDir, karabinerSource ? null, gitEmail ? null}: { config, lib, ... }:
 
 let
   nixConfDir = "${homeDirectory}/dev/nix-conf";
@@ -29,12 +29,16 @@ in
   home.file = configSymlinks // {
     ".hushlogin".text = "";
 
-    ".gitconfig".text =
-      let gitconfigContent = builtins.readFile ./.gitconfig;
-      in lib.replaceStrings
-        ["email = dev@edt.nz"]
-        ["email = ${gitEmail}"]
-        gitconfigContent;
+    ".gitconfig" = if gitEmail != null then {
+      text =
+        let gitconfigContent = builtins.readFile ./.gitconfig;
+        in lib.replaceStrings
+          ["email = dev@edt.nz"]
+          ["email = ${gitEmail}"]
+          gitconfigContent;
+    } else {
+      source = ./.gitconfig;
+    };
 
     # home.file.".config/karabiner/karabiner.json" = lib.mkIf (karabinerSource != null) {
     #   source = karabinerSource;
