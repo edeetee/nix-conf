@@ -25,6 +25,7 @@
     uv
     golangci-lint
     fzf
+    postgresql
     workmux.packages.${pkgs.system}.default
   ];
 

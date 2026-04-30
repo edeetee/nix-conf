@@ -1,0 +1,162 @@
+#:schema https://docs.jj-vcs.dev/latest/config-schema.json
+
+[user]
+name = "Edward Taylor"
+email = "edward.taylor@starboard.nz"
+
+[aliases]
+push = ["git", "push", "-r", "related-bookmarks"]
+tug = ["bookmark", "move", "--from", "heads(::@- & bookmarks()) & mutable()", "--to", "@-"]
+
+pr = ["util", "exec", "--", "bash", "-c", """
+set -euo pipefail
+
+SOURCE=""
+BRANCH=""
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    -r)
+      SOURCE="$2"
+      shift 2
+      ;;
+    *)
+      BRANCH="$1"
+      shift
+      ;;
+  esac
+done
+
+# If no source specified, find the closest ancestor with changes (non-empty commit)
+if [ -z "$SOURCE" ]; then
+  SOURCE=$(jj log -r "ancestors(@) & ~empty()" --no-graph -T 'commit_id' --limit 1 2>/dev/null | head -n1 | tr -d ' \\n')
+  if [ -z "$SOURCE" ]; then
+    SOURCE="@"
+  fi
+fi
+
+# If branch name is provided, create/update it at the source
+if [ -n "$BRANCH" ]; then
+  jj bookmark create "$BRANCH" -r "$SOURCE" 2>/dev/null || jj bookmark set "$BRANCH" -r "$SOURCE"
+else
+  # Get all bookmarks at SOURCE (space-separated)
+  BOOKMARKS=$(jj log -r "$SOURCE" --no-graph -T 'bookmarks' 2>/dev/null | head -n1 | tr -d '\\n' || echo "")
+  
+  # Filter out main, master, and deploy/* branches
+  VALID_BRANCHES=()
+  if [ -n "$BOOKMARKS" ]; then
+    for bookmark in $BOOKMARKS; do
+      if [[ "$bookmark" != "main" && "$bookmark" != "master" && "$bookmark" != deploy/* ]]; then
+        VALID_BRANCHES+=("$bookmark")
+      fi
+    done
+  fi
+  
+  # If only one valid branch, use it directly
+  if [ ${#VALID_BRANCHES[@]} -eq 1 ]; then
+    BRANCH="${VALID_BRANCHES[0]}"
+  # If multiple valid branches, check if any has an existing PR
+  elif [ ${#VALID_BRANCHES[@]} -gt 1 ]; then
+    for branch in "${VALID_BRANCHES[@]}"; do
+      if gh pr view "$branch" --json number >/dev/null 2>&1; then
+        BRANCH="$branch"
+        break
+      fi
+    done
+    # If no branch with PR found, use the first valid branch
+    if [ -z "$BRANCH" ]; then
+      BRANCH="${VALID_BRANCHES[0]}"
+    fi
+  fi
+  
+  # If still no branch, create one from commit description
+  if [ -z "$BRANCH" ]; then
+    DESC=$(jj log -r "$SOURCE" --no-graph -T 'description.first_line()' 2>/dev/null | head -n1)
+    if [ -z "$DESC" ]; then
+      echo "Error: Could not get commit description for $SOURCE" >&2
+      exit 1
+    fi
+    
+    # Create branch name: lowercase, replace spaces/special chars with hyphens, limit length
+    BRANCH=$(echo "$DESC" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g' | sed 's/^-//' | sed 's/-$//' | cut -c1-50)
+    
+    if [ -z "$BRANCH" ]; then
+      echo "Error: Could not generate valid branch name from description" >&2
+      exit 1
+    fi
+    
+    echo "Creating branch '$BRANCH' from commit description: $DESC"
+    jj bookmark create "$BRANCH" -r "$SOURCE"
+  fi
+fi
+
+echo "PR '$BRANCH' @ '$SOURCE'"
+
+# Check if PR already exists for this branch
+if gh pr view "$BRANCH" --web >/dev/null 2>&1; then
+  echo "opened PR for branch '$BRANCH' in web"
+else
+  # Push the branch to origin, allowing new branches
+  jj git push -r "$BRANCH" --allow-new
+  
+  # Create PR with gh
+  gh pr create -H "$BRANCH" --web
+fi
+""", ""]
+
+
+pr-stack = ["util", "exec", "--", "~/.config/jj/scripts/jj-pr-stack.sh"]
+
+replace = ["util", "exec", "--", "bash", "-c", """
+set -euo pipefail
+SOURCE="$1"
+TARGET="$2"
+
+if [ -z "$SOURCE" ] || [ -z "$TARGET" ]; then
+  echo "Usage: jj replace SOURCE TARGET" >&2
+  exit 1
+fi
+
+jj rebase -s "($SOURCE+) & mutable()" -d "$TARGET"
+""", ""]
+
+[revsets]
+log = "related-bookmarks | (@- & ~trunk()):: | ::@ | ::trunk() | bookmarks() | working_copies()"
+
+[revset-aliases]
+related-bookmarks = "bookmarks() & (immutable()..@)::"
+
+[merge-tools.union]
+program = "git"
+merge-args = ["merge-file", "--union", "$output", "$base", "$right"]
+
+[ui]
+default-command = "log"
+conflict-marker-style="git"
+
+[template-aliases]
+'format_short_signature(signature)' = '''
+if(signature.email() == "edward.taylor@starboard.nz",
+  label("author", "me"),
+  if(signature.email().domain().contains("noreply")
+    || signature.email().domain() == "starboard.nz"
+    || signature.email().domain() == "gmail.com"
+    || signature.email().domain() == "hotmail.com",
+    coalesce(signature.name(), email_placeholder),
+    coalesce(signature.email(), email_placeholder),
+  ),
+)
+'''
+'format_timestamp(timestamp)' = '''
+if(!timestamp.ago().contains("day")
+  && !timestamp.ago().contains("week")
+  && !timestamp.ago().contains("month")
+  && !timestamp.ago().contains("year"),
+  timestamp.local().format("%H:%M"),
+  if(!timestamp.ago().contains("year"),
+    timestamp.local().format("%b %d %H:%M"),
+    timestamp.local().format("%Y-%m-%d %H:%M"),
+  ),
+)
+'''

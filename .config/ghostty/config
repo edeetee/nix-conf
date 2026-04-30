@@ -4,10 +4,9 @@ background-blur=16
 
 font-family = JuliaMono
 
-keybind = cmd+minus=new_split:down
-keybind = cmd+equal=new_split:right
+keybind = super+-=new_split:down
+keybind = super+==new_split:right
 
-clipboard-read = allow
 clipboard-read = allow
 
 shell-integration-features = ssh-terminfo,ssh-env,sudo

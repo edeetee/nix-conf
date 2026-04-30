@@ -1,0 +1,42 @@
+[ui.tracer]
+enabled = true
+
+[[actions]]
+name = "pr-view-create-current"
+lua = '''jj_interactive("pr", "-r", context.change_id())'''
+
+[[actions]]
+name = "update-pr-stack"
+lua = '''exec_shell("~/.config/jj/scripts/jj-pr-stack.sh " .. context.change_id())'''
+
+[[actions]]
+name = "update-pr-stack-dry-run"
+lua = '''exec_shell("~/.config/jj/scripts/jj-pr-stack.sh " .. context.change_id() .. " --dry-run")'''
+
+[[actions]]
+name = "worktree-forget-current"
+lua = '''exec_shell("~/.config/jj/scripts/jj-worktree-forget.sh " .. context.change_id())'''
+
+[[bindings]]
+action = "pr-view-create-current"
+key = "P"
+scope = "revisions"
+desc = "pr view/create current"
+
+[[bindings]]
+action = "update-pr-stack"
+key = "U"
+scope = "revisions"
+desc = "update pr stack"
+
+[[bindings]]
+action = "update-pr-stack-dry-run"
+key = "shift+U"
+scope = "revisions"
+desc = "update pr stack (dry-run)"
+
+[[bindings]]
+action = "worktree-forget-current"
+seq = ["w", "f"]
+scope = "revisions"
+desc = "worktree: forget current"
