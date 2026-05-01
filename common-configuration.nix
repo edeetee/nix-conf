@@ -96,16 +96,17 @@
   };
 
   # NIX CONFIGURATION
-  nix.settings = {
-    substituters = [
-      "https://cache.nixos.org"
-      "https://nix-community.cachix.org"
-    ];
-    trusted-public-keys = [
-      "cache.nixos.org-1:6NCHdD59X431o0gWypQydGvjwydLr35063fzsOi6CPE="
-      "nix-community.cachix.org-1:mB278NcDjwwy0OjdVaKg1XVjbYf5Xzsm2y8aLkCjaja4="
-    ];
-  };
+  # nix.settings = {
+  #   substituters = [
+  #     "http://binarycache.example.com"
+  #     "https://nix-community.cachix.org"
+  #     "https://cache.nixos.org/"
+  #   ];
+  #   trusted-public-keys = [
+  #     "binarycache.example.com-1:dsafdafDFW123fdasfa123124FADSAD"
+  #     "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
+  #   ];
+  # };
 
   # nix.settings.auto-optimise-store = true;
 
