@@ -207,7 +207,7 @@
     extraConfigLua = ''
 
       					-- Ignore deprecation warnings about neovim
-      					-- vim.deprecate = function end 
+      					-- vim.deprecate = function end
 
       					require("jj").setup({})
 
@@ -231,7 +231,7 @@
         src = pkgs.fetchFromGitHub {
           owner = "nicolasgb";
           repo = "jj.nvim";
-          rev = "main";
+          rev = "v0.6.0";
           sha256 = "sha256-hoU+DenrgxNwvLNmDtIsJ5yB5fhRjDRPOOL8WW9bpZM=";
         };
       })
