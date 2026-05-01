@@ -108,7 +108,7 @@
     git
     rocmPackages.rocm-smi
     nvtopPackages.amd
-    blender-hip
+    pkgsRocm.blender
   ];
 
   fonts = {

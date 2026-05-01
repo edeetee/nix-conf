@@ -58,15 +58,6 @@
       ...
     }:
     let
-      # NixOS-specific inline config
-      nixos-flake-conf =
-        { pkgs, ... }:
-        {
-          environment.shellAliases = {
-            nixrs = "sudo nixos-rebuild switch";
-          };
-        };
-
       commonModules = [
         (import ./common-configuration.nix { inherit workmux; })
         ./neovim
@@ -94,7 +85,7 @@
     {
 
       # NixOS
-      nixosConfigurations.nixos-desktop = nixpkgs.lib.nixosSystem {
+    nixosConfigurations.homeserver-edt = nixpkgs.lib.nixosSystem {
 
         modules = commonModules ++ [
           ./configuration.nix
