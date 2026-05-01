@@ -86,13 +86,11 @@
 
       # NixOS
     nixosConfigurations.homeserver-edt = nixpkgs.lib.nixosSystem {
-
         modules = commonModules ++ [
           ./configuration.nix
           nixvim.nixosModules.nixvim
           ./ati-server-hardware-configuration.nix
-          flamenco.nixosModules.flamenco
-          nixos-flake-conf
+          # flamenco.nixosModules.flamenco
           nix-index-database.nixosModules.default
         ];
       };

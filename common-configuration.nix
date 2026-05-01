@@ -27,6 +27,7 @@
     fzf
     postgresql
     workmux.packages.${pkgs.system}.default
+    nixd
   ];
 
   programs.nix-index-database.comma.enable = true;
