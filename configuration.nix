@@ -13,23 +13,49 @@
   system.stateVersion = "23.11"; # Did you read the comment?
 
   # Use the systemd-boot EFI boot loader.
-  boot.loader = {
-    systemd-boot.enable = true;
-    efi.canTouchEfiVariables = true;
-    systemd-boot.configurationLimit = 5;
-    timeout = 1;
+  boot = {
+    consoleLogLevel = 0;
+    initrd.verbose = false;
+    plymouth.enable = true;
+    kernelParams = [
+          "quiet"
+          "splash"
+          "loglevel=3"
+          "vga=current"
+          "rd.systemd.show_status=false"
+          "rd.udev.log_level=3"
+          "udev.log_priority=3"
+        ];
+
+    loader = {
+      systemd-boot.enable = true;
+      efi.canTouchEfiVariables = true;
+      systemd-boot.configurationLimit = 5;
+      timeout = 1;
+    };
   };
 
   environment.shellAliases = {
     nixrs = "sudo nixos-rebuild switch --flake ~/dev/nix-conf/";
   };
 
-  networking.networkmanager.enable = true; # Easiest to use and most distros use this by default.
-  networking.nameservers = [
-    "1.1.1.1"
-    "8.8.8.8"
-  ];
-  networking.hostName = "homeserver-edt";
+  networking = {
+    networkmanager.enable = true; # Easiest to use and most distros use this by default.
+    nameservers = [
+      "1.1.1.1"
+      "8.8.8.8"
+    ];
+    hostName = "homeserver-edt";
+
+    # not working I think
+    interfaces = {
+      wlp5s0 = {
+        # wlp5s0 wlxd83bbf2a226d
+        wakeOnLan.enable = true;
+      };
+    };
+  };
+
   time.timeZone = "Pacific/Auckland";
 
   #services.devmon.enable = true;
@@ -40,9 +66,13 @@
   nix.settings.experimental-features = "nix-command flakes";
 
   # Enable the X11 windowing system.
-  services.displayManager.gdm = {
-    enable = true;
-    autoSuspend = false;
+  services.displayManager = {
+    autoLogin = {
+      enable = true;
+      user = "edeetee";
+    };
+
+    gdm.enable = true;
   };
 
   services.desktopManager.gnome.enable = true;
@@ -54,6 +84,58 @@
     ];
   };
 
+  # jellyfin
+  # services.jellyfin = {
+  #   enable = true;
+  #   openFirewall = true;
+  # };
+  # services.seerr = {
+  #   enable = true;
+  #   openFirewall = true;
+  # };
+  # services.sonarr = {
+  #   enable = true;
+  #   openFirewall = true;
+  # };
+  # services.radarr = {
+  #   enable = true;
+  #   openFirewall = true;
+  # };
+
+  ## Enable wake on bluetooth controllers
+  services.udev.extraRules = ''
+    # Enable wake for all Bluetooth USB controllers
+    ACTION=="add", SUBSYSTEM=="usb", ATTR{bDeviceClass}=="e0", TEST=="power/wakeup", ATTR{power/wakeup}="enabled"
+  '';
+
+  ## start steam in gamepad mode when the mode button is pressed on the controller
+  services.triggerhappy = {
+    enable = true;
+    # bindings = [
+    #   {
+    #     keys = [ "BTN_MODE" ];
+    #     cmd = "${lib.getExe pkgs.steam} -gamepadui";
+    #   }
+    # ];
+    user = "root";
+    extraConfig = ''
+      # Start Steam in Gamepad Mode when the mode button is pressed on the controller
+      BTN_MODE 1 systemctl --machine=edeetee@.host --user start steam-on-demand.service
+    '';
+  };
+
+  systemd.user.services.steam-on-demand = {
+    enable = true;
+    # Description = "Steam Gamepad UI (on-demand)";
+
+    serviceConfig = {
+      Type = "simple";
+      ExecStart = "${lib.getExe pkgs.steam} -gamepadui";
+      User = "edeetee";
+      Environment = "DISPLAY=:0";
+    };
+  };
+
   services.avahi = {
     enable = true;
     publish.enable = true;
@@ -61,20 +143,21 @@
     publish.addresses = true;
     publish.domain = true;
     nssmdns4 = true;
+    openFirewall = true;
     publish.workstation = true; # ADDED TO DESKTOP MACHINES
   };
 
-  security.polkit.extraConfig = ''
-    		polkit.addRule(function(action, subject) {
-    				if (action.id == "org.freedesktop.login1.suspend" ||
-    						action.id == "org.freedesktop.login1.suspend-multiple-sessions" ||
-    						action.id == "org.freedesktop.login1.hibernate" ||
-    						action.id == "org.freedesktop.login1.hibernate-multiple-sessions")
-    				{
-    				return polkit.Result.NO;
-    				}
-    				});
-    	'';
+  # security.polkit.extraConfig = ''
+  #   		polkit.addRule(function(action, subject) {
+  #   				if (action.id == "org.freedesktop.login1.suspend" ||
+  #   						action.id == "org.freedesktop.login1.suspend-multiple-sessions" ||
+  #   						action.id == "org.freedesktop.login1.hibernate" ||
+  #   						action.id == "org.freedesktop.login1.hibernate-multiple-sessions")
+  #   				{
+  #   				return polkit.Result.NO;
+  #   				}
+  #   				});
+  #   	'';
 
   # Define a user account. Don't forget to set a password with ‘passwd’.
   users.users.edeetee = {
@@ -133,7 +216,10 @@
   # networking.firewall.allowedTCPPorts = [ ... ];
   # networking.firewall.allowedUDPPorts = [ ... ];
   # Or disable the firewall altogether.
-  networking.firewall.enable = false;
+  networking.firewall = {
+    enable = false;
+    allowedUDPPorts = [ 9 ];
+  };
 
   programs.nix-ld.enable = true;
 
@@ -153,6 +239,19 @@
       pkgs.tmuxPlugins.catppuccin
       pkgs.tmuxPlugins.continuum
     ];
+  };
+
+  programs.gamescope = {
+    enable = true;
+    capSysNice = true;
+  };
+
+  programs.steam = {
+    enable = true;
+    remotePlay.openFirewall = true; # Open ports in the firewall for Steam Remote Play
+    dedicatedServer.openFirewall = true; # Open ports in the firewall for Source Dedicated Server
+    localNetworkGameTransfers.openFirewall = true; # Open ports in the firewall for Steam Local Network Game Transfers
+    gamescopeSession.enable = true;
   };
 
   users.defaultUserShell = pkgs.zsh;
@@ -257,11 +356,13 @@
   services.samba = {
     enable = true;
 
+    nmbd.enable = false;
+
     settings = {
       global = {
         "workgroup" = "WORKGROUP";
         "server string" = "smbnix";
-        "netbios name" = "smbnix";
+        # "netbios name" = "smbnix";
         "security" = "user";
         #use sendfile = yes
         #max protocol = smb2
