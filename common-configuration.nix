@@ -1,4 +1,4 @@
-{ workmux }:
+{  }:
 {
   config,
   pkgs,
@@ -26,7 +26,7 @@
     golangci-lint
     fzf
     postgresql
-    workmux.packages.${pkgs.system}.default
+    # workmux.packages.${pkgs.system}.default
     nixd
   ];
 

@@ -28,12 +28,19 @@
       flake = false;
     };
 
+    #arr
+    nixflix = {
+      url = "github:kiriwalawren/nixflix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    nixarr.url = "github:nix-media-server/nixarr";
+
     # Shared
     nixvim = {
       url = "github:nix-community/nixvim";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    workmux.url = "github:raine/workmux";
+    # workmux.url = "github:raine/workmux";
     jjui.url = "github:idursun/jjui";
     nixvim-vsc.url = "path:./nvim-vsc";
 
@@ -53,13 +60,14 @@
       homebrew-core,
       homebrew-cask,
       nixvim-vsc,
-      workmux,
+      # workmux,
       nix-index-database,
+      nixarr,
       ...
     }:
     let
       commonModules = [
-        (import ./common-configuration.nix { inherit workmux; })
+        (import ./common-configuration.nix {  })
         ./neovim
       ];
 
@@ -92,6 +100,7 @@
           ./ati-server-hardware-configuration.nix
           # flamenco.nixosModules.flamenco
           nix-index-database.nixosModules.default
+          nixarr.nixosModules.default
         ];
       };
 

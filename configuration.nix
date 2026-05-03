@@ -85,9 +85,16 @@
   };
 
   # jellyfin
+  # environment.systemPackages =  with pkgs; [
+  #   jellyfin-desktop
+  #   # jellyfin
+  #   # jellyfin-web
+  #   # jellyfin-ffmpeg
+  # ];
   # services.jellyfin = {
   #   enable = true;
   #   openFirewall = true;
+  #   user = "edeetee";
   # };
   # services.seerr = {
   #   enable = true;
@@ -101,6 +108,68 @@
   #   enable = true;
   #   openFirewall = true;
   # };
+
+  nixarr = {
+     enable = true;
+     # These two values are also the default, but you can set them to whatever
+     # else you want
+     # WARNING: Do _not_ set them to `/home/user/whatever`, it will not work!
+     mediaDir = "/mnt/hdd/media";
+     stateDir = "/mnt/hdd/media/.state/nixarr";
+
+     # vpn = {
+     #   enable = true;
+     #   # WARNING: This file must _not_ be in the config git directory
+     #   # You can usually get this wireguard file from your VPN provider
+     #   # wgConf = "/data/.secret/wg.conf";
+     # };
+
+     jellyfin = {
+       enable = true;
+       openFirewall = true;
+       # These options set up a nginx HTTPS reverse proxy, so you can access
+       # Jellyfin on your domain with HTTPS
+       # expose.https = {
+       #   enable = true;
+       #   domainName = "your.domain.com";
+       #   acmeMail = "your@email.com"; # Required for ACME-bot
+       # };
+     };
+
+     transmission = {
+       enable = true;
+       # vpn.enable = true;
+       # peerPort = 50000; # Set this to the port forwarded by your VPN
+     };
+
+     # It is possible for this module to run the *Arrs through a VPN, but it
+     # is generally not recommended, as it can cause rate-limiting issues.
+     bazarr = {
+       enable = true;
+       openFirewall = true;
+     };
+     lidarr = {
+       enable = true;
+       openFirewall = true;
+     };
+     prowlarr = {
+       enable = true;
+       openFirewall = true;
+     };
+     radarr = {
+       enable = true;
+       openFirewall = true;
+     };
+     # readarr.enable = true;
+     sonarr = {
+       enable = true;
+       openFirewall = true;
+     };
+     jellyseerr = {
+       enable = true;
+       openFirewall = true;
+     };
+   };
 
   ## Enable wake on bluetooth controllers
   services.udev.extraRules = ''
@@ -192,6 +261,7 @@
     rocmPackages.rocm-smi
     nvtopPackages.amd
     pkgsRocm.blender
+    jellyfin-desktop
   ];
 
   fonts = {
@@ -256,6 +326,8 @@
       proton-ge-bin # Community Proton build with better game compatibility
     ];
   };
+  # game optimisations
+  programs.gamemode.enable = true;
 
   users.defaultUserShell = pkgs.zsh;
 
