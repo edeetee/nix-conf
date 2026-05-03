@@ -38,7 +38,7 @@
 
     "/mnt/windows" = {
       device = "/dev/disk/by-uuid/F8FC331FFC32D818";
-      fsType = "ntfs";
+      fsType = "ntfs3";
       options = [
         # If you don't have this options attribute, it'll default to "defaults"
         # boot options for fstab. Search up fstab mount options you can use
@@ -50,11 +50,13 @@
 
     "/mnt/hdd" = {
       device = "/dev/disk/by-uuid/8C564F72564F5C58";
-      fsType = "ntfs";
+      fsType = "ntfs3";
       options = [
         "users"
         "nofail"
         "exec"
+        "uid=1000"
+        "gid=100"
       ];
     };
   };
