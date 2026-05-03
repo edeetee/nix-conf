@@ -93,9 +93,12 @@
     {
 
       # NixOS
-    nixosConfigurations.homeserver-edt = nixpkgs.lib.nixosSystem {
+      nixosConfigurations.homeserver-edt = nixpkgs.lib.nixosSystem {
         modules = commonModules ++ [
           ./configuration.nix
+          ./nixos/steam.nix
+          ./nixos/arr.nix
+          ./nixos/samba.nix
           nixvim.nixosModules.nixvim
           ./ati-server-hardware-configuration.nix
           # flamenco.nixosModules.flamenco
