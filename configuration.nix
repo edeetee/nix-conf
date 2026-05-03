@@ -18,14 +18,14 @@
     initrd.verbose = false;
     plymouth.enable = true;
     kernelParams = [
-          "quiet"
-          "splash"
-          "loglevel=3"
-          "vga=current"
-          "rd.systemd.show_status=false"
-          "rd.udev.log_level=3"
-          "udev.log_priority=3"
-        ];
+      "quiet"
+      "splash"
+      "loglevel=3"
+      "vga=current"
+      "rd.systemd.show_status=false"
+      "rd.udev.log_level=3"
+      "udev.log_priority=3"
+    ];
 
     loader = {
       systemd-boot.enable = true;
@@ -252,6 +252,9 @@
     dedicatedServer.openFirewall = true; # Open ports in the firewall for Source Dedicated Server
     localNetworkGameTransfers.openFirewall = true; # Open ports in the firewall for Steam Local Network Game Transfers
     gamescopeSession.enable = true;
+    extraCompatPackages = with pkgs; [
+      proton-ge-bin # Community Proton build with better game compatibility
+    ];
   };
 
   users.defaultUserShell = pkgs.zsh;
