@@ -101,6 +101,7 @@
           ./nixos/samba.nix
           nixvim.nixosModules.nixvim
           ./ati-server-hardware-configuration.nix
+          ./amd-gpu.nix
           # flamenco.nixosModules.flamenco
           nix-index-database.nixosModules.default
           nixarr.nixosModules.default

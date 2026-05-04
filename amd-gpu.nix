@@ -14,5 +14,4 @@
     "L+    /opt/rocm/hip   -    -    -     -    ${pkgs.rocmPackages.clr}"
     "d /mnt/render 0770 render video - -"
   ];
-
 }
