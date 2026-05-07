@@ -4,7 +4,6 @@
 {
   config,
   lib,
-  pkgs,
   modulesPath,
   ...
 }:
@@ -49,14 +48,11 @@
     };
 
     "/mnt/hdd" = {
-      device = "/dev/disk/by-uuid/8C564F72564F5C58";
-      fsType = "ntfs3";
+      device = "/dev/disk/by-uuid/7ab109ec-ecbd-4f03-ad65-b2685e791c29";
+      fsType = "ext4";
       options = [
-        "users"
         "nofail"
         "exec"
-        "uid=1000"
-        "gid=100"
       ];
     };
   };
