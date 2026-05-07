@@ -35,6 +35,9 @@
     };
   };
 
+  # ease of use
+  services.flatpak.enable = true;
+
   environment.shellAliases = {
     nixrs = "sudo nixos-rebuild switch --flake ~/dev/nix-conf/";
   };
