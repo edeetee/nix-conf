@@ -19,13 +19,15 @@
     extraCompatPackages = with pkgs; [
       proton-ge-bin # Community Proton build with better game compatibility
     ];
+    package = pkgs.steam.override {
+      # pressure-vessel creates POSIX symlinks in its var/tmp dirs, which fails on
+      # NTFS (Steam library on /mnt/hdd). Redirect to /tmp which is on tmpfs.
+      extraEnv = {
+        PRESSURE_VESSEL_VARIABLE_DIR = "/tmp/pressure-vessel";
+      };
+    };
   };
   programs.gamemode.enable = true;
-
-  # pressure-vessel (Steam Linux Runtime) needs /usr/share/zoneinfo on the host.
-  # NixOS doesn't provide it by default — upstream NixOS issue.
-  environment.pathsToLink = [ "/share/zoneinfo" ];
-  environment.systemPackages = with pkgs; [ tzdata ];
 
   # Workaround for nixpkgs#354513: steam-run libs missing from nix-ld context,
   # causing pressure-vessel architecture detection and wine DLL failures.
