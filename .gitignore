@@ -4,3 +4,5 @@ hardware-configuration.nix
 # Machine-local data inside symlinked config dirs
 .config/jj/repos/
 .config/jj/.claude/
+.config/zed/prompts/
+.config/zed/conversations/

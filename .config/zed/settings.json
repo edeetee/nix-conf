@@ -1,0 +1,117 @@
+// Zed settings
+//
+// For information on how to configure Zed, see the Zed
+// documentation: https://zed.dev/docs/configuring-zed
+//
+// To see all of Zed's default settings without changing your
+// custom settings, run `zed: open default settings` from the
+// command palette (cmd-shift-p / ctrl-shift-p)
+{
+  "debugger": {
+    "dock": "right"
+  },
+  "file_scan_exclusions": [".jj-worktrees", ".claude/worktrees/"],
+  "project_panel": {
+    "dock": "right",
+  },
+  "languages": {
+    "JavaScript": {
+      "formatter": {
+        "external": {
+          "command": "./node_modules/.bin/prettier",
+          "arguments": ["--stdin-filepath", "{buffer_path}"],
+        },
+      },
+    },
+    "TypeScript": {
+      "formatter": {
+        "external": {
+          "command": "./node_modules/.bin/prettier",
+          "arguments": ["--stdin-filepath", "{buffer_path}"],
+        },
+      },
+    },
+    "TSX": {
+      "formatter": {
+        "external": {
+          "command": "./node_modules/.bin/prettier",
+          "arguments": ["--stdin-filepath", "{buffer_path}"],
+        },
+      },
+    },
+    "JSX": {
+      "formatter": {
+        "external": {
+          "command": "./node_modules/.bin/prettier",
+          "arguments": ["--stdin-filepath", "{buffer_path}"],
+        },
+      },
+    },
+  },
+  "diff_view_style": "unified",
+  "terminal": {
+    "dock": "right",
+  },
+  "which_key": {
+    "delay_ms": 100,
+    "enabled": true,
+  },
+  "icon_theme": {
+    "mode": "dark",
+    "light": "Zed (Default)",
+    "dark": "Colored Zed Icons Theme Dark",
+  },
+  "git_panel": {
+    "tree_view": false,
+  },
+  "edit_predictions": {
+    "provider": "copilot",
+  },
+  "session": {
+    "trust_all_worktrees": true,
+  },
+  "vim_mode": true,
+  "git": {
+    "inline_blame": {
+      "enabled": true,
+    },
+  },
+  "base_keymap": "VSCode",
+  "relative_line_numbers": "enabled",
+  "sticky_scroll": {
+    "enabled": true,
+  },
+  "vertical_scroll_margin": 10.0,
+  "gutter": {
+    "line_numbers": true,
+  },
+  "minimap": {
+    "show": "always",
+    "max_width_columns": 40,
+  },
+  "max_tabs": 6,
+  "buffer_font_fallbacks": ["JuliaMono Nerd Font Mono", "Fira Code", "Consolas", "Courier New", "monospa"],
+  "buffer_font_family": "JuliaMono",
+  "file_types": {
+    "postgres": ["*.sql"],
+    "shellscript": ["*.env"],
+    "glsl": ["*.isf"],
+  },
+  "show_edit_predictions": true,
+  "indent_guides": {
+    "enabled": true,
+  },
+  "preferred_line_length": 120,
+  "agent_servers": {
+    "claude-acp": {
+      "type": "registry",
+    },
+  },
+  "ui_font_size": 16,
+  "buffer_font_size": 15,
+  "theme": {
+    "mode": "dark",
+    "light": "Gruvbox Light",
+    "dark": "Gruvbox Dark",
+  },
+}

@@ -5,11 +5,37 @@
   lib,
   ...
 }:
+let
+  # Wraps `jj` so that after every invocation, if git's HEAD is detached at a
+  # commit that has a local bookmark, we promote HEAD to a symbolic ref on
+  # that branch. This lets editors (Zed) and git-native tools see a real
+  # branch name in colocated jj repos. Lives at the binary level (not as a
+  # shell function) so subprocess invocations (jjui, lazyjj, editor
+  # extensions) are also covered.
+  jj-with-sync = pkgs.writeShellScriptBin "jj" ''
+    ${pkgs.jujutsu}/bin/jj "$@"
+    rc=$?
+    # Only act in colocated jj repos.
+    [ -d .git ] && [ -d .jj ] || exit $rc
+    # If HEAD is already a symbolic ref, jj didn't detach it — nothing to do.
+    ${pkgs.git}/bin/git symbolic-ref -q HEAD >/dev/null && exit $rc
+    sha=$(${pkgs.git}/bin/git rev-parse HEAD 2>/dev/null) || exit $rc
+    # Local bookmarks export to refs/heads/ in colocated repos, so we can
+    # find a candidate via git rather than spawning jj a second time.
+    bm=$(${pkgs.git}/bin/git for-each-ref --format='%(refname:short)' \
+        --points-at="$sha" refs/heads/ 2>/dev/null | head -1)
+    if [ -n "$bm" ]; then
+      ${pkgs.git}/bin/git symbolic-ref HEAD "refs/heads/$bm" >/dev/null
+    fi
+    exit $rc
+  '';
+in
 {
   # SHELL CONFIGURATION
   environment.systemPackages = with pkgs; [
     nixfmt-classic
     nil
+    nixd
     nodejs
     bun
     git-lfs
@@ -17,7 +43,7 @@
     docker
     yarn
     go
-    jujutsu
+    jj-with-sync
     lazyjj
     jjui
     git-absorb
