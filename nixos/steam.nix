@@ -22,6 +22,16 @@
   };
   programs.gamemode.enable = true;
 
+  # pressure-vessel (Steam Linux Runtime) needs /usr/share/zoneinfo on the host.
+  # NixOS doesn't provide it by default — upstream NixOS issue.
+  environment.pathsToLink = [ "/share/zoneinfo" ];
+  environment.systemPackages = with pkgs; [ tzdata ];
+
+  # Workaround for nixpkgs#354513: steam-run libs missing from nix-ld context,
+  # causing pressure-vessel architecture detection and wine DLL failures.
+  programs.nix-ld.libraries = with pkgs; [
+    (pkgs.runCommand "steamrun-lib" { } "mkdir $out; ln -s ${pkgs.steam-run.fhsenv}/usr/lib64 $out/lib")
+  ];
 
   ## start steam in gamepad mode when the mode button is pressed on the controller
   services.triggerhappy = {
