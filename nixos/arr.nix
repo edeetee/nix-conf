@@ -19,10 +19,10 @@
       enable = true;
     };
 
-    bazarr = {
-      enable = true;
-      openFirewall = true;
-    };
+    # bazarr = {
+    #   enable = true;
+    #   openFirewall = true;
+    # };
     lidarr = {
       enable = true;
       openFirewall = true;
