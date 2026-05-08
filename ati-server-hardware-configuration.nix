@@ -51,6 +51,7 @@
       device = "/dev/disk/by-uuid/7ab109ec-ecbd-4f03-ad65-b2685e791c29";
       fsType = "ext4";
       options = [
+        "user"
         "nofail"
         "exec"
       ];

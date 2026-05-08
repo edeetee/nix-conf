@@ -42,6 +42,9 @@
     nixrs = "sudo nixos-rebuild switch --flake ~/dev/nix-conf/";
   };
 
+  # secret service
+  services.gnome.gnome-keyring.enable = true;
+
   networking = {
     networkmanager.enable = true; # Easiest to use and most distros use this by default.
     nameservers = [
