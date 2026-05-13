@@ -69,8 +69,14 @@
   },
   {
     "bindings": {
-      "cmd-shift-]": "multi_workspace::NextProject",
-      "cmd-shift-[": "multi_workspace::PreviousProject"
+      "ctrl-}": "multi_workspace::NextProject",
+      "ctrl-{": "multi_workspace::PreviousProject"
+    }
+  },
+  {
+    "context": "VimControl",
+      "bindings": {
+      "g m": "editor::OpenContextMenu"
     }
   }
 ]

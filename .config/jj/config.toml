@@ -123,6 +123,7 @@ jj rebase -s "($SOURCE+) & mutable()" -d "$TARGET"
 
 [revsets]
 log = "related-bookmarks | (@- & ~trunk()):: | ::@ | ::trunk() | bookmarks() | working_copies()"
+bookmark-advance-from = "heads(::to & bookmarks() & mutable())"
 
 [revset-aliases]
 related-bookmarks = "bookmarks() & (immutable()..@)::"
@@ -160,3 +161,7 @@ if(!timestamp.ago().contains("day")
   ),
 )
 '''
+
+[experimental-advance-branches]
+enabled-branches = ["glob:*"]
+disabled-branches = ["main", "master", "trunk"]

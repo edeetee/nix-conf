@@ -6,6 +6,8 @@ font-family = JuliaMono
 
 keybind = super+-=new_split:down
 keybind = super+==new_split:right
+keybind = super+shift+minus=decrease_font_size:1
+keybind = super+shift+equal=increase_font_size:1
 
 clipboard-read = allow
 
