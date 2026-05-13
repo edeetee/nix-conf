@@ -159,6 +159,13 @@
         ];
       };
 
+      # Behaviour tests for the jj tooling (see jj-tools.nix).
+      # Run with: nix build .#checks.aarch64-darwin.jj-worktree
+      checks.aarch64-darwin.jj-worktree =
+        (import ./jj-tools.nix {
+          pkgs = nixpkgs.legacyPackages.aarch64-darwin;
+        }).checks.jj-worktree-test;
+
       darwinPackages = self.darwinConfigurations."Edwards-MacBook-Max".pkgs;
     };
 }
