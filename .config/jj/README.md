@@ -1,8 +1,48 @@
-# jj PR Stack Tools
+# jj Scripts
 
-Tools for managing and visualizing Jujutsu (jj) commit stacks in GitHub Pull Requests.
+Helper scripts for Jujutsu (jj), installed at `~/.config/jj/scripts/` (symlinked from this repo). Two groups:
 
-## Overview
+- **Worktree lifecycle** — manage and auto-clean the jj workspaces Claude Code creates per session. Documented next.
+- **PR stack** — visualize and update GitHub PR stacks. Documented further down.
+
+## Worktree lifecycle tools
+
+These manage jj workspaces created per Claude Code session under `<repo>/.jj-worktrees/`. They're wired as Claude Code hooks in `~/.claude/settings.json`.
+
+| Script | Hook | What it does |
+| --- | --- | --- |
+| `create-jj-worktree.sh` | `WorktreeCreate` | `jj workspace add` for the new session |
+| `remove-jj-worktree.sh` | `WorktreeRemove` | `jj workspace forget` + `rm` on explicit removal |
+| `sessionend-cleanup-worktree.sh` | `SessionEnd` | Clean exit: remove the session's own worktree, if safe |
+| `jj-worktree-reap.sh` | `SessionStart` | GC idle + phantom worktrees; crash/kill catch-all |
+| `jj-worktree-forget.sh` | manual | Forget the workspace(s) at a given change id |
+
+### Two cleanup paths, and why
+
+`WorktreeRemove` only fires on an *actual* removal (explicit `ExitWorktree`, or answering the exit prompt "remove"). It does **not** fire when a worktree is kept, when the session is SIGKILLed/crashes, or in headless (`-p`) runs — so worktrees leak. Two safety nets cover that:
+
+- **SessionEnd** (`sessionend-cleanup-worktree.sh`) — the common case: a clean exit removes its own worktree. Synchronous, because async SessionEnd hooks get killed mid-run. Doesn't fire on crashes.
+- **SessionStart** (`jj-worktree-reap.sh`) — the crash-proof catch-all. Every new session reaps worktrees idle longer than `MAX_IDLE_SECONDS` (default 7 days) and forgets phantoms (registered workspaces whose dir is gone). Synchronous, so its `forget` writes finish before the session does anything (avoids op-log forks).
+
+### Abandon-safety gate
+
+Both removers delete a worktree only if doing so abandons **no** work — i.e. every non-empty commit in its `@` history is kept alive by a bookmark or tag, so it survives the `forget`:
+
+```
+(::@ ~ ::(bookmarks() | remote_bookmarks() | tags())) & ~empty()
+```
+
+A non-empty result means unreferenced work, so the worktree is kept. Work that's on a branch (even unpushed) is therefore cleanable; only genuinely strandable work blocks removal.
+
+### Idle signal
+
+"Idle" = the mtime of `<worktree>/.jj/working_copy`, which jj rewrites on every command run *in that workspace* (isolated from other workspaces). It's crash-safe — a dead session stops bumping it. The reaper reads it with `stat` and queries with `--ignore-working-copy`, so it never snapshots and adds no op-log churn.
+
+Manual run: `jj-worktree-reap.sh [--apply] [repo]` — dry-run by default; set `MAX_IDLE_SECONDS` to change the threshold.
+
+## PR Stack Tools
+
+Tools for managing and visualizing jj commit stacks in GitHub Pull Requests.
 
 This toolkit provides two main utilities:
 
