@@ -32,6 +32,7 @@ in
     uv
     golangci-lint
     fzf
+    zoxide
     postgresql
     kdePackages.kdeconnect-kde
     # workmux.packages.${pkgs.system}.default
@@ -96,6 +97,7 @@ in
       source ${pkgs.zsh-fzf-tab}/share/fzf-tab/fzf-tab.plugin.zsh
 
       eval "$(${pkgs.starship}/bin/starship init zsh)"
+      eval "$(${pkgs.zoxide}/bin/zoxide init zsh)"
       PATH="$HOME/.cargo/bin:$PATH"
       source <(COMPLETE=zsh jj)
 
