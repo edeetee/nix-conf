@@ -35,6 +35,8 @@
     };
     # workmux.url = "github:raine/workmux";
     jjui.url = "github:idursun/jjui";
+    # Not in our nixpkgs pin; upstream flake brings its own bun2nix toolchain.
+    hunk.url = "github:modem-dev/hunk";
     nixvim-vsc.url = "path:./nvim-vsc";
 
     nix-index-database.url = "github:nix-community/nix-index-database";
@@ -46,6 +48,7 @@
       self,
       nixpkgs,
       nixvim,
+      hunk,
       flamenco,
       nix-darwin,
       home-manager,
@@ -59,7 +62,7 @@
     }:
     let
       commonModules = [
-        (import ./common-configuration.nix {  })
+        (import ./common-configuration.nix { inherit hunk; })
         ./neovim
       ];
 

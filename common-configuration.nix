@@ -1,4 +1,4 @@
-{  }:
+{ hunk }:
 {
   config,
   pkgs,
@@ -8,6 +8,7 @@
 let
   # jj tooling (wrapper + worktree support + behaviour tests). See jj-tools.nix.
   jjTools = import ./jj-tools.nix { inherit pkgs; };
+  hunkPkg = hunk.packages.${pkgs.stdenv.hostPlatform.system}.hunk;
 in
 {
   # SHELL CONFIGURATION
@@ -26,6 +27,7 @@ in
     lazyjj
     jjui
     git-absorb
+    hunkPkg
     ripgrep
     uv
     golangci-lint
