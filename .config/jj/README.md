@@ -7,38 +7,46 @@ Helper scripts for Jujutsu (jj), installed at `~/.config/jj/scripts/` (symlinked
 
 ## Worktree lifecycle tools
 
-These manage jj workspaces created per Claude Code session under `<repo>/.jj-worktrees/`. They're wired as Claude Code hooks in `~/.claude/settings.json`.
+These manage jj workspaces created per Claude Code session under `<repo>/.jj-worktrees/`. Wired as Claude Code hooks in `~/.claude/settings.json`.
 
-| Script | Hook | What it does |
+| Script | Trigger | What it does |
 | --- | --- | --- |
-| `create-jj-worktree.sh` | `WorktreeCreate` | `jj workspace add` for the new session |
-| `remove-jj-worktree.sh` | `WorktreeRemove` | `jj workspace forget` + `rm` on explicit removal |
-| `sessionend-cleanup-worktree.sh` | `SessionEnd` | Clean exit: remove the session's own worktree, if safe |
-| `jj-worktree-reap.sh` | `SessionStart` | GC idle + phantom worktrees; crash/kill catch-all |
+| `create-jj-worktree.sh` | `WorktreeCreate` hook | `jj workspace add` for the new session |
+| `remove-jj-worktree.sh` | `WorktreeRemove` hook | `jj workspace forget` + `rm` on explicit `ExitWorktree` |
+| `jj-worktree-reap.sh` | `SessionStart` hook | GC: forget idle, unused, abandon-safe worktrees |
 | `jj-worktree-forget.sh` | manual | Forget the workspace(s) at a given change id |
 
-### Two cleanup paths, and why
+### Cleanup model
 
-`WorktreeRemove` only fires on an *actual* removal (explicit `ExitWorktree`, or answering the exit prompt "remove"). It does **not** fire when a worktree is kept, when the session is SIGKILLed/crashes, or in headless (`-p`) runs — so worktrees leak. Two safety nets cover that:
+Worktrees are removed two ways:
 
-- **SessionEnd** (`sessionend-cleanup-worktree.sh`) — the common case: a clean exit removes its own worktree. Synchronous, because async SessionEnd hooks get killed mid-run. Doesn't fire on crashes.
-- **SessionStart** (`jj-worktree-reap.sh`) — the crash-proof catch-all. Every new session reaps worktrees idle longer than `MAX_IDLE_SECONDS` (default 7 days) and forgets phantoms (registered workspaces whose dir is gone). Synchronous, so its `forget` writes finish before the session does anything (avoids op-log forks).
+- **Explicit** — `ExitWorktree` fires `WorktreeRemove` → `remove-jj-worktree.sh`. The intentional "I'm done" path.
+- **GC** — `jj-worktree-reap.sh` runs on every `SessionStart` and forgets worktrees that are **all** of: idle > `MAX_IDLE_SECONDS` (default 7 days), **not** the cwd of any live `claude` process, and abandon-safe. Also runnable by hand: `jj-worktree-reap.sh [--apply] [repo]` (dry-run by default).
+
+**Why not `SessionEnd`?** Cleaning up the session's own worktree on exit seems natural, but the app fires `SessionEnd` on **quit/restart** too, with a `reason` (`other`) indistinguishable from a real end — and sessions are always resumable. A `SessionEnd` cleanup therefore wipes every open session's worktree whenever you restart the app to update it (it did, once). So cleanup is left to the GC, which never touches a recent or in-use worktree.
 
 ### Abandon-safety gate
 
-Both removers delete a worktree only if doing so abandons **no** work — i.e. every non-empty commit in its `@` history is kept alive by a bookmark or tag, so it survives the `forget`:
+The reaper removes a worktree only if doing so abandons **no** work — every non-empty commit in its `@` history is kept alive by a bookmark or tag, so it survives the `forget`:
 
 ```
 (::@ ~ ::(bookmarks() | remote_bookmarks() | tags())) & ~empty()
 ```
 
-A non-empty result means unreferenced work, so the worktree is kept. Work that's on a branch (even unpushed) is therefore cleanable; only genuinely strandable work blocks removal.
+A non-empty result means unreferenced work → kept. Work on a branch (even unpushed) is cleanable; only genuinely strandable work blocks removal.
 
-### Idle signal
+### Idle + in-use signals
 
-"Idle" = the mtime of `<worktree>/.jj/working_copy`, which jj rewrites on every command run *in that workspace* (isolated from other workspaces). It's crash-safe — a dead session stops bumping it. The reaper reads it with `stat` and queries with `--ignore-working-copy`, so it never snapshots and adds no op-log churn.
+"Idle" = mtime of `<worktree>/.jj/working_copy`, which jj rewrites on every command run *in that workspace*. Crash-safe — a dead session stops bumping it. "In use" = the worktree dir is a live `claude` process's cwd (`pgrep` + `lsof`), so an active worktree is never reaped even when its mtime looks stale (e.g. an agent editing the main-repo path). The reaper reads mtime with `stat` and queries jj with `--ignore-working-copy`, so it never snapshots or adds op-log churn.
 
 Manual run: `jj-worktree-reap.sh [--apply] [repo]` — dry-run by default; set `MAX_IDLE_SECONDS` to change the threshold.
+
+### Design notes (learned the hard way)
+
+- **In-use beats idle.** A worktree can look idle by mtime while it's actively in use — e.g. an agent that edits the *main-repo* path instead of its worktree never bumps the worktree's mtime. An earlier reaper that judged on mtime alone forgot a live worktree. The `pgrep`/`lsof` in-use check is what makes auto-removal safe; mtime is only a secondary signal.
+- **Removal must never be triggered by session teardown.** `SessionEnd` fires on app quit/restart (reason `other`, indistinguishable from a real end), so a teardown-triggered cleanup wipes every open session's worktree on each app update — it did once. Removal is gated purely on idle + not-in-use + abandon-safe, never on "a session ended".
+- **Considered and rejected: ephemeral worktrees** (drop on exit, recreate from the bookmark on resume). A `SessionStart` hook can't restore the session's cwd, so recreation would depend on the agent re-running `EnterWorktree`, and dropping on exit opens a window to lose un-bookmarked changes. Worktrees are cheap, so "keep until genuinely idle" is simpler and safer.
+- **`forget` is non-destructive to branched work.** `jj workspace forget` only drops the workspace registration; commits a bookmark/tag keeps alive survive. That's why the abandon-safety gate keys on branch-reachability, and why creating the bookmark at start of work makes cleanup safe.
 
 ## PR Stack Tools
 

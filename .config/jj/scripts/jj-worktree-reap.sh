@@ -31,13 +31,25 @@ case "$REPO" in *"/.jj-worktrees/"*) REPO="${REPO%/.jj-worktrees/*}" ;; esac
 MAX_IDLE="${MAX_IDLE_SECONDS:-604800}"
 now=$(date +%s)
 
+# Worktrees that are a live Claude process's cwd -- never reap an in-use one,
+# even if its mtime looks idle. (An agent editing the main-repo path instead of
+# its worktree leaves the worktree's mtime stale while it's very much active --
+# exactly the case that got a live worktree reaped before.)
+inuse=$(for pid in $(pgrep -f claude 2>/dev/null); do
+  lsof -a -p "$pid" -d cwd -Fn 2>/dev/null | awk '/^n/{print substr($0,2)}'
+done)
+
 for w in "$REPO"/.jj-worktrees/*/; do
   [ -d "$w" ] || continue
   n=$(basename "$w")
   [ "$n" = "default" ] && continue
   [ -d "$w/.jj/working_copy" ] || continue
 
-  m=$(stat -f %m "$w/.jj/working_copy" 2>/dev/null || echo 0)
+  wabs=$(cd "$w" 2>/dev/null && pwd) || continue
+  printf '%s\n' "$inuse" | grep -qF "$wabs" && continue   # live session in it -> keep
+
+  m=$(stat -f %m "$w/.jj/working_copy" 2>/dev/null)
+  [ -n "$m" ] || continue                   # can't read mtime -> keep (fail-safe)
   idle=$(( now - m ))
   [ "$idle" -ge "$MAX_IDLE" ] || continue   # touched recently -> keep
 
@@ -59,15 +71,8 @@ for w in "$REPO"/.jj-worktrees/*/; do
   fi
 done
 
-# Phantom sweep: forget any registered workspace whose .jj-worktrees dir is gone.
-# No dir => no on-disk work to lose, so this is safe regardless of the gates above.
-jj -R "$REPO" workspace list 2>/dev/null | sed 's/:.*//' | while read -r n; do
-  [ -n "$n" ] || continue
-  [ "$n" = "default" ] && continue
-  [ -d "$REPO/.jj-worktrees/$n" ] && continue
-  if [ "$APPLY" = 1 ]; then
-    jj -R "$REPO" workspace forget "$n" 2>/dev/null && echo "reaped phantom $n (dir missing)"
-  else
-    echo "would reap phantom $n (dir missing)"
-  fi
-done
+# NOTE: deliberately no "phantom sweep" (forgetting registered workspaces whose
+# dir is gone). It can't tell a genuinely-dead workspace from one whose dir is
+# elsewhere or transiently absent, and it bypasses the idle + abandon-safety
+# gates -- which once force-forgot a freshly-created worktree. Forget true
+# phantoms by hand: `jj workspace forget <name>`.
