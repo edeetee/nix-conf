@@ -309,7 +309,7 @@
     "tree_view": false,
   },
   "edit_predictions": {
-    "provider": "copilot",
+    "provider": "zed",
   },
   "session": {
     "trust_all_worktrees": true,
@@ -362,7 +362,7 @@
     },
     "claude-acp": {
       "default_config_options": {
-        "mode": "acceptEdits"
+        "mode": "auto"
       },
       "type": "registry",
     },
