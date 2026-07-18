@@ -33,7 +33,6 @@ in
     postgresql
     # workmux.packages.${pkgs.system}.default
     nixd
-    pi-coding-agent
   ];
 
   programs.nix-index-database.comma.enable = true;
@@ -56,6 +55,9 @@ in
   };
 
   environment.interactiveShellInit = ''
+    		# Source machine-local secrets (not in repo)
+    		[ -f "$HOME/dev/nix-conf/darwin/secrets" ] && source "$HOME/dev/nix-conf/darwin/secrets"
+
     		export GOPATH="$HOME/go"
     		export PATH="$GOPATH/bin:$HOME/.npm-global/bin:$PATH"
 

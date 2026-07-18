@@ -1,6 +1,8 @@
 hardware-configuration.nix
 .DS_Store
 
+darwin/secrets
+
 # Machine-local data inside symlinked config dirs
 .config/jj/repos/
 .config/jj/.claude/
