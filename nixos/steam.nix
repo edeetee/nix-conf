@@ -35,12 +35,18 @@
     (pkgs.runCommand "steamrun-lib" { } "mkdir $out; ln -s ${pkgs.steam-run.fhsenv}/usr/lib64 $out/lib")
   ];
 
-  ## start steam in gamepad mode when the mode button is pressed on the controller
+  ## Start Steam in gamepad mode when a controller is connected or the home button is pressed
+  # udev: auto-start when any game controller is plugged in / connected
+  services.udev.extraRules = ''
+    ACTION=="add", ENV{ID_INPUT_JOYSTICK}=="1", \
+      RUN+="${pkgs.systemd}/bin/systemctl --no-block --machine=edeetee@.host --user start steam-on-demand.service"
+  '';
+
+  # triggerhappy: fallback — press the home (mode) button to start Steam
   services.triggerhappy = {
     enable = true;
     user = "root";
     extraConfig = ''
-      # Start Steam in Gamepad Mode when the mode button is pressed on the controller
       BTN_MODE 1 systemctl --machine=edeetee@.host --user start steam-on-demand.service
     '';
   };

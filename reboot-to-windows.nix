@@ -48,9 +48,9 @@ let
       fi
     fi
 
-    # Check if any user is logged in via GDM
-    if ${pkgs.systemd}/bin/loginctl list-sessions | grep -q "gdm\|seat"; then
-      ACTIVE_SESSIONS=$(${pkgs.systemd}/bin/loginctl list-sessions --no-legend | grep -v "gdm" | wc -l)
+    # Check if any user is logged in via SDDM
+    if ${pkgs.systemd}/bin/loginctl list-sessions | grep -q "sddm\|seat"; then
+      ACTIVE_SESSIONS=$(${pkgs.systemd}/bin/loginctl list-sessions --no-legend | grep -v "sddm" | wc -l)
       if [ $ACTIVE_SESSIONS -gt 0 ]; then
         echo "Active user sessions detected, skipping auto-reboot"
         exit 0
@@ -75,7 +75,7 @@ in
     password = ""; # Empty password - passwordless login
     home = "/var/empty";
     createHome = false;
-    uid = 1001; # Ensure UID is >= 1000 for GDM to show it
+    uid = 1001; # Ensure UID is >= 1000 for SDDM to show it
   };
 
   # Configure AccountsService to show the windows user
@@ -84,9 +84,9 @@ in
   #   # Show the windows user in GDM
   # '';
 
-  security.pam.services.gdm-password.rules.auth.windows = {
+  security.pam.services.sddm.rules.auth.windows = {
     enable = true;
-    order = config.security.pam.services.gdm-password.rules.auth.unix.order - 50;
+    order = config.security.pam.services.sddm.rules.auth.unix.order - 50;
     control = "sufficient";
     modulePath = "${config.security.pam.package}/lib/security/pam_succeed_if.so";
     args = [
@@ -96,16 +96,16 @@ in
     ];
   };
 
-  # Configure GDM to allow passwordless login for windows user
-  # This makes GDM accept empty password for the windows user
-  security.pam.services.gdm-password.text = lib.mkBefore ''
+  # Configure SDDM to allow passwordless login for windows user
+  # This makes SDDM accept empty password for the windows user
+  security.pam.services.sddm.text = lib.mkBefore ''
     auth sufficient pam_succeed_if.so user = windows
     account sufficient pam_succeed_if.so user = windows
     password sufficient pam_succeed_if.so user = windows
     session sufficient pam_succeed_if.so user = windows
   '';
 
-  security.pam.services.gdm-autologin.text = lib.mkBefore ''
+  security.pam.services.sddm-autologin.text = lib.mkBefore ''
     auth sufficient pam_succeed_if.so user = windows
     account sufficient pam_succeed_if.so user = windows
     session sufficient pam_succeed_if.so user = windows

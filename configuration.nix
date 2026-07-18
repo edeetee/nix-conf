@@ -42,8 +42,7 @@
     nixrs = "sudo nixos-rebuild switch --flake ~/dev/nix-conf/";
   };
 
-  # secret service
-  services.gnome.gnome-keyring.enable = true;
+
 
   networking = {
     networkmanager.enable = true; # Easiest to use and most distros use this by default.
@@ -78,10 +77,10 @@
       user = "edeetee";
     };
 
-    gdm.enable = true;
+    sddm.enable = true;
   };
 
-  services.desktopManager.gnome.enable = true;
+  services.desktopManager.plasma6.enable = true;
 
   services.zerotierone = {
     enable = true;
@@ -127,7 +126,6 @@
       "wheel"
       "video"
       "networkmanager"
-      "gdm"
       "render"
     ]; # Enable ‘sudo’ for the user.
     packages = with pkgs; [

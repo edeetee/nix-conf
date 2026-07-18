@@ -11,7 +11,6 @@
     extraGroups = [
       "video"
       "networkmanager"
-      "gdm"
       "wheel"
     ];
     packages = with pkgs; [ ];
