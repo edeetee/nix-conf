@@ -42,7 +42,11 @@
     nixrs = "sudo nixos-rebuild switch --flake ~/dev/nix-conf/";
   };
 
-
+  # Bluetooth — needed for DualShock controllers
+  hardware.bluetooth = {
+    enable = true;
+    powerOnBoot = true;
+  };
 
   networking = {
     networkmanager.enable = true; # Easiest to use and most distros use this by default.
