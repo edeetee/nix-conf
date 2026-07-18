@@ -103,6 +103,7 @@
     publish.addresses = true;
     publish.domain = true;
     nssmdns4 = true;
+    nssmdns6 = true;
     openFirewall = true;
     publish.workstation = true; # ADDED TO DESKTOP MACHINES
   };

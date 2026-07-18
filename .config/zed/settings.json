@@ -9,8 +9,244 @@
 {
   "cli_default_open_behavior": "existing_window",
   "colorize_brackets": true,
+  "agent": {
+    "sandbox_permissions": {
+      "network_hosts": [
+        "property-sauce-api-bt5yvu3vmq-ts.a.run.app"
+      ]
+    },
+    "tool_permissions": {
+      "tools": {
+        "fetch": {
+          "always_allow": [
+            {
+              "pattern": "^https?://www\\.linz\\.govt\\.nz",
+            },
+            {
+              "pattern": "^https?://data\\.linz\\.govt\\.nz",
+            },
+            {
+              "pattern": "^https?://basemaps\\.linz\\.govt\\.nz",
+            },
+          ],
+        },
+        "terminal": {
+          "always_confirm": [
+            { "pattern": "sudo\\s" },
+            { "pattern": "git\\s+push" },
+            { "pattern": "tofu\\s+(apply|destroy)" },
+          ],
+          "always_allow": [
+            {
+              "pattern": "^uv\\s+sync"
+            },
+            {
+              "pattern": "^uv\\s+run\\s+uvicorn"
+            },
+            {
+              "pattern": "^pip\\s+install\\s+uv"
+            },
+            {
+              "pattern": "^lsof\\b"
+            },
+            {
+              "pattern": "^kill\\s+-0"
+            },
+            {
+              "pattern": "^python3\\s+-m\\s+json\\.tool"
+            },
+            {
+              "pattern": "^gcloud\\s+config\\s+get-value"
+            },
+            {
+              "pattern": "^gcloud\\s+run\\s+services\\s+describe"
+            },
+            {
+              "pattern": "^gcloud\\s+run\\s+revisions\\s+list"
+            },
+            {
+              "pattern": "^gcloud\\s+run\\s+services\\s+logs\\s+tail"
+            },
+            {
+              "pattern": "^gcloud\\s+run\\s+revisions\\s+describe"
+            },
+            {
+              "pattern": "^gcloud\\s+run\\s+services\\s+list"
+            },
+            {
+              "pattern": "^gcloud\\s+logging\\s+read"
+            },
+            {
+              "pattern": "^grep\\s"
+            },
+            {
+              "pattern": "^sort"
+            },
+            {
+              "pattern": "^head\\s"
+            },
+            {
+              "pattern": "^tail\\s"
+            },
+            {
+              "pattern": "^sed\\s+-n"
+            },
+            {
+              "pattern": "^gcloud\\s+projects\\s+get-iam-policy"
+            },
+            {
+              "pattern": "^gcloud\\s+beta\\s+billing\\s+projects\\s+describe"
+            },
+            {
+              "pattern": "^gsutil\\s+ls"
+            },
+            {
+              "pattern": "^docker\\s+(build|push)"
+            },
+            {
+              "pattern": "^tofu\\s+(init|output)"
+            },
+            {
+              "pattern": "^\\./scripts/run_local_uv\\.sh"
+            },
+            {
+              "pattern": "^\\./scripts/deploy\\.sh"
+            },
+            {
+              "pattern": "^git\\s+(?:.*?\\s+)?(status|log|diff|blame|show|stash\\s+list)"
+            },
+            {
+              "pattern": "^git\\s+remote\\s+-v"
+            },
+            {
+              "pattern": "^ls\\b"
+            },
+            {
+              "pattern": "^pwd\\b"
+            },
+            {
+              "pattern": "^cat\\s"
+            },
+            {
+              "pattern": "^(head|tail|wc)\\s"
+            },
+            {
+              "pattern": "^find\\s"
+            },
+            {
+              "pattern": "^(which|echo|date|env|printenv|uname|whoami|id)\\b"
+            },
+            {
+              "pattern": "^uv\\s+run\\s+python\\s+-m\\s+pytest"
+            },
+            {
+              "pattern": "^uv\\s+run\\s+python\\s+-m\\s+mypy"
+            },
+            {
+              "pattern": "^cargo\\s+(check|build\\s+--check)"
+            },
+            {
+              "pattern": "^npx\\s+tsc\\s+--noEmit"
+            },
+            {
+              "pattern": "^tofu\\s+(plan|validate|fmt\\s+--check|state\\s+list)"
+            },
+            {
+              "pattern": "^sleep\\s+1(\\s|$)"
+            },
+            {
+              "pattern": "^uv\\s+run\\s+pytest"
+            },
+            {
+              "pattern": "^uv\\s+run\\s+python\\s+tests/smoke_test"
+            },
+            {
+              "pattern": "^uv\\s+run\\s+uvicorn"
+            },
+            {
+              "pattern": "^sleep\\s+8(\\s|$)"
+            },
+            {
+              "pattern": "^echo\\s+===(\\s|$)"
+            },
+            {
+              "pattern": "^curl\\b"
+            },
+            {
+              "pattern": "^echo\\s+/(\\s|$)"
+            },
+            {
+              "pattern": "^echo\\s+/static/htmx\\.min\\.js(\\s|$)"
+            },
+            {
+              "pattern": "^echo\\s+/partial/properties(\\s|$)"
+            },
+            {
+              "pattern": "^head\\b"
+            },
+            {
+              "pattern": "^ls\\b"
+            },
+            {
+              "pattern": "^dig\\s+@8\\.8\\.8\\.8(\\s|$)"
+            },
+            {
+              "pattern": "^dig\\s+@1\\.1\\.1\\.1(\\s|$)"
+            }
+          ],
+          "default": "confirm",
+        },
+      },
+    },
+    "profiles": {
+      "write": {
+        "name": "Write",
+        "tools": {
+          "copy_path": true,
+          "create_directory": true,
+          "create_thread": true,
+          "delete_path": true,
+          "diagnostics": true,
+          "apply_code_action": true,
+          "edit_file": true,
+          "write_file": true,
+          "fetch": true,
+          "find_path": true,
+          "find_references": true,
+          "get_code_actions": true,
+          "go_to_definition": true,
+          "list_agents_and_models": true,
+          "list_directory": true,
+          "move_path": true,
+          "rename_symbol": true,
+          "read_file": true,
+          "grep": true,
+          "skill": true,
+          "spawn_agent": true,
+          "terminal": true,
+          "search_web": true,
+        },
+        "enable_all_context_servers": true,
+        "context_servers": {},
+      },
+      "auto": {
+        "name": "Auto",
+        "tools": {},
+        "enable_all_context_servers": false,
+        "context_servers": {},
+      },
+    },
+    "default_model": {
+      "provider": "deepseek",
+      "model": "deepseek-v4-pro",
+      "enable_thinking": true,
+      "effort": "high",
+    },
+    "favorite_models": [],
+    "model_parameters": [],
+  },
   "debugger": {
-    "dock": "right"
+    "dock": "right",
   },
   "file_scan_exclusions": [".jj-worktrees", ".claude/worktrees/"],
   "project_panel": {
@@ -111,6 +347,19 @@
   },
   "preferred_line_length": 120,
   "agent_servers": {
+    "pi-acp": {
+      "type": "registry",
+    },
+    "opencode": {
+      "default_config_options": {
+        "effort": "medium",
+        "model": "opencode/deepseek-v4-flash-free",
+      },
+      "type": "registry",
+    },
+    "github-copilot-cli": {
+      "type": "registry",
+    },
     "claude-acp": {
       "default_config_options": {
         "mode": "acceptEdits"

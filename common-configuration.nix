@@ -33,6 +33,7 @@ in
     postgresql
     # workmux.packages.${pkgs.system}.default
     nixd
+    pi-coding-agent
   ];
 
   programs.nix-index-database.comma.enable = true;
@@ -56,7 +57,7 @@ in
 
   environment.interactiveShellInit = ''
     		export GOPATH="$HOME/go"
-    		export PATH="$GOPATH/bin:$PATH"
+    		export PATH="$GOPATH/bin:$HOME/.npm-global/bin:$PATH"
 
     		function gop() {
     			git push origin "HEAD:$1"

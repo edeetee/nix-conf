@@ -44,6 +44,12 @@ in
     #   source = karabinerSource;
     # };
 
+    # Out-of-store symlink so pi can write packages back to the file
+    ".pi/agent" = {
+      source = config.lib.file.mkOutOfStoreSymlink "${configDir}/pi-agent";
+      recursive = true;
+    };
+
     "Library/Services/ghostty_finder.workflow".source = ./ghostty_finder.workflow;
 
     # home.file."Library/Preferences/eu.exelban.Stats.plist".source = ./Stats.plist;
