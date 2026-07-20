@@ -135,6 +135,7 @@
 
         modules = darwinModules "edwardtaylor" ++ [
           {
+            homebrew.casks = [ "hammerspoon" ];
             home-manager.useGlobalPkgs = true;
             home-manager.useUserPackages = true;
             home-manager.users.edt = import ./darwin/home.nix {
@@ -143,6 +144,7 @@
               configDir = "${self}/darwin";
               karabinerSource = ./darwin/karabiner.json;
               gitEmail = "edward.taylor@starboard.nz";
+              hammerspoon = true;
             };
             home-manager.backupFileExtension = "home-manager-backup";
           }

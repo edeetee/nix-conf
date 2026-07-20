@@ -1,4 +1,4 @@
-{username, homeDirectory, configDir, karabinerSource ? null, gitEmail ? null}: { config, lib, ... }:
+{username, homeDirectory, configDir, karabinerSource ? null, gitEmail ? null, hammerspoon ? false}: { config, lib, ... }:
 
 let
   nixConfDir = "${homeDirectory}/dev/nix-conf";
@@ -26,7 +26,14 @@ in
     fi
   '';
 
-  home.file = configSymlinks // {
+  home.file = configSymlinks // lib.optionalAttrs hammerspoon {
+    # Out-of-store symlinks so edits apply live, no rebuild
+    ".hammerspoon/init.lua".source =
+      config.lib.file.mkOutOfStoreSymlink "${nixConfDir}/darwin/hammerspoon/init.lua";
+    # Add this directory once in Raycast: Settings → Extensions → + → Add Script Directory
+    ".config/raycast-scripts".source =
+      config.lib.file.mkOutOfStoreSymlink "${nixConfDir}/darwin/raycast-scripts";
+  } // {
     ".hushlogin".text = "";
 
     ".gitconfig" = if gitEmail != null then {
