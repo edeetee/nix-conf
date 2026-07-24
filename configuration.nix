@@ -299,15 +299,15 @@
         proxyPass = "http://127.0.0.1:8082";
         proxyWebsockets = true;
       };
-      locations."/jellyfin/" = {
+      locations."/jellyfin" = {
         proxyPass = "http://127.0.0.1:8096";
         proxyWebsockets = true;
       };
-      locations."/transmission/" = {
+      locations."/transmission" = {
         proxyPass = "http://127.0.0.1:9091";
         proxyWebsockets = true;
       };
-      locations."/files/" = {
+      locations."/files" = {
         proxyPass = "http://127.0.0.1:8081";
         proxyWebsockets = true;
       };
