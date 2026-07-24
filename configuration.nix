@@ -159,7 +159,7 @@ in
     settings = {
       WebService = {
         AllowUnencrypted = true;
-        Origins = lib.mkForce "*";
+        Origins = lib.mkForce "http://${host}:* https://${host}:* http://localhost:* https://localhost:*";
       };
     };
   };
