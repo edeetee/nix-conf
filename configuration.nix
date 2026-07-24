@@ -300,15 +300,15 @@
         proxyWebsockets = true;
       };
       locations."/jellyfin" = {
-        proxyPass = "http://127.0.0.1:8096";
+        proxyPass = "http://127.0.0.1:8096/";
         proxyWebsockets = true;
       };
       locations."/transmission" = {
-        proxyPass = "http://127.0.0.1:9091";
+        proxyPass = "http://127.0.0.1:9091/";
         proxyWebsockets = true;
       };
       locations."/files" = {
-        proxyPass = "http://127.0.0.1:8081";
+        proxyPass = "http://127.0.0.1:8081/";
         proxyWebsockets = true;
       };
     };
