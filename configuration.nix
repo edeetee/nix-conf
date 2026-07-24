@@ -8,6 +8,9 @@
   lib,
   ...
 }:
+let
+  host = "${config.networking.hostName}.local";
+in
 {
   ## DO NOT CHANGE, used for backwards compatibility and upgrade logic
   system.stateVersion = "23.11"; # Did you read the comment?
@@ -198,7 +201,7 @@
           {
             "Jellyfin" = {
               icon = "jellyfin.svg";
-              href = "http://${config.networking.hostName}.local:8096";
+              href = "http://${host}:8096";
               description = "Media server";
               widget = {
                 type = "jellyfin";
@@ -213,14 +216,14 @@
           {
             "Cockpit" = {
               icon = "cockpit.svg";
-              href = "http://${config.networking.hostName}.local:9090";
+              href = "http://${host}:9090";
               description = "Server management";
             };
           }
           {
             "FileBrowser" = {
               icon = "filebrowser.svg";
-              href = "http://${config.networking.hostName}.local:8081";
+              href = "http://${host}:8081";
               description = "Web file manager";
             };
           }
@@ -231,7 +234,7 @@
           {
             "Transmission" = {
               icon = "transmission.svg";
-              href = "http://${config.networking.hostName}.local:9091";
+              href = "http://${host}:9091";
               description = "Torrent client";
               widget = {
                 type = "transmission";
@@ -260,28 +263,28 @@
       {
         "System" = [
           {
-            "Cockpit" = [{abbr = "CP"; href = "http://${config.networking.hostName}.local:9090";}];
+            "Cockpit" = [{abbr = "CP"; href = "http://${host}:9090";}];
           }
         ];
       }
       {
         "Media" = [
           {
-            "Jellyfin" = [{abbr = "JF"; href = "http://${config.networking.hostName}.local:8096";}];
+            "Jellyfin" = [{abbr = "JF"; href = "http://${host}:8096";}];
           }
         ];
       }
       {
         "Downloads" = [
           {
-            "Transmission" = [{abbr = "TR"; href = "http://${config.networking.hostName}.local:9091";}];
+            "Transmission" = [{abbr = "TR"; href = "http://${host}:9091";}];
           }
         ];
       }
       {
         "Files" = [
           {
-            "FileBrowser" = [{abbr = "FB"; href = "http://${config.networking.hostName}.local:8081";}];
+            "FileBrowser" = [{abbr = "FB"; href = "http://${host}:8081";}];
           }
         ];
       }
