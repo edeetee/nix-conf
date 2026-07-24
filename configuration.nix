@@ -163,38 +163,53 @@
 
   services.homepage-dashboard = {
     enable = true;
-    listenPort = 80;
+    listenPort = 8082;
     openFirewall = true;
     services = [
       {
-        "Jellyfin" = {
-          icon = "jellyfin.svg";
-          href = "http://localhost:8096";
-          description = "Media server";
-          widget = {
-            type = "jellyfin";
-            url = "http://localhost:8096";
-          };
-        };
+        "Media" = [
+          {
+            "Jellyfin" = {
+              icon = "jellyfin.svg";
+              href = "http://localhost:8096";
+              description = "Media server";
+              widget = {
+                type = "jellyfin";
+                url = "http://localhost:8096";
+              };
+            };
+          }
+        ];
       }
       {
-        "Cockpit" = {
-          icon = "cockpit.svg";
-          href = "http://localhost:9090";
-          description = "Server management";
-        };
+        "System" = [
+          {
+            "Cockpit" = {
+              icon = "cockpit.svg";
+              href = "http://localhost:9090";
+              description = "Server management";
+            };
+          }
+        ];
       }
     ];
     widgets = [
       {
+        resources = {
+          cpu = true;
+          memory = true;
+          disk = "/";
+        };
+      }
+      {
         datetime = {
-          type = "datetime";
+          locale = "en-NZ";
         };
       }
     ];
     bookmarks = [
       {
-        "Management" = [
+        "System" = [
           {
             "Cockpit" = [{abbr = "CP"; href = "http://localhost:9090";}];
           }
@@ -210,7 +225,17 @@
     ];
   };
 
-  systemd.services.homepage-dashboard.serviceConfig.AmbientCapabilities = "CAP_NET_BIND_SERVICE";
+  # Reverse proxy homepage from port 80 → 8082
+  services.nginx = {
+    enable = true;
+    virtualHosts."localhost" = {
+      listen = [{addr = "0.0.0.0"; port = 80;}];
+      locations."/" = {
+        proxyPass = "http://127.0.0.1:8082";
+        proxyWebsockets = true;
+      };
+    };
+  };
 
   # List packages installed in system profile. To search, run:
   # $ nix search wget
