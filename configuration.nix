@@ -162,6 +162,8 @@
 
   services.jellyfin.enable = true;
 
+  systemd.services.jellyfin.environment.JELLYFIN_BaseUrl = "/jellyfin";
+
   services.transmission = {
     enable = true;
     package = pkgs.transmission_4;
@@ -170,6 +172,7 @@
       incomplete-dir = "/mnt/hdd/downloads/.incomplete";
       rpc-whitelist = "127.0.0.1,192.168.*.*";
       rpc-port = 9091;
+      rpc-url = "/transmission";
     };
   };
 
@@ -183,6 +186,7 @@
     settings = {
       port = 8081;
       root = "/mnt/hdd";
+      baseURL = "/files";
     };
   };
 
@@ -196,11 +200,11 @@
           {
             "Jellyfin" = {
               icon = "jellyfin.svg";
-              href = "http://localhost:8096";
+              href = "/jellyfin";
               description = "Media server";
               widget = {
                 type = "jellyfin";
-                url = "http://localhost:8096";
+                url = "http://127.0.0.1:8096";
               };
             };
           }
@@ -211,14 +215,14 @@
           {
             "Cockpit" = {
               icon = "cockpit.svg";
-              href = "http://localhost:9090";
+              href = "http://homeserver-edt:9090";
               description = "Server management";
             };
           }
           {
             "FileBrowser" = {
               icon = "filebrowser.svg";
-              href = "http://localhost:8081";
+              href = "/files";
               description = "Web file manager";
             };
           }
@@ -229,11 +233,11 @@
           {
             "Transmission" = {
               icon = "transmission.svg";
-              href = "http://localhost:9091";
+              href = "/transmission";
               description = "Torrent client";
               widget = {
                 type = "transmission";
-                url = "http://localhost:9091";
+                url = "http://127.0.0.1:9091";
               };
             };
           }
@@ -258,41 +262,53 @@
       {
         "System" = [
           {
-            "Cockpit" = [{abbr = "CP"; href = "http://localhost:9090";}];
+            "Cockpit" = [{abbr = "CP"; href = "http://homeserver-edt:9090";}];
           }
         ];
       }
       {
         "Media" = [
           {
-            "Jellyfin" = [{abbr = "JF"; href = "http://localhost:8096";}];
+            "Jellyfin" = [{abbr = "JF"; href = "/jellyfin";}];
           }
         ];
       }
       {
         "Downloads" = [
           {
-            "Transmission" = [{abbr = "TR"; href = "http://localhost:9091";}];
+            "Transmission" = [{abbr = "TR"; href = "/transmission";}];
           }
         ];
       }
       {
         "Files" = [
           {
-            "FileBrowser" = [{abbr = "FB"; href = "http://localhost:8081";}];
+            "FileBrowser" = [{abbr = "FB"; href = "/files";}];
           }
         ];
       }
     ];
   };
 
-  # Reverse proxy homepage from port 80 → 8082
+  # Reverse proxy: all services on port 80
   services.nginx = {
     enable = true;
-    virtualHosts."localhost" = {
+    virtualHosts."_" = {
       listen = [{addr = "0.0.0.0"; port = 80;}];
       locations."/" = {
         proxyPass = "http://127.0.0.1:8082";
+        proxyWebsockets = true;
+      };
+      locations."/jellyfin/" = {
+        proxyPass = "http://127.0.0.1:8096";
+        proxyWebsockets = true;
+      };
+      locations."/transmission/" = {
+        proxyPass = "http://127.0.0.1:9091";
+        proxyWebsockets = true;
+      };
+      locations."/files/" = {
+        proxyPass = "http://127.0.0.1:8081";
         proxyWebsockets = true;
       };
     };
