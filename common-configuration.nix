@@ -31,6 +31,7 @@ in
     golangci-lint
     fzf
     postgresql
+    kdePackages.kdeconnect-kde
     # workmux.packages.${pkgs.system}.default
     nixd
   ];
