@@ -15,6 +15,22 @@ in
   ## DO NOT CHANGE, used for backwards compatibility and upgrade logic
   system.stateVersion = "23.11"; # Did you read the comment?
 
+  # Guard critical mount points against services that chown their root dirs.
+  # Runs early in boot, before any service tmpfiles rules.
+  systemd.services.guard-mounts = {
+    description = "Enforce correct ownership on critical mount points";
+    wantedBy = [ "local-fs.target" ];
+    before = [ "systemd-tmpfiles-setup.service" ];
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStart = pkgs.writeShellScript "guard-mounts" ''
+        chown root:root /mnt/hdd /mnt/windows 2>/dev/null || true
+        chmod 755 /mnt/hdd /mnt/windows 2>/dev/null || true
+      '';
+      RemainAfterExit = true;
+    };
+  };
+
   # Use the systemd-boot EFI boot loader.
   boot = {
     consoleLogLevel = 0;
