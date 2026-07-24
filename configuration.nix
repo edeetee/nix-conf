@@ -161,6 +161,22 @@
 
   services.jellyfin.enable = true;
 
+  services.transmission = {
+    enable = true;
+    settings = {
+      download-dir = "/mnt/hdd/downloads";
+      incomplete-dir = "/mnt/hdd/downloads/.incomplete";
+      rpc-whitelist = "127.0.0.1,192.168.*.*";
+      rpc-port = 9091;
+    };
+  };
+
+  services.filebrowser = {
+    enable = true;
+    port = 8081;
+    root = "/mnt/hdd";
+  };
+
   services.homepage-dashboard = {
     enable = true;
     listenPort = 8082;
@@ -188,6 +204,28 @@
               icon = "cockpit.svg";
               href = "http://localhost:9090";
               description = "Server management";
+            };
+          }
+          {
+            "FileBrowser" = {
+              icon = "filebrowser.svg";
+              href = "http://localhost:8081";
+              description = "Web file manager";
+            };
+          }
+        ];
+      }
+      {
+        "Downloads" = [
+          {
+            "Transmission" = {
+              icon = "transmission.svg";
+              href = "http://localhost:9091";
+              description = "Torrent client";
+              widget = {
+                type = "transmission";
+                url = "http://localhost:9091";
+              };
             };
           }
         ];
@@ -219,6 +257,20 @@
         "Media" = [
           {
             "Jellyfin" = [{abbr = "JF"; href = "http://localhost:8096";}];
+          }
+        ];
+      }
+      {
+        "Downloads" = [
+          {
+            "Transmission" = [{abbr = "TR"; href = "http://localhost:9091";}];
+          }
+        ];
+      }
+      {
+        "Files" = [
+          {
+            "FileBrowser" = [{abbr = "FB"; href = "http://localhost:8081";}];
           }
         ];
       }
