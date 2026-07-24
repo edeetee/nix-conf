@@ -185,10 +185,13 @@ in
 
   services.filebrowser = {
     enable = true;
+    user = "edeetee";
+    group = "users";
     settings = {
       port = 8081;
       root = "/mnt/hdd";
       address = "0.0.0.0";
+      noAuth = true;
     };
   };
 
