@@ -173,8 +173,10 @@
 
   services.filebrowser = {
     enable = true;
-    port = 8081;
-    root = "/mnt/hdd";
+    settings = {
+      port = 8081;
+      root = "/mnt/hdd";
+    };
   };
 
   services.homepage-dashboard = {
