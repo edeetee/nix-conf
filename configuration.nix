@@ -164,6 +164,7 @@
 
   services.transmission = {
     enable = true;
+    package = pkgs.transmission_4;
     settings = {
       download-dir = "/mnt/hdd/downloads";
       incomplete-dir = "/mnt/hdd/downloads/.incomplete";
