@@ -159,6 +159,7 @@ in
     settings = {
       WebService = {
         AllowUnencrypted = true;
+        Origins = "http://\${host}:9090 https://\${host}:9090 http://localhost:9090 https://localhost:9090";
       };
     };
   };
