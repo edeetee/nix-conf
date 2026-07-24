@@ -170,6 +170,7 @@
       incomplete-dir = "/mnt/hdd/downloads/.incomplete";
       rpc-whitelist = "127.0.0.1,192.168.*.*";
       rpc-port = 9091;
+      rpc-bind-address = "0.0.0.0";
     };
   };
 
@@ -183,6 +184,7 @@
     settings = {
       port = 8081;
       root = "/mnt/hdd";
+      address = "0.0.0.0";
     };
   };
 
