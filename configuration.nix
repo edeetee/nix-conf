@@ -200,7 +200,7 @@
           {
             "Jellyfin" = {
               icon = "jellyfin.svg";
-              href = "/jellyfin";
+              href = "http://${config.networking.hostName}/jellyfin";
               description = "Media server";
               widget = {
                 type = "jellyfin";
@@ -215,14 +215,14 @@
           {
             "Cockpit" = {
               icon = "cockpit.svg";
-              href = "http://homeserver-edt:9090";
+              href = "http://${config.networking.hostName}:9090";
               description = "Server management";
             };
           }
           {
             "FileBrowser" = {
               icon = "filebrowser.svg";
-              href = "/files";
+              href = "http://${config.networking.hostName}/files";
               description = "Web file manager";
             };
           }
@@ -233,7 +233,7 @@
           {
             "Transmission" = {
               icon = "transmission.svg";
-              href = "/transmission";
+              href = "http://${config.networking.hostName}/transmission";
               description = "Torrent client";
               widget = {
                 type = "transmission";
@@ -262,28 +262,28 @@
       {
         "System" = [
           {
-            "Cockpit" = [{abbr = "CP"; href = "http://homeserver-edt:9090";}];
+            "Cockpit" = [{abbr = "CP"; href = "http://${config.networking.hostName}:9090";}];
           }
         ];
       }
       {
         "Media" = [
           {
-            "Jellyfin" = [{abbr = "JF"; href = "/jellyfin";}];
+            "Jellyfin" = [{abbr = "JF"; href = "http://${config.networking.hostName}/jellyfin";}];
           }
         ];
       }
       {
         "Downloads" = [
           {
-            "Transmission" = [{abbr = "TR"; href = "/transmission";}];
+            "Transmission" = [{abbr = "TR"; href = "http://${config.networking.hostName}/transmission";}];
           }
         ];
       }
       {
         "Files" = [
           {
-            "FileBrowser" = [{abbr = "FB"; href = "/files";}];
+            "FileBrowser" = [{abbr = "FB"; href = "http://${config.networking.hostName}/files";}];
           }
         ];
       }
