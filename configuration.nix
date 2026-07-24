@@ -183,18 +183,6 @@ in
     "d /mnt/hdd/downloads/.incomplete 0775 edeetee users -"
   ];
 
-  services.filebrowser = {
-    enable = true;
-    user = "edeetee";
-    group = "users";
-    settings = {
-      port = 8081;
-      root = "/mnt/hdd";
-      address = "0.0.0.0";
-      noAuth = true;
-    };
-  };
-
   services.homepage-dashboard = {
     enable = true;
     listenPort = 8082;
@@ -222,13 +210,6 @@ in
               icon = "cockpit.svg";
               href = "http://${host}:9090";
               description = "Server management";
-            };
-          }
-          {
-            "FileBrowser" = {
-              icon = "filebrowser.svg";
-              href = "http://${host}:8081";
-              description = "Web file manager";
             };
           }
         ];
@@ -282,13 +263,6 @@ in
         "Downloads" = [
           {
             "Transmission" = [{abbr = "TR"; href = "http://${host}:9091";}];
-          }
-        ];
-      }
-      {
-        "Files" = [
-          {
-            "FileBrowser" = [{abbr = "FB"; href = "http://${host}:8081";}];
           }
         ];
       }
