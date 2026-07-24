@@ -28,13 +28,6 @@
       flake = false;
     };
 
-    #arr
-    nixflix = {
-      url = "github:kiriwalawren/nixflix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-    nixarr.url = "github:nix-media-server/nixarr";
-
     # Shared
     nixvim = {
       url = "github:nix-community/nixvim";
@@ -62,7 +55,6 @@
       nixvim-vsc,
       # workmux,
       nix-index-database,
-      nixarr,
       ...
     }:
     let
@@ -97,14 +89,12 @@
         modules = commonModules ++ [
           ./configuration.nix
           ./nixos/steam.nix
-          ./nixos/arr.nix
           ./nixos/samba.nix
           nixvim.nixosModules.nixvim
           ./ati-server-hardware-configuration.nix
           ./amd-gpu.nix
           # flamenco.nixosModules.flamenco
           nix-index-database.nixosModules.default
-          nixarr.nixosModules.default
         ];
       };
 

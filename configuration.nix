@@ -48,6 +48,20 @@
     powerOnBoot = true;
   };
 
+  # Force Bluetooth adapter power on after KDE login, since KDE/Bluedevil
+  # can save a powered-off state at shutdown (bluetoothd stops before KDE
+  # saves its state, so it records "off" regardless of actual usage).
+  systemd.user.services.bt-power-on = {
+    description = "Force Bluetooth power on after KDE login";
+    after = [ "plasma-plasmashell.service" ];
+    wantedBy = [ "plasma-plasmashell.service" ];
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStart = "${pkgs.bluez}/bin/btmgmt power on";
+      RemainAfterExit = true;
+    };
+  };
+
   networking = {
     networkmanager.enable = true; # Easiest to use and most distros use this by default.
     nameservers = [
@@ -56,13 +70,12 @@
     ];
     hostName = "homeserver-edt";
 
-    # not working I think
-    interfaces = {
-      wlp5s0 = {
-        # wlp5s0 wlxd83bbf2a226d
-        wakeOnLan.enable = true;
-      };
-    };
+    # Wake-on-LAN — no longer needed
+    # interfaces = {
+    #   wlp5s0 = {
+    #     wakeOnLan.enable = true;
+    #   };
+    # };
   };
 
   time.timeZone = "Pacific/Auckland";
@@ -145,6 +158,59 @@
       };
     };
   };
+
+  services.jellyfin.enable = true;
+
+  services.homepage-dashboard = {
+    enable = true;
+    listenPort = 80;
+    openFirewall = true;
+    services = [
+      {
+        "Jellyfin" = {
+          icon = "jellyfin.svg";
+          href = "http://localhost:8096";
+          description = "Media server";
+          widget = {
+            type = "jellyfin";
+            url = "http://localhost:8096";
+          };
+        };
+      }
+      {
+        "Cockpit" = {
+          icon = "cockpit.svg";
+          href = "http://localhost:9090";
+          description = "Server management";
+        };
+      }
+    ];
+    widgets = [
+      {
+        datetime = {
+          type = "datetime";
+        };
+      }
+    ];
+    bookmarks = [
+      {
+        "Management" = [
+          {
+            "Cockpit" = [{abbr = "CP"; href = "http://localhost:9090";}];
+          }
+        ];
+      }
+      {
+        "Media" = [
+          {
+            "Jellyfin" = [{abbr = "JF"; href = "http://localhost:8096";}];
+          }
+        ];
+      }
+    ];
+  };
+
+  systemd.services.homepage-dashboard.serviceConfig.AmbientCapabilities = "CAP_NET_BIND_SERVICE";
 
   # List packages installed in system profile. To search, run:
   # $ nix search wget
