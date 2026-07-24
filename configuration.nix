@@ -173,6 +173,11 @@
     };
   };
 
+  systemd.tmpfiles.rules = [
+    "d /mnt/hdd/downloads 0775 edeetee users -"
+    "d /mnt/hdd/downloads/.incomplete 0775 edeetee users -"
+  ];
+
   services.filebrowser = {
     enable = true;
     settings = {
