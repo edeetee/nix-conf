@@ -40,6 +40,7 @@
 
   environment.shellAliases = {
     nixrs = "sudo nixos-rebuild switch --flake ~/dev/nix-conf/";
+    nixup = "git -C ~/dev/nix-conf pull && sudo nixos-rebuild switch --flake ~/dev/nix-conf/";
   };
 
   # Bluetooth — needed for DualShock controllers
