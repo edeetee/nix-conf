@@ -107,24 +107,48 @@ in
         dir=$(${pkgs.zoxide}/bin/zoxide query --exclude "$PWD" -- ''${(z)query} 2>/dev/null) || return
         [[ ''${dir:t} == "$query"* ]] && typeset -g suggestion="z ''${dir:t}"
       }
-      ZSH_AUTOSUGGEST_STRATEGY=(history zoxide)
+      ZSH_AUTOSUGGEST_STRATEGY=(zoxide history)
 
-      # The full path can't go in the ghost text, so it goes on the right.
+      # Trail the resolved path, dimmed, after the ghost text. POSTDISPLAY is the
+      # only place ZLE renders text past the cursor, and it belongs to the
+      # autosuggest plugin, which appends all of it to the buffer on accept —
+      # hence the wrapper below, which drops the trail before the plugin sees it.
       autoload -Uz add-zle-hook-widget
-      _zoxide_hint() {
+      _zoxide_trail() {
+        (( $+_zoxide_trail_wrapped )) || { typeset -g _zoxide_trail_wrapped=1; _zoxide_trail_wrap }
+        _zoxide_trail_drop
+
         local query="" dir=""
         [[ $BUFFER == z' '[^-./~]* ]] && query=''${BUFFER#* }
-        [[ $query == "$_zoxide_hint_query" && $RPS1 == "$_zoxide_hint_rps1" ]] && return
-        _zoxide_hint_query=$query
         [[ -n $query ]] && dir=$(${pkgs.zoxide}/bin/zoxide query --exclude "$PWD" -- ''${(z)query} 2>/dev/null)
-        _zoxide_hint_rps1=""
-        [[ -n $dir ]] && _zoxide_hint_rps1="%F{242}''${dir/#$HOME/~}%f"
-        RPS1=$_zoxide_hint_rps1
-        zle reset-prompt
+        [[ -n $dir ]] || return
+
+        typeset -g _zoxide_trail_text="  ''${dir/#$HOME/~}"
+        typeset -g _zoxide_trail_hl="$(($#BUFFER + $#POSTDISPLAY)) $(($#BUFFER + $#POSTDISPLAY + $#_zoxide_trail_text)) fg=242"
+        POSTDISPLAY+=$_zoxide_trail_text
+        region_highlight+=($_zoxide_trail_hl)
       }
-      _zoxide_hint_clear() { _zoxide_hint_query=""; RPS1="" }
-      add-zle-hook-widget zle-line-init _zoxide_hint_clear
-      add-zle-hook-widget zle-line-pre-redraw _zoxide_hint
+
+      # Accepting a suggestion must not type the trail into the command line.
+      _zoxide_trail_drop() {
+        [[ -n $_zoxide_trail_text ]] || return
+        POSTDISPLAY=''${POSTDISPLAY%"$_zoxide_trail_text"}
+        region_highlight=("''${(@)region_highlight:#$_zoxide_trail_hl}")
+        _zoxide_trail_text="" _zoxide_trail_hl=""
+      }
+
+      _zoxide_trail_wrap() {
+        local w
+        for w in $ZSH_AUTOSUGGEST_ACCEPT_WIDGETS $ZSH_AUTOSUGGEST_PARTIAL_ACCEPT_WIDGETS; do
+          [[ $widgets[$w] == user:* ]] || continue
+          zle -N "_zoxide_trail_inner_$w" "''${widgets[$w]#*:}"
+          functions[_zoxide_trail_outer_$w]='_zoxide_trail_drop; zle _zoxide_trail_inner_'$w' -- "$@"'
+          zle -N "$w" "_zoxide_trail_outer_$w"
+        done
+      }
+
+      add-zle-hook-widget zle-line-init _zoxide_trail_drop
+      add-zle-hook-widget zle-line-pre-redraw _zoxide_trail
 
       PATH="$HOME/.cargo/bin:$PATH"
       source <(COMPLETE=zsh jj)
