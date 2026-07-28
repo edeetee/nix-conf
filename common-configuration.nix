@@ -150,6 +150,17 @@ in
       add-zle-hook-widget zle-line-init _zoxide_trail_drop
       add-zle-hook-widget zle-line-pre-redraw _zoxide_trail
 
+      # Async suggestions land from an fd handler, which never runs
+      # zle-line-pre-redraw — it would wipe the trail milliseconds after every
+      # keystroke. Sync mode keeps both writers of POSTDISPLAY ordered. Deferred
+      # to the first precmd because the plugin is sourced after this file.
+      autoload -Uz add-zsh-hook
+      _zoxide_trail_sync() {
+        unset ZSH_AUTOSUGGEST_USE_ASYNC
+        add-zsh-hook -d precmd _zoxide_trail_sync
+      }
+      add-zsh-hook precmd _zoxide_trail_sync
+
       PATH="$HOME/.cargo/bin:$PATH"
       source <(COMPLETE=zsh jj)
 
