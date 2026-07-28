@@ -1,4 +1,4 @@
-{username, homeDirectory, configDir, karabinerSource ? null, gitEmail ? null, hammerspoon ? false}: { config, lib, ... }:
+{username, homeDirectory, configDir, karabinerSource ? null, gitEmail ? null, hammerspoon ? false}: { config, lib, pkgs, ... }:
 
 let
   nixConfDir = "${homeDirectory}/dev/nix-conf";
@@ -23,6 +23,23 @@ in
       echo "ERROR: nix-conf repo not found at ${nixConfDir}" >&2
       echo "Clone it first, or update the path." >&2
       exit 1
+    fi
+  '';
+
+  # Put every repo in ~/dev on zoxide's radar without letting it outrank a real
+  # visit: rank 1 with a 1970 timestamp is the lowest frecency tier. Skips paths
+  # already in the database, because importing sums ranks.
+  home.activation.seedZoxideDev = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    if [ -d "${homeDirectory}/dev" ]; then
+      seed=$(mktemp)
+      comm -23 \
+        <(find "${homeDirectory}/dev" -mindepth 1 -maxdepth 1 -type d -not -name '.*' | sort) \
+        <(${pkgs.zoxide}/bin/zoxide query -l | sort) \
+        | sed 's/$/|1|0/' > "$seed"
+      if [ -s "$seed" ]; then
+        $DRY_RUN_CMD ${pkgs.zoxide}/bin/zoxide import --from=z --merge "$seed"
+      fi
+      rm -f "$seed"
     fi
   '';
 
