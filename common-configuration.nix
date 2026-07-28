@@ -98,9 +98,18 @@ in
       eval "$(${pkgs.starship}/bin/starship init zsh)"
       eval "$(${pkgs.zoxide}/bin/zoxide init zsh)"
 
-      # Live right-prompt hint of the directory `z <query>` would jump to.
-      # Autosuggestions can't show it: their ghost text must extend what you
-      # typed, and the resolved path doesn't.
+      # Ghost-suggest the directory name `z <query>` resolves to, so right-arrow
+      # completes a jump never typed in full. The name, never the resolved path:
+      # accepting appends the ghost text to the buffer verbatim.
+      _zsh_autosuggest_strategy_zoxide() {
+        [[ $1 == z' '[^-./~]* ]] || return
+        local query=''${1#z } dir
+        dir=$(${pkgs.zoxide}/bin/zoxide query --exclude "$PWD" -- ''${(z)query} 2>/dev/null) || return
+        [[ ''${dir:t} == "$query"* ]] && typeset -g suggestion="z ''${dir:t}"
+      }
+      ZSH_AUTOSUGGEST_STRATEGY=(history zoxide)
+
+      # The full path can't go in the ghost text, so it goes on the right.
       autoload -Uz add-zle-hook-widget
       _zoxide_hint() {
         local query="" dir=""
