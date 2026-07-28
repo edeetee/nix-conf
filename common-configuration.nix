@@ -97,6 +97,26 @@ in
 
       eval "$(${pkgs.starship}/bin/starship init zsh)"
       eval "$(${pkgs.zoxide}/bin/zoxide init zsh)"
+
+      # Live right-prompt hint of the directory `z <query>` would jump to.
+      # Autosuggestions can't show it: their ghost text must extend what you
+      # typed, and the resolved path doesn't.
+      autoload -Uz add-zle-hook-widget
+      _zoxide_hint() {
+        local query="" dir=""
+        [[ $BUFFER == z' '[^-./~]* ]] && query=''${BUFFER#* }
+        [[ $query == "$_zoxide_hint_query" && $RPS1 == "$_zoxide_hint_rps1" ]] && return
+        _zoxide_hint_query=$query
+        [[ -n $query ]] && dir=$(${pkgs.zoxide}/bin/zoxide query --exclude "$PWD" -- ''${(z)query} 2>/dev/null)
+        _zoxide_hint_rps1=""
+        [[ -n $dir ]] && _zoxide_hint_rps1="%F{242}''${dir/#$HOME/~}%f"
+        RPS1=$_zoxide_hint_rps1
+        zle reset-prompt
+      }
+      _zoxide_hint_clear() { _zoxide_hint_query=""; RPS1="" }
+      add-zle-hook-widget zle-line-init _zoxide_hint_clear
+      add-zle-hook-widget zle-line-pre-redraw _zoxide_hint
+
       PATH="$HOME/.cargo/bin:$PATH"
       source <(COMPLETE=zsh jj)
 
