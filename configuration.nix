@@ -329,6 +329,7 @@ in
     nvtopPackages.amd
     pkgsRocm.blender
     jellyfin-desktop
+    kdePackages.kdeconnect-kde
   ];
 
   fonts = {

@@ -34,7 +34,6 @@ in
     fzf
     zoxide
     postgresql
-    kdePackages.kdeconnect-kde
     # workmux.packages.${pkgs.system}.default
     nixd
   ];
