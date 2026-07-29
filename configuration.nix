@@ -66,6 +66,8 @@ in
       "rd.systemd.show_status=false"
       "rd.udev.log_level=3"
       "udev.log_priority=3"
+      "snd_hda_intel.power_save=0"
+      "snd_hda_intel.power_save_controller=N"
     ];
 
     loader = {
@@ -166,17 +168,7 @@ in
     publish.workstation = true; # ADDED TO DESKTOP MACHINES
   };
 
-  # security.polkit.extraConfig = ''
-  #   		polkit.addRule(function(action, subject) {
-  #   				if (action.id == "org.freedesktop.login1.suspend" ||
-  #   						action.id == "org.freedesktop.login1.suspend-multiple-sessions" ||
-  #   						action.id == "org.freedesktop.login1.hibernate" ||
-  #   						action.id == "org.freedesktop.login1.hibernate-multiple-sessions")
-  #   				{
-  #   				return polkit.Result.NO;
-  #   				}
-  #   				});
-  #   	'';
+  security.rtkit.enable = true;
 
   # Define a user account. Don't forget to set a password with ‘passwd’.
   users.users.edeetee = {

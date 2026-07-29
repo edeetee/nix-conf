@@ -21,6 +21,11 @@ owner so the tmpfiles rule is a no-op, or use a dedicated subdirectory.
 
 ### 2. Verify before pushing
 - Run `nix flake check --no-build` locally before committing.
+- Verify specific config values with:
+  ```
+  nix eval .#nixosConfigurations.homeserver-edt.config.<path>
+  ```
+  e.g. `nix eval .#nixosConfigurations.homeserver-edt.config.boot.kernelParams`
 - If adding a new service module, read the upstream module source first.
 - Check for `tmpfiles`, `StateDirectory`, `WorkingDirectory`, and any chown/chmod
   behavior in the module.
