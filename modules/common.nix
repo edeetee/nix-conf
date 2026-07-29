@@ -168,10 +168,4 @@ in
   };
 
   nixpkgs.config.allowUnfree = true;
-
-  # Sops-nix is available on NixOS; Darwin hosts ignore this
-  sops = {
-    defaultSopsFile = ../hosts/homeserver-edt/secrets.yaml;
-    age.sshKeyPaths = [ "/etc/ssh/ssh_host_ed25519_key" ];
-  };
 }
