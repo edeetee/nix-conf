@@ -55,15 +55,47 @@ owner so the tmpfiles rule is a no-op, or use a dedicated subdirectory.
 - Check listening ports: `ss -tlnp`.
 - Read logs: `journalctl -u <service> -n 50`.
 
+### 7. Secrets (sops-nix)
+- Secrets live in `hosts/homeserver-edt/secrets.yaml` (encrypted).
+- Edit with: `sops hosts/homeserver-edt/secrets.yaml`
+- Access in NixOS config as: `config.sops.secrets.<name>.path`
+- Age keys are derived from SSH host keys. To add a new host:
+  ```
+  nix-shell -p ssh-to-age --run "ssh-keyscan <host> | ssh-to-age"
+  ```
+  Then add the key to `.sops.yaml`.
+
 ## Repo structure
 ```
-configuration.nix          — main NixOS config (homeserver-edt)
-common-configuration.nix   — shared config (shell, packages, aliases)
 flake.nix                  — inputs, outputs, all machine definitions
-nixos/                     — NixOS-specific modules (steam, samba)
+
+hosts/
+  homeserver-edt/          — NixOS server config (split into concern-focused modules)
+    default.nix            — entrypoint, imports sub-modules
+    hardware-configuration.nix
+    boot.nix               — kernel, loader, plymouth
+    networking.nix         — hostname, avahi, zerotier, ssh, firewall
+    desktop.nix            — display manager, plasma, bluetooth
+    services.nix           — cockpit, jellyfin, transmission, homepage, nginx
+    packages.nix           — system packages, fonts, users, shell
+
+modules/
+  common.nix               — shared config (shell, packages, aliases) for all machines
+  nixvim/                  — nixvim config
+  nixos/                   — reusable NixOS modules
+    steam.nix
+    samba.nix
+    reboot-to-windows.nix
+    amd-gpu.nix
+    check-mounts.nix       — guards against chown on shared mounts
+    arr.nix                 — nixarr (WIP)
+
+lib/
+  jj-tools/                — custom jj wrapper + tests
+
 darwin/                    — macOS Darwin config (MacBooks)
-neovim/                    — nixvim config
 .config/                   — managed dotfiles synced via home-manager
+.sops.yaml                 — sops-nix secret encryption config
 ```
 
 ## Variables available in configuration.nix

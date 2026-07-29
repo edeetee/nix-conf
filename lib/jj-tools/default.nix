@@ -5,7 +5,7 @@
 # a behaviour test exposed as a flake check. See jj-sync.sh for the logic.
 #
 # Usage:
-#   let jjTools = import ./jj-tools.nix { inherit pkgs; };
+#   let jjTools = import ./lib/jj-tools { inherit pkgs; };
 #   in  environment.systemPackages = [ jjTools.jj-with-sync ];
 #   and flake checks: jjTools.checks.jj-worktree-test
 

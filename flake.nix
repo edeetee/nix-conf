@@ -5,6 +5,12 @@
     # NixOS-specific
     flamenco.url = "github:edeetee/flamenco-nix";
 
+    # Secret management — sops-nix
+    sops-nix = {
+      url = "github:Mic92/sops-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     # Darwin-specific
     nix-darwin = {
       url = "github:LnL7/nix-darwin";
@@ -33,9 +39,7 @@
       url = "github:nix-community/nixvim";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    # workmux.url = "github:raine/workmux";
     jjui.url = "github:idursun/jjui";
-    # Not in our nixpkgs pin; upstream flake brings its own bun2nix toolchain.
     hunk.url = "github:modem-dev/hunk";
     nixvim-vsc.url = "path:./nvim-vsc";
 
@@ -56,111 +60,100 @@
       homebrew-core,
       homebrew-cask,
       nixvim-vsc,
-      # workmux,
       nix-index-database,
+      sops-nix,
       ...
     }:
     let
+      # Modules shared across all machines (NixOS + Darwin)
       commonModules = [
-        (import ./common-configuration.nix { inherit hunk; })
-        ./neovim
+        (import ./modules/common.nix { inherit hunk; })
+        ./modules/nixvim
       ];
 
-      darwinModules =
-        user:
-        commonModules
-        ++ [
-          nix-homebrew.darwinModules.nix-homebrew
-          (import ./darwin/configuration.nix {
-            inherit
-              user
-              self
-              homebrew-core
-              homebrew-cask
-              nixvim-vsc
-              ;
-          })
-          nixvim.nixDarwinModules.nixvim
-          home-manager.darwinModules.home-manager
-          nix-index-database.darwinModules.nix-index
-        ];
+      # Helper: build a Darwin configuration from a declarative spec
+      mkDarwin =
+        {
+          username,
+          homeDirectory,
+          extraModules ? [ ],
+          homeArgs ? { },
+        }:
+        nix-darwin.lib.darwinSystem {
+          modules = commonModules ++ [
+            nix-homebrew.darwinModules.nix-homebrew
+            (import ./darwin/configuration.nix {
+              inherit
+                self
+                homebrew-core
+                homebrew-cask
+                nixvim-vsc
+                ;
+              user = username;
+            })
+            nixvim.nixDarwinModules.nixvim
+            home-manager.darwinModules.home-manager
+            nix-index-database.darwinModules.nix-index
+          ] ++ extraModules ++ [
+            {
+              home-manager.useGlobalPkgs = true;
+              home-manager.useUserPackages = true;
+              home-manager.users.${username} = import ./darwin/home.nix ({
+                inherit homeDirectory;
+                username = username;
+                configDir = "${self}/darwin";
+              } // homeArgs);
+              home-manager.backupFileExtension = "home-manager-backup";
+            }
+          ];
+        };
     in
     {
+      # ── NixOS ──────────────────────────────────────────────────────────
 
-      # NixOS
       nixosConfigurations.homeserver-edt = nixpkgs.lib.nixosSystem {
         modules = commonModules ++ [
-          ./configuration.nix
-          ./nixos/steam.nix
-          ./nixos/samba.nix
+          ./hosts/homeserver-edt
           nixvim.nixosModules.nixvim
-          ./ati-server-hardware-configuration.nix
-          ./amd-gpu.nix
-          # flamenco.nixosModules.flamenco
           nix-index-database.nixosModules.default
+          sops-nix.nixosModules.sops
         ];
       };
 
-      # Darwin
-      darwinConfigurations."Edwards-MacBook-Max" = nix-darwin.lib.darwinSystem {
+      # ── Darwin ─────────────────────────────────────────────────────────
 
-        modules = darwinModules "edeetee" ++ [
-          {
-            home-manager.useGlobalPkgs = true;
-            home-manager.useUserPackages = true;
-            home-manager.users.edeetee = import ./darwin/home.nix {
-              homeDirectory = "/Users/edeetee";
-              username = "edeetee";
-              configDir = "${self}/darwin";
-            };
-            home-manager.backupFileExtension = "home-manager-backup";
-          }
-        ];
+      darwinConfigurations."Edwards-MacBook-Max" = mkDarwin {
+        username = "edeetee";
+        homeDirectory = "/Users/edeetee";
       };
 
-      darwinConfigurations."Edwards-MacBook-Air" = nix-darwin.lib.darwinSystem {
-
-        modules = darwinModules "edt" ++ [
-          {
-            home-manager.useGlobalPkgs = true;
-            home-manager.useUserPackages = true;
-            home-manager.users.edt = import ./darwin/home.nix {
-              homeDirectory = "/Users/edt";
-              username = "edt";
-              configDir = "${self}/darwin";
-            };
-            home-manager.backupFileExtension = "home-manager-backup";
-          }
-        ];
+      darwinConfigurations."Edwards-MacBook-Air" = mkDarwin {
+        username = "edt";
+        homeDirectory = "/Users/edt";
       };
 
-      darwinConfigurations."edt-starboard-macbook-pro" = nix-darwin.lib.darwinSystem {
-
-        modules = darwinModules "edwardtaylor" ++ [
-          {
-            homebrew.casks = [ "hammerspoon" ];
-            home-manager.useGlobalPkgs = true;
-            home-manager.useUserPackages = true;
-            home-manager.users.edt = import ./darwin/home.nix {
-              homeDirectory = "/Users/edwardtaylor";
-              username = "edwardtaylor";
-              configDir = "${self}/darwin";
-              karabinerSource = ./darwin/karabiner.json;
-              gitEmail = "edward.taylor@starboard.nz";
-              hammerspoon = true;
-            };
-            home-manager.backupFileExtension = "home-manager-backup";
-          }
-        ];
+      darwinConfigurations."edt-starboard-macbook-pro" = mkDarwin {
+        username = "edwardtaylor";
+        homeDirectory = "/Users/edwardtaylor";
+        extraModules = [ { homebrew.casks = [ "hammerspoon" ]; } ];
+        homeArgs = {
+          gitEmail = "edward.taylor@starboard.nz";
+          hammerspoon = true;
+        };
       };
 
-      # Behaviour tests for the jj tooling (see jj-tools.nix).
-      # Run with: nix build .#checks.aarch64-darwin.jj-worktree
+      # ── Formatter ──────────────────────────────────────────────────────
+      # Run: nix fmt
+
+      formatter.x86_64-linux = nixpkgs.legacyPackages.x86_64-linux.nixfmt-rfc-style;
+      formatter.aarch64-darwin = nixpkgs.legacyPackages.aarch64-darwin.nixfmt-rfc-style;
+
+      # ── Checks ─────────────────────────────────────────────────────────
+      # Run: nix flake check
+
       checks.aarch64-darwin.jj-worktree =
-        (import ./jj-tools.nix {
+        (import ./lib/jj-tools {
           pkgs = nixpkgs.legacyPackages.aarch64-darwin;
         }).checks.jj-worktree-test;
-
-      darwinPackages = self.darwinConfigurations."Edwards-MacBook-Max".pkgs;
     };
 }

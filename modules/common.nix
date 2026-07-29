@@ -1,3 +1,5 @@
+# Shared configuration for all machines (NixOS + Darwin)
+# Takes `hunk` as a module-factory parameter — see flake.nix for the call site.
 { hunk }:
 {
   config,
@@ -6,8 +8,7 @@
   ...
 }:
 let
-  # jj tooling (wrapper + worktree support + behaviour tests). See jj-tools.nix.
-  jjTools = import ./jj-tools.nix { inherit pkgs; };
+  jjTools = import ../lib/jj-tools { inherit pkgs; };
   hunkPkg = hunk.packages.${pkgs.stdenv.hostPlatform.system}.hunk;
 in
 {
@@ -34,15 +35,10 @@ in
     fzf
     zoxide
     postgresql
-    # workmux.packages.${pkgs.system}.default
     nixd
   ];
 
   programs.nix-index-database.comma.enable = true;
-
-  fonts.packages = with pkgs; [
-    julia-mono
-  ];
 
   environment.shellAliases = {
     l = "${pkgs.eza}/bin/eza --icons";
@@ -58,28 +54,28 @@ in
   };
 
   environment.interactiveShellInit = ''
-    		# Source machine-local secrets (not in repo)
-    		[ -f "$HOME/dev/nix-conf/darwin/secrets" ] && source "$HOME/dev/nix-conf/darwin/secrets"
+    # Source machine-local secrets (not in repo)
+    [ -f "$HOME/dev/nix-conf/darwin/secrets" ] && source "$HOME/dev/nix-conf/darwin/secrets"
 
-    		export GOPATH="$HOME/go"
-    		export PATH="$GOPATH/bin:$HOME/.npm-global/bin:$PATH"
+    export GOPATH="$HOME/go"
+    export PATH="$GOPATH/bin:$HOME/.npm-global/bin:$PATH"
 
-    		function gop() {
-    			git push origin "HEAD:$1"
-    		}
+    function gop() {
+    	git push origin "HEAD:$1"
+    }
 
-    		function gopf() {
-    			git push --force-with-lease origin "HEAD:$1"
-    		}
+    function gopf() {
+    	git push --force-with-lease origin "HEAD:$1"
+    }
 
-    		function gopnv() {
-    			git push --no-verify origin "HEAD:$1"
-    		}
+    function gopnv() {
+    	git push --no-verify origin "HEAD:$1"
+    }
 
-    		function gopfnv() {
-    			git push --force-with-lease --no-verify origin "HEAD:$1"
-    		}
-    	'';
+    function gopfnv() {
+    	git push --force-with-lease --no-verify origin "HEAD:$1"
+    }
+  '';
 
   programs.nix-index.enable = true;
 
@@ -171,20 +167,11 @@ in
     '';
   };
 
-  # NIX CONFIGURATION
-  # nix.settings = {
-  #   substituters = [
-  #     "http://binarycache.example.com"
-  #     "https://nix-community.cachix.org"
-  #     "https://cache.nixos.org/"
-  #   ];
-  #   trusted-public-keys = [
-  #     "binarycache.example.com-1:dsafdafDFW123fdasfa123124FADSAD"
-  #     "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
-  #   ];
-  # };
-
-  # nix.settings.auto-optimise-store = true;
-
   nixpkgs.config.allowUnfree = true;
+
+  # Sops-nix is available on NixOS; Darwin hosts ignore this
+  sops = {
+    defaultSopsFile = ../hosts/homeserver-edt/secrets.yaml;
+    age.sshKeyPaths = [ "/etc/ssh/ssh_host_ed25519_key" ];
+  };
 }

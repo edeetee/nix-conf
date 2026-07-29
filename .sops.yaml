@@ -1,0 +1,21 @@
+# sops-nix configuration
+# Secrets are encrypted with age keys. Each host has its own age key derived
+# from its SSH host key. To add a new secret:
+#
+#   1. Add it to hosts/<host>/secrets.yaml
+#   2. Run: sops updatekeys hosts/<host>/secrets.yaml
+#   3. Access in NixOS config as: config.sops.secrets.<name>.path
+#
+# To set up a new host:
+#   $ nix-shell -p ssh-to-age --run "ssh-keyscan <host> | ssh-to-age"
+#   Add the age key below.
+
+keys:
+  # homeserver-edt — run: ssh-keyscan homeserver-edt.local | ssh-to-age
+  # - &homeserver-edt age1...
+
+creation_rules:
+  - path_regex: hosts/homeserver-edt/secrets\.yaml$
+    key_groups:
+      - age:
+          # - *homeserver-edt  # uncomment after adding the age key above
