@@ -1,0 +1,65 @@
+# Hardware configuration for homeserver-edt
+# Regenerate with: nixos-generate-config --root /mnt
+{
+  config,
+  lib,
+  modulesPath,
+  ...
+}:
+
+{
+  imports = [
+    (modulesPath + "/installer/scan/not-detected.nix")
+  ];
+
+  boot.initrd.availableKernelModules = [
+    "xhci_pci"
+    "ahci"
+    "nvme"
+    "usbhid"
+    "sd_mod"
+  ];
+  boot.initrd.kernelModules = [ ];
+  boot.kernelModules = [ "kvm-intel" ];
+  boot.extraModulePackages = [ ];
+
+  fileSystems = {
+    "/" = {
+      device = "/dev/disk/by-uuid/c004e188-c5ea-4947-8ab0-923cb3826d9c";
+      fsType = "ext4";
+    };
+
+    "/boot" = {
+      device = "/dev/disk/by-uuid/CB02-5DC8";
+      fsType = "vfat";
+    };
+
+    "/mnt/windows" = {
+      device = "/dev/disk/by-uuid/F8FC331FFC32D818";
+      fsType = "ntfs3";
+      options = [
+        "users"
+        "nofail"
+        "exec"
+      ];
+    };
+
+    "/mnt/hdd" = {
+      device = "/dev/disk/by-uuid/7ab109ec-ecbd-4f03-ad65-b2685e791c29";
+      fsType = "ext4";
+      options = [
+        "user"
+        "nofail"
+        "exec"
+      ];
+    };
+  };
+
+  swapDevices = [
+    { device = "/dev/disk/by-uuid/8b119396-d425-4951-bfc0-2a1b44158afd"; }
+  ];
+
+  networking.useDHCP = lib.mkDefault true;
+  nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
+  hardware.cpu.intel.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
+}
