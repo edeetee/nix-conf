@@ -19,8 +19,17 @@ root path to an existing shared directory (like `/mnt/hdd`, `/home`, etc.),
 If you must use a shared path, set `user` and `group` to match the existing
 owner so the tmpfiles rule is a no-op, or use a dedicated subdirectory.
 
-### 2. Verify before pushing
-- Run `nix flake check --no-build` locally before committing.
+### 2. Verify before committing (not after)
+**Always run `nix flake check --no-build` before committing.** This evaluates all
+configurations (NixOS + Darwin), the formatter, and checks. Do not commit if it fails.
+
+- After creating or renaming files, check they aren't blocked by `.gitignore`:
+  ```
+  git check-ignore <new-file>   # empty output = not ignored, good
+  ```
+- If a new file is gitignored, either update `.gitignore` or rename the file.
+  (e.g. `hardware-configuration.nix` was globally gitignored, silently excluding
+  the new `hosts/homeserver-edt/hardware-configuration.nix` from commits.)
 - Verify specific config values with:
   ```
   nix eval .#nixosConfigurations.homeserver-edt.config.<path>
@@ -55,7 +64,23 @@ owner so the tmpfiles rule is a no-op, or use a dedicated subdirectory.
 - Check listening ports: `ss -tlnp`.
 - Read logs: `journalctl -u <service> -n 50`.
 
-### 7. Secrets (sops-nix)
+### 7. Shared modules must work on all platforms
+`modules/common.nix` is imported by both NixOS and Darwin configurations.
+**Never add NixOS-only options to shared modules.** Examples of NixOS-only options
+that will error on Darwin:
+- `sops.*` (only available when `sops-nix.nixosModules.sops` is imported)
+- `boot.*`
+- `services.cockpit`, `services.jellyfin`, etc.
+
+If a module needs platform-specific options, either:
+- Put it in `modules/nixos/` (imported only by NixOS hosts)
+- Guard it with `lib.mkIf`:
+  ```nix
+  sops = lib.mkIf config.services.cockpit.enable { ... };
+  ```
+- Add the equivalent Darwin module to the flake (e.g. `sops-nix.darwinModules.sops`)
+
+### 8. Secrets (sops-nix)
 - Secrets live in `hosts/homeserver-edt/secrets.yaml` (encrypted).
 - Edit with: `sops hosts/homeserver-edt/secrets.yaml`
 - Access in NixOS config as: `config.sops.secrets.<name>.path`
