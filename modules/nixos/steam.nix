@@ -57,7 +57,7 @@
       Type = "simple";
       ExecStart = "${lib.getExe pkgs.steam} -gamepadui";
       User = "edeetee";
-      Environment = "DISPLAY=:0";
+      Environment = ["DISPLAY=:0" "PULSE_LATENCY_MSEC=60"];
     };
   };
 }

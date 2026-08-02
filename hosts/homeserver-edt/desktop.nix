@@ -36,4 +36,35 @@
   '';
 
   security.rtkit.enable = true;
+
+  # ── Audio: PipeWire with low-latency tuning ─────────────────────────
+
+  services.pipewire = {
+    enable = true;
+    audio.enable = true;
+    pulse.enable = true;
+    extraConfig.pipewire = {
+      "92-low-latency" = {
+        "context.properties" = {
+          "default.clock.quantum" = 1024;
+          "default.clock.min-quantum" = 32;
+          "default.clock.max-quantum" = 1024;
+        };
+      };
+    };
+    extraConfig.pipewire-pulse = {
+      "92-low-latency" = {
+        "pulse.properties" = {
+          "pulse.min.req" = "128/48000";
+          "pulse.min.quantum" = "128/48000";
+        };
+      };
+    };
+  };
+
+  # Tell Wine/Steam's PulseAudio driver to use lower latency
+  # Default is ~200ms. 60ms is the Proton community standard — any lower
+  # and winepulse.drv can't refill buffers reliably, causing pops.
+  # See: https://github.com/ValveSoftware/Proton/issues/1209
+  environment.variables.PULSE_LATENCY_MSEC = "60";
 }

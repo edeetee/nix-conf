@@ -1,7 +1,17 @@
 # AGENTS.md — Guidelines for AI agents (and humans) working on this repo
 
-This is a live NixOS configuration deployed to `homeserver-edt`. Changes pushed
+This is a live NixOS configuration deployed to `homeserver-edt` (NixOS 25.11, mDNS at `homeserver-edt.local`). Changes pushed
 to `main` are pulled and rebuilt on the server. Be careful.
+
+The nix-conf lives at `~/dev/nix-conf` on both the Mac and the server.
+When running pi on the server, `cd ~/dev/nix-conf` first so it loads this file.
+
+## Server quick facts
+- SSH: `ssh homeserver-edt.local` (mDNS, zerotier also available)
+- Audio: see `hosts/homeserver-edt/AUDIO.md` — PipeWire, rtkit, Wine/Proton latency tuning
+- Audio is HDMI out to Sony TV via Navi 21/23 GPU
+- Steam launches via `steam-on-demand.service` (controller-triggered)
+- Rebuild: `cd ~/dev/nix-conf && git pull && sudo nixos-rebuild switch --flake .#homeserver-edt`
 
 ## Critical rules
 
