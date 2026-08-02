@@ -15,6 +15,12 @@ When running pi on the server, `cd ~/dev/nix-conf` first so it loads this file.
 
 ## Critical rules
 
+### 0. Always commit to nix-conf, not just the live server
+Runtime changes (pw-metadata, systemctl edits, manual config files) are ephemeral —
+they vanish on reboot or service restart. When debugging, it's fine to test live first,
+but once you find what works, **always encode it in the nix-conf** and push.
+Otherwise the fix is lost and the next agent (or reboot) starts from scratch.
+
 ### 1. Directories with side effects
 Some NixOS service modules create systemd-tmpfiles rules that silently chown/chmod
 directories. Before setting a service's working directory, data directory, or
