@@ -12,9 +12,11 @@
 
 keys:
   - &homeserver-edt age1g79q4cadrwz2fncgrsw77c04vkvfq6xpv46s0czvvm8n2475k3qstk6hf0
+  - &edeetee age1ajfkycqvdpagukxpp5ra4c9jr23x5797q7p36y4z3gqud5l6y4uqfs57q3
 
 creation_rules:
   - path_regex: hosts/homeserver-edt/secrets\.yaml$
     key_groups:
       - age:
           - *homeserver-edt
+          - *edeetee
