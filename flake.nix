@@ -49,13 +49,11 @@
 
   nixConfig = {
     extra-substituters = [
-      "https://sops-nix.cachix.org"
       "https://nix-community.cachix.org"
       "https://home-manager.cachix.org"
       "https://nix-darwin.cachix.org"
     ];
     extra-trusted-public-keys = [
-      "sops-nix.cachix.org-1:YxCuBNRFXP5FfIabNOdYbV7wB4EfH4IVlaokHmGJOmc="
       "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
       "home-manager.cachix.org-1:wLVmpPs9J1Na6uhEkqcJcdSmPR61rd76jOnlps6zvM8="
       "nix-darwin.cachix.org-1:LxMyKzQk7Uqkc1Pfq5uhm9GSn07xkERpy+7cpwc006A="

@@ -22,20 +22,14 @@ in
 
   services.jellyfin.enable = true;
 
-  # Transmission credentials (RPC password) stored in sops secrets
-  sops.secrets.transmission-credentials = {
-    owner = "root";
-  };
-
   services.transmission = {
     enable = true;
     package = pkgs.transmission_4;
-    credentialsFile = config.sops.secrets.transmission-credentials.path;
     settings = {
       download-dir = "/mnt/hdd/downloads";
       incomplete-dir = "/mnt/hdd/downloads/.incomplete";
       rename-partial-files = false;
-      rpc-whitelist-enabled = false;
+      rpc-whitelist = "127.0.0.1,192.168.*.*";
       rpc-port = 9091;
       rpc-bind-address = "0.0.0.0";
     };
