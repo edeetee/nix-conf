@@ -30,6 +30,7 @@ in
       incomplete-dir = "/mnt/hdd/downloads/.incomplete";
       rename-partial-files = false;
       rpc-whitelist-enabled = false;
+      rpc-host-whitelist-enabled = false;
       rpc-port = 9091;
       rpc-bind-address = "0.0.0.0";
     };
