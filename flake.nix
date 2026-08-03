@@ -48,8 +48,18 @@
   };
 
   nixConfig = {
-    extra-substituters = [ "https://sops-nix.cachix.org" ];
-    extra-trusted-public-keys = [ "sops-nix.cachix.org-1:YxCuBNRFXP5FfIabNOdYbV7wB4EfH4IVlaokHmGJOmc=" ];
+    extra-substituters = [
+      "https://sops-nix.cachix.org"
+      "https://nix-community.cachix.org"
+      "https://home-manager.cachix.org"
+      "https://nix-darwin.cachix.org"
+    ];
+    extra-trusted-public-keys = [
+      "sops-nix.cachix.org-1:YxCuBNRFXP5FfIabNOdYbV7wB4EfH4IVlaokHmGJOmc="
+      "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
+      "home-manager.cachix.org-1:YvCDfXmZjW6KiWu6bGxj1u/8pPJd1NG1CXij09VV+Ho="
+      "nix-darwin.cachix.org-1:oSSJNi6TwLFidMDm1hLE7BG3oNdKk0AoVfQppuWLrlc="
+    ];
   };
 
   outputs =
