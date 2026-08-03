@@ -29,7 +29,7 @@ in
       download-dir = "/mnt/hdd/downloads";
       incomplete-dir = "/mnt/hdd/downloads/.incomplete";
       rename-partial-files = false;
-      rpc-whitelist = "127.0.0.1,192.168.*.*";
+      rpc-whitelist-enabled = false;
       rpc-port = 9091;
       rpc-bind-address = "0.0.0.0";
     };
