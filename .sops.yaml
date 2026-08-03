@@ -11,11 +11,10 @@
 #   Add the age key below.
 
 keys:
-  # homeserver-edt — run: ssh-keyscan homeserver-edt.local | ssh-to-age
-  # - &homeserver-edt age1...
+  - &homeserver-edt age1g79q4cadrwz2fncgrsw77c04vkvfq6xpv46s0czvvm8n2475k3qstk6hf0
 
 creation_rules:
   - path_regex: hosts/homeserver-edt/secrets\.yaml$
     key_groups:
       - age:
-          # - *homeserver-edt  # uncomment after adding the age key above
+          - *homeserver-edt
