@@ -40,8 +40,8 @@ in
   users.users.transmission.extraGroups = [ "users" ];
 
   systemd.tmpfiles.rules = [
-    "d /mnt/hdd/downloads 0775 edeetee users -"
-    "d /mnt/hdd/downloads/.incomplete 0775 edeetee users -"
+    "d /mnt/hdd/downloads 0777 edeetee users -"
+    "d /mnt/hdd/downloads/.incomplete 0777 edeetee users -"
   ];
 
   services.homepage-dashboard = {
