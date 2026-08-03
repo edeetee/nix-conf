@@ -47,6 +47,11 @@
     nix-index-database.inputs.nixpkgs.follows = "nixpkgs";
   };
 
+  nixConfig = {
+    extra-substituters = [ "https://sops-nix.cachix.org" ];
+    extra-trusted-public-keys = [ "sops-nix.cachix.org-1:YxCuBNRFXP5FfIabNOdYbV7wB4EfH4IVlaokHmGJOmc=" ];
+  };
+
   outputs =
     {
       self,
