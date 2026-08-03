@@ -17,6 +17,7 @@ in
     nixfmt-classic
     nil
     nixd
+    sops
     nodejs
     bun
     git-lfs
@@ -35,7 +36,6 @@ in
     fzf
     zoxide
     postgresql
-    nixd
   ];
 
   programs.nix-index-database.comma.enable = true;
