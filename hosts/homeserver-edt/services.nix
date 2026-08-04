@@ -33,7 +33,7 @@ in
         contentType = "homevideos";
         pathInfos = [
           "/mnt/hdd/downloads"
-          "/home/edt/downloads"
+          "/home/edeetee/Downloads"
         ];
       };
     };
@@ -67,7 +67,7 @@ in
   # Allow transmission daemon to write to downloads dir (owned by edeetee:users)
   users.users.transmission.extraGroups = [ "users" ];
 
-  # Allow jellyfin to read /home/edt/downloads
+  # Allow jellyfin to read /home/edeetee/Downloads
   users.users.jellyfin.extraGroups = [ "users" ];
 
   systemd.tmpfiles.rules = [
