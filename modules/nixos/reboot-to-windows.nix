@@ -89,7 +89,7 @@ in
   # for normal users (edeetee).
   security.pam.services.sddm.rules.auth.windows = {
     enable = true;
-    order = config.security.pam.services.sddm.rules.auth.unix.order - 50;
+    order = config.security.pam.services.sddm.rules.auth.login.order - 50;
     control = "sufficient";
     modulePath = "${config.security.pam.package}/lib/security/pam_succeed_if.so";
     args = [ "user" "=" "windows" ];
@@ -97,7 +97,7 @@ in
 
   security.pam.services.sddm-autologin.rules.auth.windows = {
     enable = true;
-    order = config.security.pam.services.sddm-autologin.rules.auth.unix.order - 50;
+    order = config.security.pam.services.sddm-autologin.rules.auth.permit.order - 50;
     control = "sufficient";
     modulePath = "${config.security.pam.package}/lib/security/pam_succeed_if.so";
     args = [ "user" "=" "windows" ];
