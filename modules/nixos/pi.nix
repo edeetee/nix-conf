@@ -12,10 +12,18 @@ in
     group = "users";
   };
 
-  # Make DEEPSEEK_API_KEY available in all shells
+  # Make DEEPSEEK_API_KEY available in all login shells.
+  # NixOS /etc/profile only sources /etc/profile.local, not profile.d, so we
+  # create that hook and put the actual export in profile.d.
   environment.etc."profile.d/deepseek-api-key.sh" = {
     text = ''
       export DEEPSEEK_API_KEY="$(< ${config.sops.secrets.deepseek-api-key.path})"
+    '';
+    mode = "0444";
+  };
+  environment.etc."profile.local" = {
+    text = ''
+      for f in /etc/profile.d/*.sh; do [ -r "$f" ] && . "$f"; done
     '';
     mode = "0444";
   };
