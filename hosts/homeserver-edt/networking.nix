@@ -16,6 +16,10 @@
 
   services.avahi = {
     enable = true;
+    # Prevent ZeroTier interfaces from causing hostname conflicts.
+    # Otherwise Avahi sees the same hostname on both wlp5s0 and zt* interfaces
+    # and renames itself to homeserver-edt-2, breaking mDNS resolution.
+    denyInterfaces = [ "zt*" ];
     publish.enable = true;
     publish.userServices = true;
     publish.addresses = true;
