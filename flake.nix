@@ -45,6 +45,8 @@
 
     nix-index-database.url = "github:nix-community/nix-index-database";
     nix-index-database.inputs.nixpkgs.follows = "nixpkgs";
+
+    declarative-jellyfin.url = "github:Sveske-Juice/declarative-jellyfin";
   };
 
   nixConfig = {
@@ -75,6 +77,7 @@
       nixvim-vsc,
       nix-index-database,
       sops-nix,
+      declarative-jellyfin,
       ...
     }:
     let
@@ -130,6 +133,7 @@
           nixvim.nixosModules.nixvim
           nix-index-database.nixosModules.default
           sops-nix.nixosModules.sops
+          declarative-jellyfin.nixosModules.default
         ];
       };
 

@@ -20,7 +20,35 @@ in
     };
   };
 
-  services.jellyfin.enable = true;
+  # ── Jellyfin (declarative) ──────────────────────────────────────
+  # Libraries, users, and server settings are managed here instead of the web UI.
+  # The "home" user has auto-login enabled so no password is needed on the local network.
+  services.declarative-jellyfin = {
+    enable = true;
+    openFirewall = true;
+
+    libraries = {
+      Downloads = {
+        enabled = true;
+        contentType = "homevideos";
+        pathInfos = [
+          "/mnt/hdd/downloads"
+          "/home/edt/downloads"
+        ];
+      };
+    };
+
+    users = {
+      home = {
+        mutable = false;
+        password = "homeserver";
+        enableAutoLogin = true;
+        permissions = {
+          isAdministrator = true;
+        };
+      };
+    };
+  };
 
   services.transmission = {
     enable = true;
@@ -38,6 +66,9 @@ in
 
   # Allow transmission daemon to write to downloads dir (owned by edeetee:users)
   users.users.transmission.extraGroups = [ "users" ];
+
+  # Allow jellyfin to read /home/edt/downloads
+  users.users.jellyfin.extraGroups = [ "users" ];
 
   systemd.tmpfiles.rules = [
     "d /mnt/hdd/downloads 0777 edeetee users -"
