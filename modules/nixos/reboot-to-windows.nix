@@ -84,32 +84,24 @@ in
   #   # Show the windows user in GDM
   # '';
 
+  # Allow the windows user to bypass password auth in SDDM.
+  # Uses structured PAM rules so the default pam_unix rules are preserved
+  # for normal users (edeetee).
   security.pam.services.sddm.rules.auth.windows = {
     enable = true;
     order = config.security.pam.services.sddm.rules.auth.unix.order - 50;
     control = "sufficient";
     modulePath = "${config.security.pam.package}/lib/security/pam_succeed_if.so";
-    args = [
-      "user"
-      "="
-      "windows"
-    ];
+    args = [ "user" "=" "windows" ];
   };
 
-  # Configure SDDM to allow passwordless login for windows user
-  # This makes SDDM accept empty password for the windows user
-  security.pam.services.sddm.text = lib.mkBefore ''
-    auth sufficient pam_succeed_if.so user = windows
-    account sufficient pam_succeed_if.so user = windows
-    password sufficient pam_succeed_if.so user = windows
-    session sufficient pam_succeed_if.so user = windows
-  '';
-
-  security.pam.services.sddm-autologin.text = lib.mkBefore ''
-    auth sufficient pam_succeed_if.so user = windows
-    account sufficient pam_succeed_if.so user = windows
-    session sufficient pam_succeed_if.so user = windows
-  '';
+  security.pam.services.sddm-autologin.rules.auth.windows = {
+    enable = true;
+    order = config.security.pam.services.sddm-autologin.rules.auth.unix.order - 50;
+    control = "sufficient";
+    modulePath = "${config.security.pam.package}/lib/security/pam_succeed_if.so";
+    args = [ "user" "=" "windows" ];
+  };
 
   # Create a custom session for the windows user that immediately reboots
   services.displayManager.sessionPackages = [
