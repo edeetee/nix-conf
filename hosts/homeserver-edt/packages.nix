@@ -11,6 +11,8 @@
     pkgsRocm.blender
     jellyfin-desktop
     kdePackages.kdeconnect-kde
+    vlc
+    libsForQt5.kwalletmanager
   ];
 
   fonts = {
