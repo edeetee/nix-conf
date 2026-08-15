@@ -30,7 +30,7 @@ in
     package = pkgs.transmission_4;
     settings = {
       download-dir = "/mnt/hdd/downloads";
-      incomplete-dir = "/mnt/hdd/downloads/.incomplete";
+      incomplete-dir-enabled = false;
       rename-partial-files = false;
       rpc-whitelist-enabled = false;
       rpc-host-whitelist-enabled = false;
