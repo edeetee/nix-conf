@@ -7,3 +7,15 @@ darwin/secrets
 .config/jj/.claude/
 .config/zed/prompts/
 .config/zed/conversations/
+
+# pi-agent runtime data (written by pi, not config)
+darwin/pi-agent/auth.json
+darwin/pi-agent/sessions/
+darwin/pi-agent/models-store.json
+darwin/pi-agent/auto-mode-state.json
+darwin/pi-agent/npm/
+darwin/pi-agent/extensions/auto-mode/
+
+# Nix build output symlink
+result
+result-*
