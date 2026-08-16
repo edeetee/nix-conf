@@ -43,6 +43,24 @@
     enable = true;
     audio.enable = true;
     pulse.enable = true;
+    # Keep the HDMI sink (and its ALSA device) open while no stream is
+    # playing. The default 5s suspend-on-idle causes the AMD HDMI link to
+    # drop and re-sync, which the TV renders as a constant "spitting" noise
+    # at full volume when VLC is paused.
+    wireplumber.extraConfig."92-disable-suspend" = {
+      "monitor.alsa.rules" = [
+        {
+          matches = [
+            { "node.name" = "~alsa_output.*"; }
+          ];
+          actions = {
+            update-props = {
+              "session.suspend-timeout-seconds" = 0;
+            };
+          };
+        }
+      ];
+    };
     extraConfig.pipewire = {
       "92-low-latency" = {
         "context.properties" = {
@@ -55,8 +73,10 @@
     extraConfig.pipewire-pulse = {
       "92-low-latency" = {
         "pulse.properties" = {
-          "pulse.min.req" = "128/48000";
-          "pulse.min.quantum" = "128/48000";
+          # 256/48000 (~5.3ms) is the PipeWire default. 128/48000 was too
+          # aggressive for consumer apps (VLC) and caused underrun/crackle.
+          "pulse.min.req" = "256/48000";
+          "pulse.min.quantum" = "256/48000";
         };
       };
     };

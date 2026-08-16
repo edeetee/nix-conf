@@ -56,8 +56,8 @@ services.pipewire = {
   extraConfig.pipewire-pulse = {
     "92-low-latency" = {
       "pulse.properties" = {
-        "pulse.min.req" = "128/48000";       # ~2.7ms minimum request
-        "pulse.min.quantum" = "128/48000";
+        "pulse.min.req" = "256/48000";       # ~5.3ms minimum request (PipeWire default)
+        "pulse.min.quantum" = "256/48000";
       };
     };
   };
@@ -67,7 +67,7 @@ services.pipewire = {
 | Setting | Before | After | What it does |
 |---------|--------|-------|-------------|
 | `clock.quantum` | 1024 (21ms) | 256 (5.3ms) | How often PipeWire processes audio |
-| `pulse.min.req` | unset | 128/48000 | Prevents clients requesting huge chunks |
+| `pulse.min.req` | unset | 256/48000 | Prevents clients requesting huge chunks |
 
 **Runtime tuning:** If 256 quantum causes popping under heavy GPU load (games),
 bump to 512:
@@ -79,7 +79,24 @@ pw-metadata -n settings 0 clock.quantum 512
 This change is temporary (lost on pipewire restart). Make it permanent by
 changing the value in `desktop.nix` and rebuilding.
 
-### 3. Wine/PulseAudio buffer sizes (`steam-on-demand` drop-in)
+### 3. No suspend-on-idle (`desktop.nix`)
+
+The HDMI sink is kept open permanently (no 5s suspend-on-idle). Otherwise,
+pausing VLC leaves the AMD HDMI link to drop and re-sync, which the Sony TV
+renders as a constant "spitting" noise at full volume.
+
+```nix
+services.pipewire.wireplumber.extraConfig."92-disable-suspend" = {
+  "monitor.alsa.rules" = [
+    {
+      matches = [ { "node.name" = "~alsa_output.*"; } ];
+      actions.update-props = { "session.suspend-timeout-seconds" = 0; };
+    }
+  ];
+};
+```
+
+### 4. Wine/PulseAudio buffer sizes (`steam-on-demand` drop-in)
 
 Wine's mmdevapi layer enforces a minimum default period of **10ms**
 ([source](https://github.com/wine-mirror/wine/blob/master/dlls/mmdevapi/client.c)):
