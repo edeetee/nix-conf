@@ -11,6 +11,25 @@
 
   services.desktopManager.plasma6.enable = true;
 
+  # ── Never suspend ──────────────────────────────────────────────────────
+  # This machine runs server services (Jellyfin, Cockpit, transmission, ...)
+  # and must stay up. Suspending (KDE Plasma's default idle-suspend) drops the
+  # WiFi and, on resume, triggers Avahi to re-probe its hostname and spuriously
+  # rename homeserver-edt.local -> homeserver-edt-2.local, breaking mDNS.
+  # Block suspend/hibernate at the logind level so no trigger can sleep it.
+  services.logind.settings.Login = {
+    IdleAction = "ignore";
+    HandleLidSwitch = "ignore";
+    HandleLidSwitchExternalPower = "ignore";
+  };
+
+  systemd.sleep.settings.Sleep = {
+    AllowSuspend = "no";
+    AllowHibernation = "no";
+    AllowSuspendThenHibernate = "no";
+    AllowHybridSleep = "no";
+  };
+
   # Bluetooth — needed for DualShock controllers
   hardware.bluetooth = {
     enable = true;
