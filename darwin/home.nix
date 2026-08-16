@@ -1,4 +1,4 @@
-{username, homeDirectory, configDir, karabinerSource ? null, gitEmail ? null, hammerspoon ? false}: { config, lib, ... }:
+{username, homeDirectory, karabinerSource ? null, gitEmail ? null, hammerspoon ? false}: { config, lib, ... }:
 
 let
   nixConfDir = "${homeDirectory}/dev/nix-conf";
@@ -53,7 +53,7 @@ in
 
     # Out-of-store symlink so pi can write packages back to the file
     ".pi/agent" = {
-      source = config.lib.file.mkOutOfStoreSymlink "${configDir}/pi-agent";
+      source = config.lib.file.mkOutOfStoreSymlink "${nixConfDir}/darwin/pi-agent";
       recursive = true;
     };
 

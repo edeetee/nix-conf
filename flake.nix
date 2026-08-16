@@ -114,7 +114,6 @@
               home-manager.users.${username} = import ./darwin/home.nix ({
                 inherit homeDirectory;
                 username = username;
-                configDir = "${self}/darwin";
               } // homeArgs);
               home-manager.backupFileExtension = "home-manager-backup";
             }
