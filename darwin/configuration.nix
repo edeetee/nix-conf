@@ -18,6 +18,7 @@ in
   };
 
   environment.systemPackages = [
+    pkgs.nixos-rebuild
     (pkgs.writeShellScriptBin "nvim-vsc" "exec -a $0 ${
       nixvim-vsc.packages.${pkgs.stdenv.hostPlatform.system}.default
     }/bin/nvim $@")
@@ -60,6 +61,10 @@ in
     nixe = "v ~/dev/nix-conf/";
     nixcd = "cd ~/dev/nix-conf/";
     "'?'" = "gh copilot";
+    # Deploy to the homeserver via nixos-rebuild's built-in remote mode.
+    # --ask-sudo-password prompts locally once and pipes it to remote sudo
+    # over stdin, so no permanent NOPASSWD rule is needed.
+    push-server = "nixos-rebuild switch --flake ~/dev/nix-conf#homeserver-edt --target-host homeserver-edt.local --ask-sudo-password";
   };
 
   programs.zsh = {
