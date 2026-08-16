@@ -85,6 +85,22 @@ function pickTask(entries: Entry[]): string {
   return tasks[0];
 }
 
+// The longest user message is usually the main task statement.
+function longestTask(entries: Entry[]): string {
+  const tasks = userTasks(entries);
+  if (tasks.length === 0) return "";
+  let best = tasks[0];
+  for (const t of tasks) if (t.length > best.length) best = t;
+  return best;
+}
+
+// Title prefers an explicit session name, else the main task.
+function pickTitle(entries: Entry[], sessionName?: string): string {
+  const name = sessionName?.trim();
+  if (name) return name;
+  return truncate(longestTask(entries), 70);
+}
+
 function truncate(s: string, n: number): string {
   return s.length > n ? s.slice(0, n - 1).trimEnd() + "…" : s;
 }
@@ -97,20 +113,28 @@ export default function (pi: ExtensionAPI) {
     if (name) await runCmux(["rename-workspace", name]);
   });
 
-  // Re-apply the name when a named session is loaded/resumed/reloaded.
-  pi.on("session_start", async () => {
+  // Re-apply the title when a session is loaded/resumed/reloaded.
+  pi.on("session_start", async (_event, ctx) => {
     if (!inCmuxSurface()) return;
-    const name = pi.getSessionName()?.trim();
-    if (name) await runCmux(["rename-workspace", name]);
+    try {
+      const title = pickTitle(ctx.sessionManager.getBranch(), pi.getSessionName());
+      if (title) await runCmux(["rename-workspace", title]);
+    } catch {
+      // Never break the agent over a cosmetic sidebar update.
+    }
   });
 
-  // Description: refresh from the current task once the agent settles.
+  // Refresh title + description once the agent settles.
   pi.on("agent_settled", async (_event, ctx) => {
     if (!inCmuxSurface()) return;
     try {
-      const task = truncate(pickTask(ctx.sessionManager.getBranch()), 140);
-      if (!task) return;
-      await runCmux(["workspace-action", "--action", "set-description", "--description", task]);
+      const entries = ctx.sessionManager.getBranch();
+      const title = pickTitle(entries, pi.getSessionName());
+      const description = truncate(pickTask(entries), 140);
+      if (title) await runCmux(["rename-workspace", title]);
+      if (description) {
+        await runCmux(["workspace-action", "--action", "set-description", "--description", description]);
+      }
     } catch {
       // Never break the agent over a cosmetic sidebar update.
     }
