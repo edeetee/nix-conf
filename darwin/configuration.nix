@@ -70,8 +70,6 @@ in
   programs.zsh = {
     enableSyntaxHighlighting = true;
     enableAutosuggestions = true;
-    enableFzfCompletion = true;
-    enableFzfHistory = true;
   };
 
   nix.enable = false;
