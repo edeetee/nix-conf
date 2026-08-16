@@ -42,6 +42,13 @@ in
   # Allow transmission daemon to write to downloads dir (owned by edeetee:users)
   users.users.transmission.extraGroups = [ "users" ];
 
+  # Transmission runs sandboxed with PrivateMounts= + BindPaths= pointing at
+  # `download-dir`. If /mnt/hdd isn't mounted yet when the service starts, the
+  # bind mount captures the empty directory on the root filesystem, and all
+  # downloads silently vanish (written to a hidden dir beneath the later mount).
+  # Make the service wait until the filesystem backing download-dir is mounted.
+  systemd.services.transmission.unitConfig.RequiresMountsFor = "/mnt/hdd/downloads";
+
 
   systemd.tmpfiles.rules = [
     "d /mnt/hdd/downloads 0777 edeetee users -"
