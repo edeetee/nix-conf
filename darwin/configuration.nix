@@ -49,6 +49,7 @@ in
       "obsidian"
       "eqmac"
       "altair-graphql-client"
+      "cmux"
     ];
   };
 
