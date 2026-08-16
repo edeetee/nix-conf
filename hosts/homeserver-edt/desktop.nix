@@ -62,11 +62,14 @@
     enable = true;
     audio.enable = true;
     pulse.enable = true;
-    # Keep the HDMI sink (and its ALSA device) open while no stream is
-    # playing. The default 5s suspend-on-idle causes the AMD HDMI link to
-    # drop and re-sync, which the TV renders as a constant "spitting" noise
-    # at full volume when VLC is paused.
-    wireplumber.extraConfig."92-disable-suspend" = {
+    # AMD HDMI audio quirk: an idle sink is left in ALSA "RUNNING" state
+    # with no data feeding it (appl_ptr frozen, hw_ptr advancing), which the
+    # GPU renders as a constant full-volume sputter while VLC is paused.
+    # `node.pause-on-idle` pauses the node (stops the DMA) the moment the
+    # stream goes idle, instead of the default "keep processing" behaviour.
+    # Suspend stays disabled so the device is never closed/re-opened (that
+    # causes a pop on resume).
+    wireplumber.extraConfig."92-no-idle-noise" = {
       "monitor.alsa.rules" = [
         {
           matches = [
@@ -74,6 +77,7 @@
           ];
           actions = {
             update-props = {
+              "node.pause-on-idle" = true;
               "session.suspend-timeout-seconds" = 0;
             };
           };

@@ -79,22 +79,32 @@ pw-metadata -n settings 0 clock.quantum 512
 This change is temporary (lost on pipewire restart). Make it permanent by
 changing the value in `desktop.nix` and rebuilding.
 
-### 3. No suspend-on-idle (`desktop.nix`)
+### 3. Pause-on-idle for the HDMI sink (`desktop.nix`)
 
-The HDMI sink is kept open permanently (no 5s suspend-on-idle). Otherwise,
-pausing VLC leaves the AMD HDMI link to drop and re-sync, which the Sony TV
-renders as a constant "spitting" noise at full volume.
+AMD HDMI audio has a quirk: when a stream is paused, the idle sink is left in
+ALSA `RUNNING` state with no data feeding it (visible as `appl_ptr` frozen in
+`/proc/asound/card1/pcm*/sub*/status`), and the GPU renders this as a constant
+full-volume "spitting" noise. The default `node.pause-on-idle = false` is what
+keeps idle nodes processing; setting it to `true` pauses the node (stops the
+DMA) the moment the stream goes idle. Suspend is left disabled so the device
+is never closed/re-opened (which would pop on resume).
 
 ```nix
-services.pipewire.wireplumber.extraConfig."92-disable-suspend" = {
+services.pipewire.wireplumber.extraConfig."92-no-idle-noise" = {
   "monitor.alsa.rules" = [
     {
       matches = [ { "node.name" = "~alsa_output.*"; } ];
-      actions.update-props = { "session.suspend-timeout-seconds" = 0; };
+      actions.update-props = {
+        "node.pause-on-idle" = true;
+        "session.suspend-timeout-seconds" = 0;
+      };
     }
   ];
 };
 ```
+
+Verify: with VLC paused, `cat /proc/asound/card1/pcm*/sub*/status` should show
+`state: PAUSED` (or `closed`), not `RUNNING`.
 
 ### 4. Wine/PulseAudio buffer sizes (`steam-on-demand` drop-in)
 
