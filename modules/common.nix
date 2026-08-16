@@ -35,6 +35,7 @@ in
     golangci-lint
     fzf
     zoxide
+    atuin
     postgresql
   ];
 
@@ -93,6 +94,7 @@ in
 
       eval "$(${pkgs.starship}/bin/starship init zsh)"
       eval "$(${pkgs.zoxide}/bin/zoxide init zsh)"
+      eval "$(${pkgs.atuin}/bin/atuin init zsh --disable-up-arrow)"
 
       # Ghost-suggest the directory name `z <query>` resolves to, so right-arrow
       # completes a jump never typed in full. The name, never the resolved path:
