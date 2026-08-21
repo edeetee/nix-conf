@@ -8,6 +8,11 @@ When running pi on the server, `cd ~/dev/nix-conf` first so it loads this file.
 
 ## Server quick facts
 - SSH: `ssh homeserver-edt.local` (mDNS, zerotier also available)
+- **The server sleeps aggressively to save power (it's a ~50W idle box).** It can drop off
+the network (mDNS, ZeroTier, ping all fail) within minutes of going idle. If SSH times
+out or the host won't resolve, it is almost certainly **asleep, not broken** — wake it
+(e.g. controller input / WoL) and retry; a fresh boot takes ~1-2 min before services
+are back. Don't burn time debugging connectivity before confirming it's awake.
 - Audio: see `hosts/homeserver-edt/AUDIO.md` — PipeWire, rtkit, Wine/Proton latency tuning
 - Audio is HDMI out to Sony TV via Navi 21/23 GPU
 - Steam launches via `steam-on-demand.service` (controller-triggered)
