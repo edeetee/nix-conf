@@ -51,11 +51,15 @@ in
     #   source = karabinerSource;
     # };
 
-    # Out-of-store symlink so pi can write packages back to the file
-    ".pi/agent" = {
-      source = config.lib.file.mkOutOfStoreSymlink "${nixConfDir}/darwin/pi-agent";
-      recursive = true;
-    };
+    # pi config files symlinked from the repo (edits write back and sync via git).
+    # Runtime state (sessions/, auth.json, models-store.json, npm/, installed
+    # extensions) lives in the real ~/.pi/agent dir, never in the repo.
+    ".pi/agent/settings.json".source =
+      config.lib.file.mkOutOfStoreSymlink "${nixConfDir}/darwin/pi-agent/settings.json";
+    ".pi/agent/models.json".source =
+      config.lib.file.mkOutOfStoreSymlink "${nixConfDir}/darwin/pi-agent/models.json";
+    ".pi/agent/extensions/cmux-sidebar.ts".source =
+      config.lib.file.mkOutOfStoreSymlink "${nixConfDir}/darwin/pi-agent/extensions/cmux-sidebar.ts";
 
     "Library/Services/ghostty_finder.workflow".source = ./ghostty_finder.workflow;
 

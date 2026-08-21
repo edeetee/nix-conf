@@ -3,6 +3,9 @@
     "npm:@hypabolic/pi-hypa",
     "npm:pi-web-access"
   ],
-  "lastChangelogVersion": "0.80.10",
-  "theme": "dark"
+  "lastChangelogVersion": "0.84.2",
+  "theme": "dark",
+  "hideThinkingBlock": true,
+  "defaultProvider": "deepseek",
+  "defaultModel": "deepseek-v4-flash"
 }

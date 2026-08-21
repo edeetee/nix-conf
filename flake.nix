@@ -4,6 +4,7 @@
 
     # NixOS-specific
     flamenco.url = "github:edeetee/flamenco-nix";
+    nixos-hardware.url = "github:NixOS/nixos-hardware";
 
     # Secret management — sops-nix
     sops-nix = {
@@ -75,6 +76,7 @@
       nixvim-vsc,
       nix-index-database,
       sops-nix,
+      nixos-hardware,
       ...
     }:
     let
@@ -129,6 +131,18 @@
           nixvim.nixosModules.nixvim
           nix-index-database.nixosModules.default
           sops-nix.nixosModules.sops
+        ];
+      };
+
+      # Raspberry Pi 3B — always-on DeepSeek harness client over ZeroTier.
+      # Built on the homeserver via qemu-user emulation (see hosts/rpi3b/install.md);
+      # the Pi itself never compiles. Deliberately NOT importing commonModules or
+      # nixvim — 1GB RAM, thin-client role.
+      nixosConfigurations.rpi3b = nixpkgs.lib.nixosSystem {
+        system = "aarch64-linux";
+        modules = [
+          nixos-hardware.nixosModules.raspberry-pi-3
+          ./hosts/rpi3b
         ];
       };
 

@@ -124,6 +124,17 @@ hosts/
     desktop.nix            — display manager, plasma, bluetooth
     services.nix           — cockpit, jellyfin, transmission, homepage, nginx
     packages.nix           — system packages, fonts, users, shell
+    pi-agent/              — pi coding agent (deepseek models/settings)
+  rpi3b/                   — Raspberry Pi 3B, always-on deepseek harness over zerotier
+    default.nix            — entrypoint (minimal, no commonModules)
+    networking.nix         — hostname, zerotier (smart-access-rds), ssh
+    services.nix           — imports pi-agent.nix
+    packages.nix           — minimal packages, user
+    pi-agent.nix           — pi install + DEEPSEEK_API_KEY (no sops yet)
+    pi-agent/              — deepseek models/settings
+    install.md             — build sdImage on server → flash → deploy
+  Note: rpi3b is built on the homeserver (aarch64 via qemu-user emulation),
+  never on the Pi itself. See hosts/rpi3b/install.md.
 
 modules/
   common.nix               — shared config (shell, packages, aliases) for all machines
