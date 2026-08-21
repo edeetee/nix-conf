@@ -1,8 +1,8 @@
 # rpi3b — install & deploy
 
 A Raspberry Pi 3B running a minimal NixOS (aarch64-linux) as an always-on
-DeepSeek agent harness, reachable over ZeroTier. **It never compiles
-anything** — all builds happen on the homeserver under qemu-user emulation.
+agent host, reachable over ZeroTier. **It never compiles anything** — all
+builds happen on the homeserver under qemu-user emulation.
 
 ## Prerequisites (done once, on the homeserver)
 
@@ -36,14 +36,13 @@ zstd -d < result/sd-image-rpi3b-aarch64-linux.img.zst | \
 
 The stock NixOS ARM image boots with SSH enabled and an **empty root
 password** (this config keeps password auth on until you tighten it).
-Find the Pi on the LAN (DHCP), then:
+Plug in **ethernet for the first boot** — the WiFi credentials aren't in
+the image yet, so the first deploy must come over the wire:
 
 ```bash
 ssh root@<pi-lan-ip>
 # 1. copy your SSH key:  mkdir -p ~/.ssh && <append your pubkey>
-# 2. provision the DeepSeek API key (until sops is wired up):
-sudo install -o edeetee -g users -m 0400 /tmp/deepseek-key /run/secrets/deepseek-api-key
-# 3. clone this repo so pi finds AGENTS.md and the agent dir:
+# 2. clone this repo so later work has a checkout to look at:
 git clone https://github.com/<you>/nix-conf ~/dev/nix-conf   # or scp it
 ```
 
@@ -53,7 +52,20 @@ The config already declares `joinNetworks = [ "1c33c1ced0f6e11c" ]`
 (smart-access-rds). Authorize the node in my.zerotier.com once it shows up,
 then the Pi is reachable from anywhere as `172.28.x.x`.
 
-## 5. Ongoing deploys (from the server, or this Mac via the server)
+## 5. WiFi (optional but likely wanted)
+
+Declare it in `hosts/rpi3b/networking.nix` so it **survives rebuilds** —
+runtime-only `nmcli` connections may not:
+
+```nix
+networking.networkmanager.wifi.backend = "iwd";  # or wpa_supplicant
+networking.wireless = {
+  enable = true;
+  networks."<ssid>".psk = "<password>";   # or use a secrets mechanism
+};
+```
+
+## 6. Ongoing deploys — never touch the SD card again
 
 ```bash
 nixos-rebuild switch \
@@ -62,7 +74,10 @@ nixos-rebuild switch \
   --build-host homeserver-edt.local
 ```
 
-Builds on the server, pushes the closure over ZeroTier, activates on the Pi.
+Builds on the server, copies the closure to the Pi over SSH (WiFi or
+ZeroTier — works from anywhere), activates in place. The SD card is only
+for initial install; every update after that is a `nixos-rebuild` over the
+network. The Pi only needs SSH + nix (default on NixOS) — no compilation.
 
 ## Notes
 

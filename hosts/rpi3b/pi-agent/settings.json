@@ -1,6 +1,0 @@
-{
-  "packages": [
-    "npm:@hypabolic/pi-hypa",
-    "npm:pi-web-access"
-  ]
-}

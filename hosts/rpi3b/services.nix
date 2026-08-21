@@ -1,12 +1,11 @@
 # Services for rpi3b
 #
 # The homeserver runs cockpit/jellyfin/transmission/nginx/homepage — none of
-# that belongs here. The only service is the pi-agent harness itself
-# (./pi-agent.nix), plus zerotierone which lives in networking.nix to mirror
-# the homeserver layout.
+# that belongs here. zerotierone lives in networking.nix to mirror the
+# homeserver layout.
+#
+# The deepseek agent harness will be imported here as its own module once it
+# exists. For now this file is intentionally empty.
 
 {
-  imports = [
-    ./pi-agent.nix
-  ];
 }
