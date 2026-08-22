@@ -105,6 +105,19 @@ in
     };
   };
 
+  # Power management: this machine hosts the personal agent harness, so it
+  # must stay awake whenever it's plugged in — but behave like a normal
+  # laptop on battery (and lid-close always sleeps — never disablesleep,
+  # or it'd cook itself in a bag). Applied on every darwin-rebuild.
+  system.activationScripts.power.text = ''
+    # AC: never auto-sleep; display may still sleep when idle (saves ~5-10W)
+    pmset -c sleep 0
+    pmset -c displaysleep 10
+    # Battery: normal laptop behavior
+    pmset -b sleep 10
+    pmset -b displaysleep 5
+  '';
+
   system.configurationRevision = self.rev or self.dirtyRev or null;
   system.stateVersion = 4;
   nixpkgs.hostPlatform = "aarch64-darwin";
