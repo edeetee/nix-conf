@@ -62,6 +62,15 @@
     enable = true;
     audio.enable = true;
     pulse.enable = true;
+    # Bluetooth headset mic quality: use mSBC (wideband 16kHz) instead of
+    # CVSD (narrowband 8kHz) for the HFP profile. Without this, opening the
+    # mic (voice chat, sox monitor) flips the headset A2DP->HFP and audio
+    # drops to phone quality — noticeably worse than macOS (which uses mSBC).
+    wireplumber.extraConfig."92-bt-msbc" = {
+      "monitor.bluez.properties" = {
+        "bluez5.enable-msbc" = true;
+      };
+    };
     # AMD HDMI audio quirk: an idle sink is left in ALSA "RUNNING" state
     # with no data feeding it (appl_ptr frozen, hw_ptr advancing), which the
     # GPU renders as a constant full-volume sputter while VLC is paused.
