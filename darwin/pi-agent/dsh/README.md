@@ -56,6 +56,11 @@ Then in the browser:
 
 - The HMR plugin needs `node --expose-internals` (launched directly — Node
   forbids that flag in `NODE_OPTIONS`).
+- **Local patch:** `crypto.randomUUID` is secure-context-only, so plain-HTTP
+  LAN access breaks every RPC ("crypto.randomUUID is not a function").
+  `~/dev/deepseek-harness` carries a polyfill in
+  `packages/client/runtime/src/client/index.ts` (committed locally there).
+  After any upstream pull, re-apply it and `pnpm run build`.
 - Dev-preview harness, breaking changes expected; update = pull + `pnpm
   install && pnpm run build` in `~/dev/deepseek-harness`.
 - The server sleeps/dies with the Mac — the durable home is the always-on
