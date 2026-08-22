@@ -106,14 +106,15 @@ in
   };
 
   # Power management: this machine hosts the personal agent harness, so it
-  # must stay awake whenever it's plugged in — but behave like a normal
-  # laptop on battery (and lid-close always sleeps — never disablesleep,
-  # or it'd cook itself in a bag). Applied on every darwin-rebuild.
+  # must stay awake whenever it's plugged in — including with the lid closed
+  # (disablesleep 1 only applies on AC). On battery it sleeps normally, so
+  # it's safe to close and bag it. Applied on every darwin-rebuild.
   system.activationScripts.power.text = ''
-    # AC: never auto-sleep; display may still sleep when idle (saves ~5-10W)
+    # AC: never auto-sleep; keep running with the lid closed (clamshell)
     pmset -c sleep 0
+    pmset -c disablesleep 1
     pmset -c displaysleep 10
-    # Battery: normal laptop behavior
+    # Battery: normal laptop behavior — sleeps with the lid, saves battery
     pmset -b sleep 10
     pmset -b displaysleep 5
   '';
