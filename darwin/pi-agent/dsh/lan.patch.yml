@@ -1,0 +1,18 @@
+# dsh web LAN overlay — bind all interfaces on port 9000 so the phone can
+# reach the Web UI over Wi-Fi.
+#
+# The CLI deliberately rejects `--host 0.0.0.0` (remote code execution
+# surface), so the bind host is set through this patch overlay instead — the
+# webserver row's whole `config` is replaced, and the /api browser-trust fence
+# auto-derives the machine's LAN IP literals from the bind host, so a phone
+# hitting http://<mac-lan-ip>:9000 passes trust without extra flags.
+#
+# Run (from anywhere):
+#   dsh web --patch <this-file> --no-open
+#
+# The same overlay moves to the rpi3b module unchanged when the harness
+# graduates there (see hosts/rpi3b/services.nix).
+- id: webserver
+  config:
+    host: 0.0.0.0
+    port: 9000
