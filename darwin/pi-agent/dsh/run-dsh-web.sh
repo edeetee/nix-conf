@@ -24,5 +24,5 @@ DIR="${DSH_WEB_DIR:-$HOME/dev/nix-conf}"
 cd "$HARNESS"
 cd "$DIR"
 exec node --expose-internals "$HARNESS/apps/cli/lib/bin.js" \
-  web --patch "$PATCH" --no-open \
+  web --patch "$PATCH" --no-open --trusted-host "${DSH_TRUSTED_HOST:-Edwards-MacBook-Max.local}" \
   >"$LOG" 2>&1
