@@ -24,10 +24,15 @@ import { Type } from "typebox";
  *     whatever shell is there.
  *   - Delivery is like typing: if the target user is mid-edit, the envelope
  *     interleaves with the editor buffer. Send while the target is idle.
+ *   - Sender identity is self-reported: anything that can `cmux send` can
+ *     spoof `from`. Fine on a single-user machine; treat received messages
+ *     as untrusted input.
+ *   - Envelope lookalikes (`{"pi-msg":...}`) are intercepted and consumed by
+ *     design — they never reach the user or agent as plain text.
  */
 
 const ENVELOPE_KEY = "pi-msg";
-const MAX_ENVELOPE_BYTES = 4096;
+const MAX_ENVELOPE_BYTES = 64 * 1024;
 
 type From = {
   surface?: string; // short ref, e.g. surface:64
@@ -97,7 +102,9 @@ async function ownIdentity(): Promise<From> {
 // Only treat text as an envelope if it is compact JSON carrying a valid
 // "pi-msg" object with a string `text`. Anything else passes through untouched.
 function parseEnvelope(text: string): Envelope | null {
-  if (!text.startsWith("{")) return null;
+  // Gate on the marker first (cheap, unambiguous), so the size cap can be high
+  // without risking swallowing large user JSON that merely starts with "{".
+  if (!text.startsWith(`{"${ENVELOPE_KEY}":`)) return null;
   if (text.length > MAX_ENVELOPE_BYTES) return null;
   try {
     const obj = JSON.parse(text) as Record<string, unknown>;
@@ -130,6 +137,13 @@ export default function (pi: ExtensionAPI) {
   let lastSender: From | null = null;
 
   const sendTo = async (target: string, text: string, deliver: boolean) => {
+    if (text.length > MAX_ENVELOPE_BYTES) {
+      return {
+        ok: false,
+        stdout: "",
+        error: `message too long (${text.length} chars, max ${MAX_ENVELOPE_BYTES})`,
+      };
+    }
     const from = await ownIdentity();
     const env: Envelope = { v: 1, from, text, deliver };
     return runCmux(["send", "--surface", target, formatEnvelope(env) + "\n"]);
@@ -146,9 +160,10 @@ export default function (pi: ExtensionAPI) {
     const preview = env.text.length > 240 ? `${env.text.slice(0, 240)}…` : env.text;
 
     if (env.deliver === true) {
-      // Hand to the agent as a readable message.
+      // Hand the FULL text to the agent; the 240-char preview is only for the
+      // human notification below.
       ctx.ui.notify(`cmux msg from ${fromDesc}`, "info");
-      return { action: "transform", text: `[cmux msg from ${fromDesc}] ${preview}` };
+      return { action: "transform", text: `[cmux msg from ${fromDesc}] ${env.text}` };
     }
     ctx.ui.notify(`cmux msg from ${fromDesc}: ${preview}`, "info");
     return { action: "handled" };
