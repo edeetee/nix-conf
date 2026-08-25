@@ -11,8 +11,8 @@ These manage jj workspaces created per Claude Code session under `<repo>/.jj-wor
 
 | Script | Trigger | What it does |
 | --- | --- | --- |
-| `create-jj-worktree.sh` | `WorktreeCreate` hook | `jj workspace add` for the new session |
-| `remove-jj-worktree.sh` | `WorktreeRemove` hook | `jj workspace forget` + `rm` on explicit `ExitWorktree` |
+| `create-jj-worktree.sh` | `WorktreeCreate` hook | `jj workspace add`, then register it as a git worktree so git and `EnterWorktree` resolve to it |
+| `remove-jj-worktree.sh` | `WorktreeRemove` hook | `jj workspace forget` + `rm` + `git worktree prune` on explicit `ExitWorktree` |
 | `jj-worktree-reap.sh` | `SessionStart` hook | GC: forget idle, unused, abandon-safe worktrees |
 | `jj-worktree-forget.sh` | manual | Forget the workspace(s) at a given change id |
 

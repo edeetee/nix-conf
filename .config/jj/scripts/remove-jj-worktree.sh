@@ -6,4 +6,5 @@ WORKSPACE_NAME=$(basename "$WORKTREE_PATH")
 if [ -d "$WORKTREE_PATH" ]; then
   jj -R "$CLAUDE_PROJECT_DIR" workspace forget "$WORKSPACE_NAME" 2>/dev/null || true
   rm -rf "$WORKTREE_PATH"
+  git -C "$CLAUDE_PROJECT_DIR" worktree prune
 fi
