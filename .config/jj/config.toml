@@ -162,6 +162,9 @@ if(!timestamp.ago().contains("day")
 )
 '''
 
+# Left off deliberately: advancing moves every ancestor bookmark to the new tip,
+# not just the one being committed, which collapses the bases of a stack.
+# Use `jj tug` to move the nearest bookmark on purpose.
 [experimental-advance-branches]
-enabled-branches = ["glob:*"]
+enabled-branches = []
 disabled-branches = ["main", "master", "trunk"]
