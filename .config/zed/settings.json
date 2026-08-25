@@ -250,6 +250,7 @@
   },
   "file_scan_exclusions": [".jj-worktrees", ".claude/worktrees/"],
   "project_panel": {
+    "auto_reveal_entries": true,
     "hide_root": true,
     "dock": "right",
   },
