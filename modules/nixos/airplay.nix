@@ -21,6 +21,10 @@
 #     the unit is hand-rolled here (mirroring upstream's nqptp.service). The SHM
 #     is created world-readable (0644) and shairport-sync opens it O_RDONLY, so
 #     the unprivileged user service can read it without any group juggling.
+#     Ordering note: shairport-sync waits 10s for that SHM at startup and then
+#     exits ("can not find the nqptp service ... Is nqptp installed and
+#     running?"). nqptp comes up at multi-user.target, well before the graphical
+#     session, so the ordering works out; Restart=on-failure covers the rest.
 {
   config,
   lib,

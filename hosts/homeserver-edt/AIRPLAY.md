@@ -64,6 +64,20 @@ It needs no group/permission plumbing: nqptp creates `/dev/shm/nqptp` with mode
 opens it **read-only** (`shm_open(..., O_RDONLY, 0)` in `ptp-utilities.c`), so an
 unprivileged user service can read the timing data.
 
+**nqptp must already be running when shairport-sync starts.** The AirPlay 2 build
+spends its first moments waiting for that shared memory (`shairport.c`: retry
+every 50 ms for up to 10 s) and then exits with:
+
+```
+Shairport Sync can not find the nqptp service on this system.  Is nqptp installed and running?
+```
+
+Until it gets the SHM it never opens its RTSP port or advertises on Bonjour —
+this is what "no AirPlay device visible" looks like in practice (verified by
+running the binary with nqptp absent). In normal operation nqptp is up minutes
+before the graphical session starts, and if nqptp ever restarts, the user unit's
+`Restart=on-failure` brings shairport-sync back within ~12 s.
+
 ## Verification
 
 ```bash
@@ -88,11 +102,26 @@ pactl list short sink-inputs
 Then, on the iPhone: Control Centre → the AirPlay/audio-output button →
 `homeserver-edt`. The stream should start within a second or two.
 
+When debugging, the binary can be run by hand as the login user — no root needed
+(the AirPlay ports are all > 1024):
+
+```bash
+BIN=$(nix eval --raw .#nixosConfigurations.homeserver-edt.config.services.shairport-sync.package)/bin/shairport-sync
+printf 'general={name="test";output_backend="pulseaudio";};diagnostics={log_verbosity=3;};\n' > /tmp/ap.conf
+$BIN -c /tmp/ap.conf      # log_verbosity=3 shows the nqptp/avahi handshake
+```
+
+The mDNS backend is Avahi by default (`shairport-sync -h` lists `avahi` first;
+the deprecated bundled `tinysvcmdns` responder is only used if Avahi is
+unavailable), which keeps the advertisement on the same Avahi daemon as
+everything else on the LAN.
+
 ## Troubleshooting
 
 | Symptom | Likely cause |
 |---|---|
 | Not listed on the iPhone | `systemctl --user status shairport-sync` — usually the user session/PipeWire isn't up yet, or Avahi isn't publishing. Restart the unit. |
+| Unit restarting every ~12 s, log says "can not find the nqptp service" | nqptp isn't running: `systemctl status nqptp`, `ss -ulnp \| grep -E ':319\|:320'`. AirPlay 2 refuses to advertise without its PTP timing source. |
 | Listed, connects, then reverts to the iPhone | shairport-sync died — check `journalctl --user -u shairport-sync`. If it is `pulseaudio: failed to connect`, the user's PipeWire session restarted; `systemctl --user restart shairport-sync`. |
 | Listed but never plays | For AirPlay 2 the sender streams from an ephemeral UDP port, so a firewall between phone and server breaks it. `networking.firewall.enable` is `false` here — keep it that way, or open the whole ephemeral range and UDP 319/320. |
 | Audio plays but out of sync | Adjust `general.audio_backend_latency_offset_in_seconds` (HDMI/TV processing delay). |
