@@ -119,4 +119,11 @@
   # and winepulse.drv can't refill buffers reliably, causing pops.
   # See: https://github.com/ValveSoftware/Proton/issues/1209
   environment.variables.PULSE_LATENCY_MSEC = "60";
+
+  # ── AirPlay receiver ───────────────────────────────────────────────────
+  # iPhone → "homeserver-edt" in the AirPlay output list → audio comes out of
+  # the default PipeWire sink (HDMI → TV). Runs as a user service inside the
+  # session above, because the per-user PipeWire socket is only reachable from
+  # there. Details and troubleshooting: AUDIO.md / AIRPLAY.md.
+  services.airplay.enable = true;
 }

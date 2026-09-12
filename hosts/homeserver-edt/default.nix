@@ -15,6 +15,7 @@
     ../../modules/nixos/samba.nix
     ../../modules/nixos/reboot-to-windows.nix
     ../../modules/nixos/amd-gpu.nix
+    ../../modules/nixos/airplay.nix
     ../../modules/nixos/check-mounts.nix
     ../../modules/nixos/sops.nix
     ../../modules/nixos/pi.nix
