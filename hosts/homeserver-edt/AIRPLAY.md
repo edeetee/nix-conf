@@ -132,6 +132,98 @@ changed, `systemctl --user daemon-reload && systemctl --user restart
 shairport-sync` (NixOS activation does not reload units of already-running user
 sessions).
 
+## Now-playing display (and keeping the box awake while music plays)
+
+`modules/nixos/airplay-nowplaying.py` runs as a user service in the Plasma
+session (`services.airplay.nowPlaying`, enabled by default). While a stream is
+connected it shows the cover art, track, artist, album and a progress bar
+fullscreen, and it holds idle inhibitors; when the stream ends the window
+disappears. It reads everything from the session bus — shairport-sync's MPRIS
+interface (`PlaybackStatus`, `Metadata`, including `mpris:artUrl` pointing at the
+cached cover JPEG), so nothing extra needed enabling.
+
+Inhibitors while a stream is live:
+
+| Inhibitor | Effect | Status |
+|---|---|---|
+| `org.freedesktop.ScreenSaver.Inhibit` | KWin/PowerDevil do not blank or lock the screen, nor run idle actions — the same call a video player makes | works |
+| `systemd-inhibit --what=idle:sleep:shutdown` (logind) | block logind idle/sleep/shutdown | attempted; logind only authorises the sleep/shutdown part for a session that is *active on a seat*, and a systemd user service belongs to the user manager session, so it is normally refused and the app logs a warning and carries on |
+
+Run it by hand (it is in `environment.systemPackages`) when debugging:
+
+```bash
+airplay-nowplaying --windowed -v      # a window, not fullscreen; verbose
+airplay-nowplaying --no-inhibit -v    # skip the inhibitor calls
+systemctl --user restart airplay-nowplaying
+journalctl --user -u airplay-nowplaying -f
+```
+
+The service starts with `graphical-session.target` (Plasma 6 implements it), so
+it inherits the session environment — `WAYLAND_DISPLAY`, `DISPLAY=:0`,
+`XAUTHORITY` — from the user manager. Qt from nixpkgs' `qt6Packages` has no
+Wayland platform plugin, so the window is a plain X11 client on Xwayland
+(`QT_QPA_PLATFORM=xcb`). Cover art is the JPEG shairport-sync caches under
+`/tmp/shairport-sync/.cache/coverart/`.
+
+### Premade alternatives (checked, not used)
+
+* [shairport-display-qt](https://github.com/lrusak/shairport-display-qt) (also
+  forked by mikebrady): single Python file, PyQt5 + D-Bus. Last touched 2023,
+  aimed at the RPi 7" DSI panel (800x480, backlight control), and it queries the
+  `org.gnome.ShairportSync.RemoteControl` interface name that 5.x no longer
+  uses — so it needs patching before it will even read our metadata.
+* [shairport-metadata-display](https://github.com/AlainGourves/shairport-metadata-display)
+  and [ShairportGUI](https://github.com/Rosalina121/ShairportGUI): web UIs that
+  parse shairport-sync's metadata pipe (Node/Python) and need a browser in kiosk
+  mode — no browser is installed on this host.
+* Kodi: its AirPlay receiver is broken on modern iOS (mDNS identifiers), see
+  xbmc#27924.
+
+## Machine turning off while music plays
+
+Investigated because "it turns off while I'm playing music, but not when I watch
+videos". What the logs actually show on this host (September 2026):
+
+* **No suspend ever happens.** `journalctl | grep -i "PM: suspend\|Suspending system"`
+  is empty for every boot, and `AllowSuspend=no` (`desktop.nix`) makes logind
+  report `CanSuspend=no`.
+* **Plasma cannot power the box off either.** PowerDevil's compiled-in AC
+defaults are: dim at 5 min, screen off at 10 min, auto-suspend at 15 min — but
+  the auto-suspend *action* is `NoAction` whenever the system reports it cannot
+  suspend, which is the case here. And `isActionSupported("TurnOffDisplay")`
+  returns `false` for this display stack, so PowerDevil never blanks either:
+
+  ```bash
+  busctl --user call org.kde.Solid.PowerManagement /org/kde/Solid/PowerManagement \
+    org.kde.Solid.PowerManagement isActionSupported s TurnOffDisplay   # -> false
+  busctl call org.freedesktop.login1 /org/freedesktop/login1 \
+    org.freedesktop.login1.Manager CanSuspend                          # -> "no"
+  ```
+* Every power-off/shutdown in the journal is *orderly* (`systemd-logind: System
+  is powering down.` / `Reached target System Power Off`) except one: boot -2
+  ended abruptly at 23:00:00 mid-log with **no shutdown sequence at all**, which
+  is what a mains-level power cut looks like, not a software shutdown.
+* The remaining orderly power-offs coincide with the box being used as a media
+  player in the evening (18:28, 19:32, 20:01, 20:08, 21:15). Nothing in the
+  logs names a software initiator; `IdleAction=ignore` and `AllowSuspend=no` are
+  both in effect.
+
+So the now-playing service fixes the part that *is* software (it makes music
+behave like video: nothing goes idle, nothing blanks, nothing locks), but if the
+box still dies mid-album with a clean journal ending, suspect the power
+arrangement — e.g. the TV and PC sharing a switched socket or a master/slave
+power board, since the PC goes down when the TV does. Diagnose the next
+occurrence with:
+
+```bash
+journalctl --list-boots | tail -3
+journalctl -b -1 -n 8            # orderly shutdown, or mid-log cut?
+journalctl -b -1 | grep -iE "logind.*(powering|rebooting)|logrotate|Shutting down"
+```
+
+An orderly ending means something asked logind to stop (`logout prompt`,
+power button, menu); a mid-log ending means the power went away.
+
 ## Known limitations
 
 - **Version lag.** nixpkgs (pinned) builds shairport-sync 5.0.4; upstream is
