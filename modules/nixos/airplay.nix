@@ -72,6 +72,8 @@ let
     "-n"
     mirrorName
     "-nh" # don't append "@hostname" to the advertised name
+    "-m"
+    cfg.mirror.deviceId # distinct from shairport-sync's id, see below
     "-p"
     (toString cfg.mirror.port)
     "-fs" # fullscreen on the TV
@@ -121,7 +123,15 @@ let
     export XDG_RUNTIME_DIR DBUS_SESSION_BUS_ADDRESS DISPLAY
     [ -n "''${XAUTHORITY:-}" ] && export XAUTHORITY
 
-    exec ${getExe pkgs.uxplay} ${lib.escapeShellArgs mirrorArgs} "$@"
+    # UxPlay generates a fresh keypair on every start unless it is told where to
+    # keep one, and macOS caches the receiver's identity: without a stable key,
+    # every restart invalidates what the client remembers and connections fail
+    # with "could not connect". Mirrors StateDirectory= in the unit.
+    : "''${XDG_STATE_HOME:=$HOME/.local/state}"
+    KEYDIR="''${STATE_DIRECTORY:-$XDG_STATE_HOME/airplay-mirror}"
+    mkdir -p "$KEYDIR"
+
+    exec ${getExe pkgs.uxplay} ${lib.escapeShellArgs mirrorArgs} -key "$KEYDIR/key.pem" "$@"
   '';
 in
 {
@@ -245,6 +255,19 @@ in
           another is reasonable: `xvimagesink` (default), `ximagesink`,
           `glimagesink`, `waylandsink` (the latter two need `--raw` without
           `-fs`). There is no `gtksink` in this build.
+        '';
+      };
+
+      deviceId = mkOption {
+        type = types.str;
+        default = "02:00:00:00:00:02";
+        description = ''
+          AirPlay device id / MAC advertised by UxPlay (`-m`). It must **not** be
+          the host's real interface MAC: shairport-sync derives its own device id
+          from that, and two receivers behind one IP that claim the same id get
+          collapsed by clients — macOS then keeps only one of them in its output
+          list and fails to connect ("could not connect to homeserver-edt").
+          Locally administered addresses (second nibble 2/6/A/E) are appropriate.
         '';
       };
 
@@ -386,6 +409,8 @@ in
       wantedBy = [ "graphical-session.target" ];
       serviceConfig = {
         ExecStart = getExe mirrorPackage;
+        # Stable key/identity for the receiver (see the wrapper); macOS caches it.
+        StateDirectory = "airplay-mirror";
         # Renders through Xwayland like the now-playing window (see AIRPLAY.md).
         Environment = [ "QT_QPA_PLATFORM=xcb" ];
         Restart = "on-failure";

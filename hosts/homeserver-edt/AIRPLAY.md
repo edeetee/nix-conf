@@ -216,7 +216,38 @@ valid` if it is started without a session bus.
 
 `GST_DEBUG=2 airplay-mirror -d` shows what GStreamer is doing.
 
-## Now-playing display (and keeping the box awake while music plays)
+### Two receivers, and the identity trap
+
+There are two AirPlay services on this host and they must not share a **device
+id**. shairport-sync derives its own from `wlp5s0`'s MAC, and UxPlay derives the
+same one — so macOS collapses the two: its output list showed only one of them,
+and connect attempts failed with *"could not connect to homeserver-edt…"*
+without ever reaching this machine (`journalctl --user -u uxplay` stayed empty).
+Hence `services.airplay.mirror.deviceId` (`-m`, default `02:00:00:00:00:02`, a
+locally administered address) so the two are distinct devices:
+
+```bash
+avahi-browse -rt _raop._tcp | grep -A2 homeserver       # two different ids
+avahi-browse -rt _airplay._tcp | grep -A6 homeserver | grep deviceid
+```
+
+UxPlay also generates a **fresh keypair on every start** unless it is told where
+to keep one, and clients cache a receiver's identity — so each restart
+invalidated what the client had learned (there was no `~/.uxplay.pem`). The
+wrapper now passes `-key $STATE_DIRECTORY/key.pem`, in
+`~/.local/state/airplay-mirror/` (created by `StateDirectory=` in the unit), so
+the identity survives restarts.
+
+If a client has already cached a bad identity, clear its side. On macOS:
+
+```bash
+sudo killall -HUP mDNSResponder   # Bonjour cache
+sudo killall coreaudiod           # re-scans AirPlay audio devices
+```
+
+Then confirm what it sees: `system_profiler SPAudioDataType | grep -i homeserver`
+should list both receivers.
+
 The mirroring server needs no setup of its own beyond the desktop session: it
 renders through Xwayland (`DISPLAY`/`XAUTHORITY` are in the user manager's
 environment) and `-scrsv 1` keeps the screensaver off while video is playing.
@@ -239,7 +270,7 @@ There are two different AirPlay video paths, and only one of them is available h
 
 So the practical recipe for Firefox or VLC on the Mac: start screen
 mirroring to `homeserver-edt Video` and put the player fullscreen. Mirroring
-requests 1920x1080@60 by default and is capped at 30 fps (`-fps`); it may show
+requests 1920x1080@60 (`-s 1920x1080`, `-fps 60`); it may show
 the Mac's notifications and menu bar unless the player is fullscreen, and it
 carries AAC audio rather than lossless — for music, use the audio receiver
 (`homeserver-edt`) instead.
