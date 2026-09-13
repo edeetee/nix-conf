@@ -165,6 +165,18 @@ Wayland platform plugin, so the window is a plain X11 client on Xwayland
 (`QT_QPA_PLATFORM=xcb`). Cover art is the JPEG shairport-sync caches under
 `/tmp/shairport-sync/.cache/coverart/`.
 
+**After the first `nixos-rebuild switch` that adds this unit, start it by hand
+(or log out/in, or reboot)** — NixOS activation enables new user units but does
+not start them for sessions that are already running, and
+`graphical-session.target` is already reached by then:
+
+```bash
+systemctl --user start airplay-nowplaying      # confirm with: systemctl --user status airplay-nowplaying
+```
+
+An inactive unit with no journal entries at all means exactly that: it was never
+started (a crash would leave output).
+
 ### Premade alternatives (checked, not used)
 
 * [shairport-display-qt](https://github.com/lrusak/shairport-display-qt) (also
