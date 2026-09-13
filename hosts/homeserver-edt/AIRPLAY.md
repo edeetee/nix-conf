@@ -164,8 +164,14 @@ UxPlay renders through GStreamer, and its own README suggests `pipewiresink` on
 PipeWire systems. **That would fail here**: the nixpkgs build of
 gst-plugins-bad has no PipeWire plugin (checked its closure — no
 `libgstpipewire.so`), so audio is sent to `pulsesink`, which lands in
-pipewire-pulse exactly like shairport-sync's audio. Video defaults to software
-decode plus the OpenGL sink because both are definitely present:
+pipewire-pulse exactly like shairport-sync's audio.
+
+Video goes to `waylandsink` rather than the OpenGL or Xv sink. This session is
+Wayland, and the Xwayland route is what rendered "a corner of the screen in a
+small tile in the middle of the TV" here; upstream's own sink survey
+([issue 480](https://github.com/FDH2/UxPlay/issues/480)) has `waylandsink` and
+`gtksink` working on Wayland while `glimagesink` places its window oddly. The
+stream is requested at 1920x1080@60 (`-s`, `-fps 60`; UxPlay defaults to 30):
 
 ```bash
 airplay-mirror --help                    # the wrapper, same options as uxplay
@@ -173,25 +179,31 @@ systemctl --user status uxplay
 journalctl --user -u uxplay -f
 ```
 
-If mirroring connects but the screen stays black or freezes (the usual failure
-mode, and what the upstream tracker's mirroring issues are made of), the knobs
-are, in order of usefulness:
+### If mirroring looks wrong
+
+Iterate without a rebuild — stop the service so the wrapper can bind the ports,
+then pass overrides on the command line (later options win):
 
 ```bash
-# 1. what is GStreamer doing?
-export GST_DEBUG=2 ; airplay-mirror -d
-
-# 2. try the other X11 sink (Xv/XShm instead of GL)
-airplay-mirror -vs xvimagesink
-
-# 3. hardware decode (VA-API is available on this AMD GPU)
-airplay-mirror -vd vaapih264dec
-
-# 4. only if the two receivers confuse each other: turn the mirror server off
-#    (services.airplay.mirror.enable = false) and run airplay-mirror by hand
+systemctl --user stop uxplay
+airplay-mirror -d                       # same settings the service uses, with debug
+airplay-mirror -vs gtksink              # next sink to try
+airplay-mirror -vs glimagesink
+airplay-mirror -vs xvimagesink          # Xwayland/X11 route
+airplay-mirror -vd vaapih264dec         # hardware decode (AMD VA-API)
 ```
 
-Anything set with `-vs`/`-vd`/`-as` on the command line overrides the wrapper.
+| Symptom | What it usually is |
+|---|---|
+| Small picture in the middle, or only a corner of the client's screen | The negotiated video size or the sink's window sizing — try the sinks above, or pin `-s 1920x1080@60`. Putting the player fullscreen on the sender also forces a size change. |
+| Picture freezes but the client stays connected | Two very different causes: a **static client screen sends no new frames**, so a frozen image is correct (move a window on the sender to check); or the GStreamer 1.26/1.28 `avdec` freeze that upstream tracks in issues 519/564, where `-vs xvimagesink sync=false`, hardware decode, or `-vsync no -async no` sometimes get a session running |
+| Connects, then client drops with *"missed client feedback signals"* | Timing/NTP side of the mirror protocol (issue 564); firewall between client and server on UDP 123 is one cause, and there is no firewall here |
+| Black window, no output | Sink/decoder negotiation — try `-avdec -vs waylandsink`, then hardware decode |
+
+`GST_DEBUG=2 airplay-mirror -d` shows what GStreamer is doing; `uxplay -FPSdata`
+prints the framerate reports the client sends.
+
+## Now-playing display (and keeping the box awake while music plays)
 The mirroring server needs no setup of its own beyond the desktop session: it
 renders through Xwayland (`DISPLAY`/`XAUTHORITY` are in the user manager's
 environment) and `-scrsv 1` keeps the screensaver off while video is playing.

@@ -75,6 +75,10 @@ let
     "-p"
     (toString cfg.mirror.port)
     "-fs" # fullscreen on the TV
+    "-s"
+    "${cfg.mirror.resolution}@${toString cfg.mirror.maxFps}" # what to ask the client for
+    "-fps"
+    (toString cfg.mirror.maxFps)
     "-scrsv"
     "1" # inhibit the screensaver while video is being displayed
     "-as"
@@ -204,10 +208,37 @@ in
 
       videoSink = mkOption {
         type = types.str;
-        default = "glimagesink";
+        default = "waylandsink";
         description = ''
-          GStreamer video sink. `glimagesink` (OpenGL) is the default because it
-          works under Xwayland; `xvimagesink` is the alternative if GL misbehaves.
+          GStreamer video sink. Defaults to `waylandsink` because this session is
+          Wayland: going through Xwayland (`glimagesink`, `xvimagesink`) is what
+          produced a misplaced part-screen window here, and upstream's own sink
+          testing on Wayland (issue 480) has `waylandsink`/`gtksink` working while
+          `glimagesink` places windows oddly. Other candidates, in the order worth
+          trying: `gtksink`, `glimagesink`, `xvimagesink`. Override for a single
+          run by passing `-vs ...` to `airplay-mirror`.
+        '';
+      };
+
+      resolution = mkOption {
+        type = types.str;
+        default = "1920x1080";
+        example = "1280x720";
+        description = ''
+          Display resolution to request from the client (`-s`). The TV is 1080p;
+          if a mirror session negotiates something odd — a small picture in the
+          middle of the screen — pinning this is the first thing to try.
+        '';
+      };
+
+      maxFps = mkOption {
+        type = types.int;
+        default = 60;
+        description = ''
+          Framerate cap (`-fps`) and refresh rate requested with `-s`; UxPlay's
+          own default is 30. Mirroring is client-driven, so the client still
+          decides the rate frame by frame — this raises the ceiling. Higher rates
+          cost CPU, or GPU when `hardwareDecoding` is on.
         '';
       };
     };
