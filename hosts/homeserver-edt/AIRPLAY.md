@@ -166,16 +166,14 @@ gst-plugins-bad has no PipeWire plugin (checked its closure — no
 `libgstpipewire.so`), so audio is sent to `pulsesink`, which lands in
 pipewire-pulse exactly like shairport-sync's audio.
 
-Video goes to `waylandsink` rather than the OpenGL or Xv sink. This session is
-Wayland, and the Xwayland route is what rendered "a corner of the screen in a
-small tile in the middle of the TV" here. (`waylandsink` from UxPlay's own
-closure was checked by pushing a test pattern through it — the pipeline ran
-clean, which rules out a missing/broken sink but is not a visual check.)
-The sink survey in upstream
-[issue 480](https://github.com/FDH2/UxPlay/issues/480) is worth reading when
-picking another one — but note its list does not all exist in this build:
-present here are `waylandsink` (default), `glimagesink`, `xvimagesink`,
-`ximagesink`, `gtkwaylandsink`; **there is no `gtksink`**. The stream is
+Video goes to `xvimagesink`, i.e. through Xwayland, because **UxPlay's `-fs` can
+only fullscreen a window it owns**. `glimagesink` and `waylandsink` create their
+own (Wayland) windows, which is what put a small, wrongly-placed picture on the
+TV here, and `waylandsink` additionally trips
+`gst_wl_window_ensure_fullscreen: assertion 'self' failed`. This build links
+libX11 (its closure has libX11/libXrandr), so the X11 fullscreen path works. All
+of the candidate sinks render a test pattern on this display — verified — so the
+sink itself is not the problem; the fullscreen hand-off is. The stream is
 requested at 1920x1080@60 (`-s`, `-fps 60`; UxPlay defaults to 30):
 
 ```bash
@@ -187,24 +185,34 @@ journalctl --user -u uxplay -f
 ### If mirroring looks wrong
 
 Iterate without a rebuild — stop the service so the wrapper can bind the ports,
-then pass overrides on the command line (later options win over the wrapper's):
+then pass overrides on the command line (later options win over the wrapper's;
+`--raw` drops the wrapper's defaults entirely, which is how to try a sink that
+cannot be fullscreened):
 
 ```bash
 systemctl --user stop uxplay
 airplay-mirror -d                       # same settings the service uses, with debug
-airplay-mirror -vs glimagesink          # next sink to try
-airplay-mirror -vs xvimagesink          # Xwayland/X11 route
+airplay-mirror -vs ximagesink           # other X11 sink
+airplay-mirror -vs glimagesink          # GL (own window: needs --raw, no -fs)
+airplay-mirror --raw -n test -p 7100 -as pulsesink -avdec -vs waylandsink
 airplay-mirror -s 1280x720@60           # if a session negotiated a silly size
 airplay-mirror -vd vah264dec            # hardware decode (AMD VA-API, GStreamer 1.26)
 airplay-mirror -FPSdata                 # show the client's framerate reports
 ```
 
+The wrapper also fills in `XDG_RUNTIME_DIR`, `DBUS_SESSION_BUS_ADDRESS`,
+`DISPLAY` and `XAUTHORITY` when they are missing, so it can be run from a plain
+ssh shell — UxPlay aborts with `basic_string: construction from null is not
+valid` if it is started without a session bus.
+
 | Symptom | What it usually is |
 |---|---|
-| Small picture in the middle, or only a corner of the client's screen | Negotiated video size or the sink's window sizing — try the sinks above, or pin `-s 1920x1080@60`. Putting the player fullscreen on the sender also forces a size change. |
-| Picture freezes but the client stays connected | Two very different causes: a **static client screen sends no new frames**, so a frozen image is correct (move a window on the sender to check); or the GStreamer 1.26/1.28 `avdec` freeze that upstream tracks in issues 519/564, where `-vs xvimagesink sync=false`, hardware decode, or `-vsync no -async no` sometimes get a session running |
+| Small picture in the middle, or only a corner of the client's screen | The sink's window was never fullscreened — in practice a sink that owns its own window (`glimagesink`, `waylandsink`) while UxPlay tries to fullscreen an X11 window. Use an X11 sink, or pin `-s 1920x1080@60`. |
+| `gst_wl_window_ensure_fullscreen: assertion 'self' failed` | Same cause, on the Wayland path: drop `-fs` (via `--raw`) or use an X11 sink. |
+| `basic_string: construction from null is not valid` at startup, core dump | UxPlay started without a session bus/runtime dir; the wrapper now fills those in. |
+| Picture freezes but the client stays connected | Two very different causes: a **static client screen sends no new frames**, so a frozen image is correct (move a window on the sender to check); or the GStreamer 1.26/1.28 `avdec` freeze that upstream tracks in issues 519/564, where `-vs "xvimagesink sync=false"`, hardware decode, or `-vsync no -async no` sometimes get a session running |
 | Connects, then client drops with *"missed client feedback signals"* | Timing/NTP side of the mirror protocol (issue 564); a firewall between client and server on UDP 123 is one cause, and there is no firewall here |
-| Black window, no output | Sink/decoder negotiation — try `-avdec -vs waylandsink`, then `-vd vah264dec -vc vapostproc` |
+| Black window, no output | Sink/decoder negotiation — try `-avdec -vs xvimagesink`, then `-vd vah264dec -vc vapostproc` |
 
 `GST_DEBUG=2 airplay-mirror -d` shows what GStreamer is doing.
 

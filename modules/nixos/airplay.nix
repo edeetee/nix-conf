@@ -101,6 +101,26 @@ let
   mirrorPackage = pkgs.writeShellScriptBin "airplay-mirror" ''
     # AirPlay mirroring server (see hosts/homeserver-edt/AIRPLAY.md).
     # Stop the uxplay user service first if it is running, then run this.
+    # `--raw` skips the defaults below and hands everything to uxplay, for
+    # experimenting with pipelines that need different arguments.
+    if [ "''${1:-}" = "--raw" ]; then
+      shift
+      exec ${getExe pkgs.uxplay} "$@"
+    fi
+
+    # UxPlay aborts with "basic_string: construction from null is not valid" when
+    # it is started without a runtime dir / session bus, which is what happens
+    # when it is run by hand from a plain ssh shell. The user service inherits
+    # these from the Plasma session, so this only fills gaps.
+    : "''${XDG_RUNTIME_DIR:=/run/user/$(${pkgs.coreutils}/bin/id -u)}"
+    : "''${DBUS_SESSION_BUS_ADDRESS:=unix:path=$XDG_RUNTIME_DIR/bus}"
+    if [ -z "''${XAUTHORITY:-}" ]; then
+      XAUTHORITY=$(ls "$XDG_RUNTIME_DIR"/xauth_* 2>/dev/null | head -n1) || true
+    fi
+    : "''${DISPLAY:=:0}"
+    export XDG_RUNTIME_DIR DBUS_SESSION_BUS_ADDRESS DISPLAY
+    [ -n "''${XAUTHORITY:-}" ] && export XAUTHORITY
+
     exec ${getExe pkgs.uxplay} ${lib.escapeShellArgs mirrorArgs} "$@"
   '';
 in
@@ -211,14 +231,20 @@ in
 
       videoSink = mkOption {
         type = types.str;
-        default = "waylandsink";
+        default = "xvimagesink";
         description = ''
-          GStreamer video sink. Defaults to `waylandsink` because this session is
-          Wayland: going through Xwayland (`glimagesink`, `xvimagesink`) is what
-          produced a misplaced part-screen window here. Verified present in
-          UxPlay's closure: `waylandsink`, `glimagesink`, `xvimagesink`,
-          `ximagesink`, `gtkwaylandsink` (there is no `gtksink` in this build).
-          Override for a single run by passing `-vs ...` to `airplay-mirror`.
+          GStreamer video sink. Defaults to `xvimagesink` — the X11 route through
+          Xwayland — because UxPlay's `-fs` can only fullscreen a window it owns,
+          while `glimagesink` and `waylandsink` create their own (Wayland)
+          windows: that is what showed a small, wrongly-placed picture, and
+          `waylandsink` additionally trips `gst_wl_window_ensure_fullscreen:
+          assertion 'self' failed`. This build does link libX11, so the X11
+          fullscreen path works.
+
+          All of these render a test pattern on this display (checked), so trying
+          another is reasonable: `xvimagesink` (default), `ximagesink`,
+          `glimagesink`, `waylandsink` (the latter two need `--raw` without
+          `-fs`). There is no `gtksink` in this build.
         '';
       };
 
