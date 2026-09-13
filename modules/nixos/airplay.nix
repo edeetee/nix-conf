@@ -111,16 +111,19 @@ let
     fi
 
     # UxPlay aborts with "basic_string: construction from null is not valid" when
-    # it is started without a runtime dir / session bus, which is what happens
-    # when it is run by hand from a plain ssh shell. The user service inherits
-    # these from the Plasma session, so this only fills gaps.
+    # it is started without a runtime dir / session bus / XDG_CURRENT_DESKTOP,
+    # which is what happens when it is run by hand from a plain ssh shell. The
+    # user service inherits these from the Plasma session, so this only fills
+    # gaps. (The last one is an upstream bug: -scrsv builds a std::string from
+    # getenv("XDG_CURRENT_DESKTOP") without checking it is set.)
     : "''${XDG_RUNTIME_DIR:=/run/user/$(${pkgs.coreutils}/bin/id -u)}"
     : "''${DBUS_SESSION_BUS_ADDRESS:=unix:path=$XDG_RUNTIME_DIR/bus}"
+    : "''${XDG_CURRENT_DESKTOP:=KDE}"
     if [ -z "''${XAUTHORITY:-}" ]; then
       XAUTHORITY=$(ls "$XDG_RUNTIME_DIR"/xauth_* 2>/dev/null | head -n1) || true
     fi
     : "''${DISPLAY:=:0}"
-    export XDG_RUNTIME_DIR DBUS_SESSION_BUS_ADDRESS DISPLAY
+    export XDG_RUNTIME_DIR DBUS_SESSION_BUS_ADDRESS DISPLAY XDG_CURRENT_DESKTOP
     [ -n "''${XAUTHORITY:-}" ] && export XAUTHORITY
 
     # UxPlay generates a fresh keypair on every start unless it is told where to
