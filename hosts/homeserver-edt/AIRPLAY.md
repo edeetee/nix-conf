@@ -199,6 +199,31 @@ While a client is actually mirroring, the now-playing window steps aside (it
 detects an established connection to UxPlay's ports — see `mirror_active()` in
 `airplay-nowplaying.py`) so the album art cannot cover the mirrored screen.
 
+### What can actually send video to it
+
+There are two different AirPlay video paths, and only one of them is available here:
+
+| Sender | Result |
+|---|---|
+| **macOS/iOS/iPadOS screen mirroring** (Control Centre → Screen Mirroring → `homeserver-edt Video`) | **Works.** The whole screen is mirrored as H.264 + AAC, so *any* player works: fullscreen YouTube in Firefox, VLC, IINA, a video call, anything. No per-app support needed. |
+| **YouTube iOS app**'s AirPlay icon | Works, because UxPlay implements HLS video (`-hls`) and YouTube is the one service it supports |
+| Firefox (macOS) AirPlay button | **Does not exist.** Mozilla has never implemented AirPlay (bug 1171706, open since 2015); this is not a UxPlay limitation |
+| VLC (macOS) AirPlay video output | **Does not exist.** VLC's AirPlay `stream_out` module is RAOP, i.e. audio only; for video its own forum answer is "use mirroring" |
+| Safari's AirPlay button | Exists, but Apple's HTML5-video path is not what third-party receivers implement; expect mirroring (which works) rather than an app-level stream |
+| Apple TV app, Netflix, Disney+, … (DRM) | **Impossible on any non-Apple receiver** — FairPlay decryption needs Apple hardware; you may get audio only |
+
+So the practical recipe for Firefox or VLC on the Mac: start screen
+mirroring to `homeserver-edt Video` and put the player fullscreen. Mirroring
+requests 1920x1080@60 by default and is capped at 30 fps (`-fps`); it may show
+the Mac's notifications and menu bar unless the player is fullscreen, and it
+carries AAC audio rather than lossless — for music, use the audio receiver
+(`homeserver-edt`) instead.
+
+Audio-only from a desktop app is a separate, easier case: macOS lists AirPlay
+receivers as system audio output devices, so both `homeserver-edt`
+(shairport-sync, AirPlay 2, lossless — the better choice) and
+`homeserver-edt Video` (UxPlay's audio-only mode) appear as selectable outputs.
+
 ## Now-playing display (and keeping the box awake while music plays)
 
 `modules/nixos/airplay-nowplaying.py` runs as a user service in the Plasma
