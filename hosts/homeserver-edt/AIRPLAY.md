@@ -205,6 +205,20 @@ The wrapper also fills in `XDG_RUNTIME_DIR`, `DBUS_SESSION_BUS_ADDRESS`,
 ssh shell — UxPlay aborts with `basic_string: construction from null is not
 valid` if it is started without a session bus.
 
+**Debugging etiquette:** do not restart the service while a client is
+connecting. UxPlay's handshake takes a moment, and a `systemctl --user restart`
+in that moment shows up on the Mac as *"could not connect"* while the server
+logs nothing. Watch instead:
+
+```bash
+XDG_RUNTIME_DIR=/run/user/1000 journalctl --user -u uxplay -f
+```
+
+A client that reaches the server always logs `Accepted … client` plus
+`connection request from <name>`; if that never appears, the attempt is not
+arriving at all (client-side cache/identity), and if it appears but nothing
+follows, the failure is in the protocol.
+
 | Symptom | What it usually is |
 |---|---|
 | Small picture in the middle, or only a corner of the client's screen | The sink's window was never fullscreened — in practice a sink that owns its own window (`glimagesink`, `waylandsink`) while UxPlay tries to fullscreen an X11 window. Use an X11 sink, or pin `-s 1920x1080@60`. |
