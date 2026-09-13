@@ -151,7 +151,7 @@ deliberately named apart:
 | Picker entry | Server | Ports | Protocol |
 |---|---|---|---|
 | `homeserver-edt` | shairport-sync | TCP 7000, UDP 6001-6011 | AirPlay 2 audio (lossless, multi-room) |
-| `homeserver-edt Mirror` | UxPlay | TCP+UDP 7100-7102 | AirPlay mirror (video + audio) |
+| `homeserver-edt Video` | UxPlay | TCP+UDP 7100-7102 | AirPlay mirror (video + audio) |
 
 They do not collide because UxPlay is moved off shairport-sync's port (`-p 7100`
 becomes 7100/7101/7102 for both TCP and UDP). AirPlay 1 clients cope with several

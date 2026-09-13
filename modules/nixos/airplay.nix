@@ -175,7 +175,7 @@ in
 
       name = mkOption {
         type = types.str;
-        default = "${cfg.name} Mirror";
+        default = "${cfg.name} Video";
         description = ''
           Name advertised to AirPlay clients. Kept distinct from the audio
           receiver's so the two are obvious in the iPhone's picker.
