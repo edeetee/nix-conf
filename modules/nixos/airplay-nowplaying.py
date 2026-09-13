@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Fullscreen "now playing" display for the AirPlay receiver, with keep-awake.
 
 What it does
