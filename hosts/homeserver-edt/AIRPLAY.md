@@ -290,18 +290,23 @@ There are two different AirPlay video paths, and only one of them is available h
 
 | Sender | Result |
 |---|---|
-| **macOS/iOS/iPadOS screen mirroring** (Control Centre → Screen Mirroring → `homeserver-edt Video`) | **Works.** The whole screen is mirrored as H.264 + AAC, so *any* player works: fullscreen YouTube in Firefox, VLC, IINA, a video call, anything. No per-app support needed. |
+| **macOS: extend the display to it** (Control Centre → Screen Mirroring → *Use as Separate Display*, or `homeserver-edt Video` → *Extend*) | **Works — prefer this.** The receiver becomes a 1920x1080 second display: drag the player onto it and fullscreen it. The Mac's own screen stays usable. |
+| **macOS: mirror the display** (same menu, *Mirror*) | **Does not work** (observed on macOS 15.7.9, 2026-09-13: the extend form of the same selection works). Mirror mode hands over the built-in display's stream, which is a different shape of stream from the requested 1920x1080. |
+| **iOS/iPadOS screen mirroring** (Control Centre → Screen Mirroring → `homeserver-edt Video`) | Works (that is the mirror path UxPlay is built around) |
 | **YouTube iOS app**'s AirPlay icon | Works, because UxPlay implements HLS video (`-hls`) and YouTube is the one service it supports |
 | Firefox (macOS) AirPlay button | **Does not exist.** Mozilla has never implemented AirPlay (bug 1171706, open since 2015); this is not a UxPlay limitation |
 | VLC (macOS) AirPlay video output | **Does not exist.** VLC's AirPlay `stream_out` module is RAOP, i.e. audio only; for video its own forum answer is "use mirroring" |
 | Safari's AirPlay button | Exists, but Apple's HTML5-video path is not what third-party receivers implement; expect mirroring (which works) rather than an app-level stream |
 | Apple TV app, Netflix, Disney+, … (DRM) | **Impossible on any non-Apple receiver** — FairPlay decryption needs Apple hardware; you may get audio only |
 
-So the practical recipe for Firefox or VLC on the Mac: start screen
-mirroring to `homeserver-edt Video` and put the player fullscreen. Mirroring
-requests 1920x1080@60 (`-s 1920x1080`, `-fps 60`); it may show
-the Mac's notifications and menu bar unless the player is fullscreen, and it
-carries AAC audio rather than lossless — for music, use the audio receiver
+So the practical recipe for Firefox or VLC on the Mac: **extend** the display to
+`homeserver-edt Video` (Control Centre → Screen Mirroring → the receiver → *Use
+as Separate Display*), drag the player onto the TV's display and fullscreen it.
+Mirroring the Mac's own screen instead does not work from macOS here, and an
+app's AirPlay button is a third thing again (video streaming, needs `-hls`, above).
+Mirroring requests 1920x1080@60 (`-s 1920x1080`, `-fps 60`); it may show the
+Mac's notifications and menu bar unless the player is fullscreen, and it carries
+AAC audio rather than lossless — for music, use the audio receiver
 (`homeserver-edt`) instead.
 
 Audio-only from a desktop app is a separate, easier case: macOS lists AirPlay
