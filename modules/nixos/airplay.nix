@@ -86,6 +86,7 @@ let
     "-as"
     "pulsesink"
   ]
+  ++ lib.optional cfg.mirror.hls "-hls"
   ++ (
     if cfg.mirror.hardwareDecoding then
       [
@@ -271,6 +272,21 @@ in
           collapsed by clients — macOS then keeps only one of them in its output
           list and fails to connect ("could not connect to homeserver-edt").
           Locally administered addresses (second nibble 2/6/A/E) are appropriate.
+        '';
+      };
+
+      hls = mkOption {
+        type = types.bool;
+        default = true;
+        description = ''
+          Also accept AirPlay *video streaming* (HLS) requests, not just screen
+          mirroring. Without it, an app's own AirPlay button — which asks the
+          receiver to fetch a stream rather than mirror the screen — is answered
+          with `ignoring AirPlay video streaming request (use option -hls to
+          activate HLS support)` and the client reports "could not connect".
+          Control Centre → Screen Mirroring takes the mirroring path and does not
+          need this; YouTube's HLS is the one known-working stream source, and
+          DRM-protected video cannot be decrypted by any non-Apple receiver.
         '';
       };
 

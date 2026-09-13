@@ -184,6 +184,21 @@ journalctl --user -u uxplay -f
 
 ### If mirroring looks wrong
 
+First, check *which* path the client used, because they are different code paths on
+UxPlay's side and only one is mirroring:
+
+| Where you pick the receiver | What the client sends |
+|---|---|
+| **Control Centre → Screen Mirroring** | a mirror request → UxPlay logs `raop_rtp_mirror starting mirroring` |
+| An app's own AirPlay icon (Safari, a video app, the iOS YouTube app) | a *video streaming* (HLS) request → UxPlay logs `ignoring AirPlay video streaming request` unless `-hls`/`mirror.hls` is on |
+| Sound output / System Settings → Sound | RAOP audio → shairport-sync (`homeserver-edt`), or UxPlay's audio-only mode |
+
+That third distinction matters: an app-level AirPlay button asks the receiver to
+fetch a stream rather than mirror a screen, and if `-hls` is off UxPlay drops it
+with `*** WARNING: httpd didn't get response` and the client reports *"could not
+connect"*. `mirror.hls` (default on) enables that path; only YouTube's streams
+are known to work through it.
+
 Iterate without a rebuild — stop the service so the wrapper can bind the ports,
 then pass overrides on the command line (later options win over the wrapper's;
 `--raw` drops the wrapper's defaults entirely, which is how to try a sink that
