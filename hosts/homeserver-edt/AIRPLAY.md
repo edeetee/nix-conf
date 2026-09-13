@@ -168,8 +168,9 @@ pipewire-pulse exactly like shairport-sync's audio.
 
 Video goes to `waylandsink` rather than the OpenGL or Xv sink. This session is
 Wayland, and the Xwayland route is what rendered "a corner of the screen in a
-small tile in the middle of the TV" here. (Verified with a test pattern: the
-`waylandsink` element from UxPlay's own closure renders fullscreen on the TV.)
+small tile in the middle of the TV" here. (`waylandsink` from UxPlay's own
+closure was checked by pushing a test pattern through it — the pipeline ran
+clean, which rules out a missing/broken sink but is not a visual check.)
 The sink survey in upstream
 [issue 480](https://github.com/FDH2/UxPlay/issues/480) is worth reading when
 picking another one — but note its list does not all exist in this build:
