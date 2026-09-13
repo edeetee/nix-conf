@@ -87,6 +87,7 @@ let
     "pulsesink"
   ]
   ++ lib.optional cfg.mirror.hls "-hls"
+  ++ lib.optional (!cfg.mirror.vsync) "-vsync no"
   ++ (
     if cfg.mirror.hardwareDecoding then
       [
@@ -272,6 +273,20 @@ in
           collapsed by clients — macOS then keeps only one of them in its output
           list and fails to connect ("could not connect to homeserver-edt").
           Locally administered addresses (second nibble 2/6/A/E) are appropriate.
+        '';
+      };
+
+      vsync = mkOption {
+        type = types.bool;
+        default = true;
+        description = ''
+          Synchronise audio to video using the client's timestamps (`-vsync`) —
+          UxPlay's default. Turning it off (`-vsync no`) is the documented
+          workaround for macOS clients whose timestamps break mirroring: Apple
+          changed the `ntp_time` it sends in Sequoia (UxPlay issue 379, "invalid
+          ntp_time < gst_video_pipeline_base_time"), and with `-vsync no` the
+          client's value is not used. Downside: audio/video sync is then up to
+          the client.
         '';
       };
 
