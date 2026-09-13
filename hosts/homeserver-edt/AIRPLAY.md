@@ -132,6 +132,73 @@ changed, `systemctl --user daemon-reload && systemctl --user restart
 shairport-sync` (NixOS activation does not reload units of already-running user
 sessions).
 
+## Video: screen mirroring and video streaming (UxPlay)
+
+`services.airplay.mirror` runs [UxPlay](https://github.com/FDH2/UxPlay) as a user
+service. shairport-sync is audio-only by design, UxPlay speaks the AirPlay
+*mirror* protocol, so this is what gives you iPhone/iPad/Mac screen mirroring on
+the TV, plus:
+
+| Works | Does not work |
+|---|---|
+| Screen mirroring from iOS/iPadOS/macOS (H.264 + AAC) | **DRM-protected video** — the Apple TV app, Netflix and friends can only be decrypted by genuine Apple hardware; UxPlay will stream their audio only |
+| Audio-only AirPlay (ALAC) as a second target | AirPlay 2 multi-room audio (use shairport-sync for that) |
+| YouTube video via `-hls` (the YouTube app's AirPlay icon) | AirPlay video from browsers or other apps (not implemented upstream yet) |
+
+Both receivers are advertised at once, so the iPhone's picker shows two entries,
+deliberately named apart:
+
+| Picker entry | Server | Ports | Protocol |
+|---|---|---|---|
+| `homeserver-edt` | shairport-sync | TCP 7000, UDP 6001-6011 | AirPlay 2 audio (lossless, multi-room) |
+| `homeserver-edt Mirror` | UxPlay | TCP+UDP 7100-7102 | AirPlay mirror (video + audio) |
+
+They do not collide because UxPlay is moved off shairport-sync's port (`-p 7100`
+becomes 7100/7101/7102 for both TCP and UDP). AirPlay 1 clients cope with several
+receivers behind one IP; AirPlay 2 *audio* clients do not, which is why only one
+shairport-sync instance runs.
+
+### The pipeline, and why it is pinned
+
+UxPlay renders through GStreamer, and its own README suggests `pipewiresink` on
+PipeWire systems. **That would fail here**: the nixpkgs build of
+gst-plugins-bad has no PipeWire plugin (checked its closure — no
+`libgstpipewire.so`), so audio is sent to `pulsesink`, which lands in
+pipewire-pulse exactly like shairport-sync's audio. Video defaults to software
+decode plus the OpenGL sink because both are definitely present:
+
+```bash
+airplay-mirror --help                    # the wrapper, same options as uxplay
+systemctl --user status uxplay
+journalctl --user -u uxplay -f
+```
+
+If mirroring connects but the screen stays black or freezes (the usual failure
+mode, and what the upstream tracker's mirroring issues are made of), the knobs
+are, in order of usefulness:
+
+```bash
+# 1. what is GStreamer doing?
+export GST_DEBUG=2 ; airplay-mirror -d
+
+# 2. try the other X11 sink (Xv/XShm instead of GL)
+airplay-mirror -vs xvimagesink
+
+# 3. hardware decode (VA-API is available on this AMD GPU)
+airplay-mirror -vd vaapih264dec
+
+# 4. only if the two receivers confuse each other: turn the mirror server off
+#    (services.airplay.mirror.enable = false) and run airplay-mirror by hand
+```
+
+Anything set with `-vs`/`-vd`/`-as` on the command line overrides the wrapper.
+The mirroring server needs no setup of its own beyond the desktop session: it
+renders through Xwayland (`DISPLAY`/`XAUTHORITY` are in the user manager's
+environment) and `-scrsv 1` keeps the screensaver off while video is playing.
+While a client is actually mirroring, the now-playing window steps aside (it
+detects an established connection to UxPlay's ports — see `mirror_active()` in
+`airplay-nowplaying.py`) so the album art cannot cover the mirrored screen.
+
 ## Now-playing display (and keeping the box awake while music plays)
 
 `modules/nixos/airplay-nowplaying.py` runs as a user service in the Plasma

@@ -51,6 +51,54 @@ let
     libraries = [ pkgs.python3Packages.pyqt6 ];
     flakeIgnore = [ "E501" ]; # house style allows long lines
   } (builtins.readFile ./airplay-nowplaying.py);
+
+  # AirPlay *mirroring* (video) — shairport-sync is audio-only by design, UxPlay
+  # implements the mirror protocol (iOS/macOS screen mirroring) plus YouTube HLS
+  # video and its own audio-only mode.
+  #
+  # Pipeline note: the nixpkgs build of gst-plugins-bad has no pipewire plugin
+  # (verified: no libgstpipewire.so in its closure), so UxPlay's own "use
+  # pipewiresink on PipeWire systems" advice would fail here — audio goes
+  # through pulsesink into pipewire-pulse, exactly like shairport-sync does.
+  # Video defaults to software decode + the OpenGL sink (both present);
+  # hardwareDecoding switches to VA-API.
+  mirrorName = cfg.mirror.name;
+  mirrorPortRange = [
+    cfg.mirror.port
+    (cfg.mirror.port + 1)
+    (cfg.mirror.port + 2)
+  ];
+  mirrorArgs = [
+    "-n"
+    mirrorName
+    "-nh" # don't append "@hostname" to the advertised name
+    "-p"
+    (toString cfg.mirror.port)
+    "-fs" # fullscreen on the TV
+    "-scrsv"
+    "1" # inhibit the screensaver while video is being displayed
+    "-as"
+    "pulsesink"
+  ]
+  ++ (
+    if cfg.mirror.hardwareDecoding then
+      [
+        "-vd"
+        "vaapih264dec"
+      ]
+    else
+      [ "-avdec" ]
+  )
+  ++ [
+    "-vs"
+    cfg.mirror.videoSink
+  ];
+
+  mirrorPackage = pkgs.writeShellScriptBin "airplay-mirror" ''
+    # AirPlay mirroring server (see hosts/homeserver-edt/AIRPLAY.md).
+    # Stop the uxplay user service first if it is running, then run this.
+    exec ${getExe pkgs.uxplay} ${lib.escapeShellArgs mirrorArgs} "$@"
+  '';
 in
 {
   options.services.airplay = {
@@ -105,6 +153,61 @@ in
           player this is the `org.freedesktop.ScreenSaver.Inhibit` call, plus a
           best-effort logind inhibitor (see AIRPLAY.md — logind only authorises
           the sleep/shutdown part for an active seat session).
+        '';
+      };
+    };
+
+    mirror = {
+      enable = mkOption {
+        type = types.bool;
+        default = true;
+        description = ''
+          Run UxPlay, so iOS/iPadOS/macOS devices can *mirror* their screen to
+          this machine (and stream YouTube video with its HLS support).
+          shairport-sync cannot do video at all.
+
+          This adds a second AirPlay entry next to the audio receiver and, like
+          it, needs the desktop session. Note that DRM-protected content (Apple
+          TV app, Netflix, ...) cannot be mirrored by anything that is not an
+          Apple device.
+        '';
+      };
+
+      name = mkOption {
+        type = types.str;
+        default = "${cfg.name} Mirror";
+        description = ''
+          Name advertised to AirPlay clients. Kept distinct from the audio
+          receiver's so the two are obvious in the iPhone's picker.
+        '';
+      };
+
+      port = mkOption {
+        type = types.port;
+        default = 7100;
+        description = ''
+          Base TCP and UDP port; UxPlay uses this and the next two. Deliberately
+          away from shairport-sync's 7000 (RTSP) and 6001-6011 (UDP audio).
+        '';
+      };
+
+      hardwareDecoding = mkOption {
+        type = types.bool;
+        default = false;
+        description = ''
+          Decode H.264 with VA-API (`vaapih264dec`) instead of in software
+          (`avdec_h264`). Worth trying if mirroring pegs a couple of CPU cores;
+          software decoding is the safer default because it avoids VA-API to GL
+          surface negotiation, which is where UxPlay mirroring usually breaks.
+        '';
+      };
+
+      videoSink = mkOption {
+        type = types.str;
+        default = "glimagesink";
+        description = ''
+          GStreamer video sink. `glimagesink` (OpenGL) is the default because it
+          works under Xwayland; `xvimagesink` is the alternative if GL misbehaves.
         '';
       };
     };
@@ -172,13 +275,21 @@ in
       };
     };
 
-    networking.firewall.allowedUDPPorts = mkIf cfg.openFirewall [
-      319
-      320
-    ];
+    networking.firewall = mkIf cfg.openFirewall {
+      # nqptp's PTP ports, plus UxPlay's three TCP and three UDP ports.
+      allowedUDPPorts = [
+        319
+        320
+      ]
+      ++ lib.optionals cfg.mirror.enable mirrorPortRange;
+      allowedTCPPorts = lib.optionals cfg.mirror.enable mirrorPortRange;
+    };
 
     # ── now-playing display (+ keep-awake while playing) ──────────────────
-    environment.systemPackages = [ nowPlayingPackage ];
+    environment.systemPackages = [
+      nowPlayingPackage
+      mirrorPackage
+    ];
 
     systemd.user.services.airplay-nowplaying = mkIf cfg.nowPlaying.enable {
       description = "AirPlay now-playing display (fullscreen art, holds idle inhibitors)";
@@ -200,9 +311,26 @@ in
           "AIRPLAY_SH=${pkgs.bash}/bin/bash"
           "AIRPLAY_SLEEP=${pkgs.coreutils}/bin/sleep"
           "AIRPLAY_SYSTEMD_INHIBIT=${pkgs.systemd}/bin/systemd-inhibit"
+          "AIRPLAY_MIRROR_PORT=${toString cfg.mirror.port}"
         ];
         Restart = "on-failure";
         RestartSec = 3;
+      };
+    };
+
+    # ── UxPlay: screen mirroring / video (shairport-sync cannot do video) ──
+    systemd.user.services.uxplay = mkIf cfg.mirror.enable {
+      description = "UxPlay — AirPlay mirroring server";
+      documentation = [ "https://github.com/FDH2/UxPlay" ];
+      after = [ "graphical-session.target" ];
+      partOf = [ "graphical-session.target" ];
+      wantedBy = [ "graphical-session.target" ];
+      serviceConfig = {
+        ExecStart = getExe mirrorPackage;
+        # Renders through Xwayland like the now-playing window (see AIRPLAY.md).
+        Environment = [ "QT_QPA_PLATFORM=xcb" ];
+        Restart = "on-failure";
+        RestartSec = 5;
       };
     };
   };

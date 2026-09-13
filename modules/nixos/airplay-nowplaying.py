@@ -71,6 +71,43 @@ def dbus_reply_value(reply):
     return reply
 
 
+def mirror_active() -> bool:
+    """True while an AirPlay client is connected to the mirroring server.
+
+    UxPlay draws mirrored video into its own fullscreen window on the same
+    display, and our album art would fight it for the screen. UxPlay is an
+    always-on service here, so "is the process running" is useless — instead
+    look for an established TCP connection to its ports (see
+    AIRPLAY_MIRROR_PORT, set by modules/nixos/airplay.nix). Failing to detect
+    that just means the two windows behave as two ordinary windows.
+    """
+    try:
+        base = int(os.environ.get("AIRPLAY_MIRROR_PORT", "0"))
+    except ValueError:
+        base = 0
+    if base == 0:
+        return False
+    ports = {base, base + 1, base + 2}
+    for path in ("/proc/net/tcp", "/proc/net/tcp6"):
+        try:
+            with open(path, encoding="utf-8") as handle:
+                next(handle, None)  # header
+                for line in handle:
+                    fields = line.split()
+                    # sl local_address rem_address st ...
+                    if len(fields) < 4 or fields[3] != "01":  # 01 = ESTABLISHED
+                        continue
+                    try:
+                        port = int(fields[1].split(":")[1], 16)
+                    except (IndexError, ValueError):
+                        continue
+                    if port in ports:
+                        return True
+        except OSError:
+            continue
+    return False
+
+
 class Inhibitors:
     """Holds the idle inhibitors for as long as a stream is connected."""
 
@@ -395,14 +432,20 @@ def main() -> int:
         "length": 0.0,
     }
 
-    def hide_window() -> None:
+    def hide_window(reason: str) -> None:
         inhibitors.release()
         if state["visible"]:
             window.hide()
             state["visible"] = False
-            log.info("stream ended, hiding window")
+            log.info("hiding now-playing window (%s)", reason)
 
     def tick() -> None:
+        if mirror_active():
+            # A client is mirroring video to this display; stay out of the way
+            # (UxPlay's -scrsv handles the screensaver while video plays).
+            hide_window("an AirPlay client is mirroring")
+            return
+
         status, metadata = player.state()
         connected = status in ("Playing", "Paused")  # shairport-sync session is live
         playing = status == "Playing"
@@ -411,7 +454,7 @@ def main() -> int:
         if connected:
             state["last_active"] = now
         elif state["visible"] and now - state["last_active"] > LINGER_S:
-            hide_window()
+            hide_window("stream ended")
             return
         elif not state["visible"]:
             return
