@@ -168,10 +168,14 @@ pipewire-pulse exactly like shairport-sync's audio.
 
 Video goes to `waylandsink` rather than the OpenGL or Xv sink. This session is
 Wayland, and the Xwayland route is what rendered "a corner of the screen in a
-small tile in the middle of the TV" here; upstream's own sink survey
-([issue 480](https://github.com/FDH2/UxPlay/issues/480)) has `waylandsink` and
-`gtksink` working on Wayland while `glimagesink` places its window oddly. The
-stream is requested at 1920x1080@60 (`-s`, `-fps 60`; UxPlay defaults to 30):
+small tile in the middle of the TV" here. (Verified with a test pattern: the
+`waylandsink` element from UxPlay's own closure renders fullscreen on the TV.)
+The sink survey in upstream
+[issue 480](https://github.com/FDH2/UxPlay/issues/480) is worth reading when
+picking another one — but note its list does not all exist in this build:
+present here are `waylandsink` (default), `glimagesink`, `xvimagesink`,
+`ximagesink`, `gtkwaylandsink`; **there is no `gtksink`**. The stream is
+requested at 1920x1080@60 (`-s`, `-fps 60`; UxPlay defaults to 30):
 
 ```bash
 airplay-mirror --help                    # the wrapper, same options as uxplay
@@ -182,26 +186,26 @@ journalctl --user -u uxplay -f
 ### If mirroring looks wrong
 
 Iterate without a rebuild — stop the service so the wrapper can bind the ports,
-then pass overrides on the command line (later options win):
+then pass overrides on the command line (later options win over the wrapper's):
 
 ```bash
 systemctl --user stop uxplay
 airplay-mirror -d                       # same settings the service uses, with debug
-airplay-mirror -vs gtksink              # next sink to try
-airplay-mirror -vs glimagesink
+airplay-mirror -vs glimagesink          # next sink to try
 airplay-mirror -vs xvimagesink          # Xwayland/X11 route
-airplay-mirror -vd vaapih264dec         # hardware decode (AMD VA-API)
+airplay-mirror -s 1280x720@60           # if a session negotiated a silly size
+airplay-mirror -vd vah264dec            # hardware decode (AMD VA-API, GStreamer 1.26)
+airplay-mirror -FPSdata                 # show the client's framerate reports
 ```
 
 | Symptom | What it usually is |
 |---|---|
-| Small picture in the middle, or only a corner of the client's screen | The negotiated video size or the sink's window sizing — try the sinks above, or pin `-s 1920x1080@60`. Putting the player fullscreen on the sender also forces a size change. |
+| Small picture in the middle, or only a corner of the client's screen | Negotiated video size or the sink's window sizing — try the sinks above, or pin `-s 1920x1080@60`. Putting the player fullscreen on the sender also forces a size change. |
 | Picture freezes but the client stays connected | Two very different causes: a **static client screen sends no new frames**, so a frozen image is correct (move a window on the sender to check); or the GStreamer 1.26/1.28 `avdec` freeze that upstream tracks in issues 519/564, where `-vs xvimagesink sync=false`, hardware decode, or `-vsync no -async no` sometimes get a session running |
-| Connects, then client drops with *"missed client feedback signals"* | Timing/NTP side of the mirror protocol (issue 564); firewall between client and server on UDP 123 is one cause, and there is no firewall here |
-| Black window, no output | Sink/decoder negotiation — try `-avdec -vs waylandsink`, then hardware decode |
+| Connects, then client drops with *"missed client feedback signals"* | Timing/NTP side of the mirror protocol (issue 564); a firewall between client and server on UDP 123 is one cause, and there is no firewall here |
+| Black window, no output | Sink/decoder negotiation — try `-avdec -vs waylandsink`, then `-vd vah264dec -vc vapostproc` |
 
-`GST_DEBUG=2 airplay-mirror -d` shows what GStreamer is doing; `uxplay -FPSdata`
-prints the framerate reports the client sends.
+`GST_DEBUG=2 airplay-mirror -d` shows what GStreamer is doing.
 
 ## Now-playing display (and keeping the box awake while music plays)
 The mirroring server needs no setup of its own beyond the desktop session: it

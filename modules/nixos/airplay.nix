@@ -88,7 +88,7 @@ let
     if cfg.mirror.hardwareDecoding then
       [
         "-vd"
-        "vaapih264dec"
+        "vah264dec" # GStreamer 1.26 name; older releases called it vaapih264dec
       ]
     else
       [ "-avdec" ]
@@ -199,10 +199,13 @@ in
         type = types.bool;
         default = false;
         description = ''
-          Decode H.264 with VA-API (`vaapih264dec`) instead of in software
-          (`avdec_h264`). Worth trying if mirroring pegs a couple of CPU cores;
-          software decoding is the safer default because it avoids VA-API to GL
-          surface negotiation, which is where UxPlay mirroring usually breaks.
+          Decode H.264 with VA-API (`vah264dec`, in gst-plugins-bad 1.26 — the
+          element was named `vaapih264dec` before the 1.26 rename, which is what
+          UxPlay's help text still lists) instead of in software (`avdec_h264`).
+          Worth trying if mirroring pegs CPU cores. Software decoding is the
+          safer default: it avoids VA-API surface negotiation, where mirroring
+          usually breaks. If it stays black, pair it with
+          `-vc vapostproc` or `-vs glimagesink` on the command line.
         '';
       };
 
@@ -212,11 +215,10 @@ in
         description = ''
           GStreamer video sink. Defaults to `waylandsink` because this session is
           Wayland: going through Xwayland (`glimagesink`, `xvimagesink`) is what
-          produced a misplaced part-screen window here, and upstream's own sink
-          testing on Wayland (issue 480) has `waylandsink`/`gtksink` working while
-          `glimagesink` places windows oddly. Other candidates, in the order worth
-          trying: `gtksink`, `glimagesink`, `xvimagesink`. Override for a single
-          run by passing `-vs ...` to `airplay-mirror`.
+          produced a misplaced part-screen window here. Verified present in
+          UxPlay's closure: `waylandsink`, `glimagesink`, `xvimagesink`,
+          `ximagesink`, `gtkwaylandsink` (there is no `gtksink` in this build).
+          Override for a single run by passing `-vs ...` to `airplay-mirror`.
         '';
       };
 
