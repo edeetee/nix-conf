@@ -16,7 +16,46 @@ are back. Don't burn time debugging connectivity before confirming it's awake.
 - Audio: see `hosts/homeserver-edt/AUDIO.md` — PipeWire, rtkit, Wine/Proton latency tuning
 - Audio is HDMI out to Sony TV via Navi 21/23 GPU
 - Steam launches via `steam-on-demand.service` (controller-triggered)
-- Rebuild: `cd ~/dev/nix-conf && git pull && sudo nixos-rebuild switch --flake .#homeserver-edt`
+- AirPlay (audio + screen mirroring): see `hosts/homeserver-edt/AIRPLAY.md`
+- Rebuild the fast way: **`nixup`** (see below)
+
+### Deploying: `nixup` and `nixrs`
+
+Defined as shell aliases **on the server only** (`hosts/homeserver-edt/packages.nix`),
+so they have to be run there — not on the Mac, not over a non-interactive `ssh`
+line (see the gotchas):
+
+```bash
+nixup   # git -C ~/dev/nix-conf pull   +   sudo nixos-rebuild switch --flake ~/dev/nix-conf/
+nixrs   # just the switch, no pull (use when the tree is already up to date)
+```
+
+`nixup` also prints the commits it just pulled (`git log ..@{u}`), which is the
+quickest way to see what is about to be deployed. Three things to know before
+relying on it:
+
+1. **The server carries local-only commits** (`flake.local`, `deepseek api key`,
+   which touch `secrets.yaml` and `modules/common.nix`). `pull.rebase` is set to
+   `true` there, so `nixup` rebases those two on top of `origin/main` — that is
+   the intended workflow. Never force-update or reset the server's checkout, and
+   never push from the server.
+2. **New user units are enabled but not started.** `nixos-rebuild switch` does
+   not start units that are new for a *user manager that is already running* (it
+   only does that on the next login/reboot), and `graphical-session.target` is
+   long past by then. A service that was just added therefore sits `inactive
+   (dead)` with an empty journal — which looks like a crash but is not. Fix after
+   a deploy that added one:
+
+   ```bash
+   XDG_RUNTIME_DIR=/run/user/1000 systemctl --user start <unit>      # and/or
+   XDG_RUNTIME_DIR=/run/user/1000 systemctl --user daemon-reload
+   ```
+
+   (This is why `nixup` alone was not enough for `shairport-sync`,
+   `airplay-nowplaying` and `uxplay`.)
+3. **`nixup` needs a TTY for sudo.** From an agent's non-interactive `ssh`, run
+   the build half only — `nixos-rebuild build --flake .#homeserver-edt` (no root
+   needed) validates and warms the store, then ask the user to run `nixup`.
 
 ## Critical rules
 
@@ -80,10 +119,15 @@ configurations (NixOS + Darwin), the formatter, and checks. Do not commit if it 
 
 ### 6. Build-test cycle
 - The server is at `homeserver-edt.local` (mDNS via Avahi).
-- `nixup` alias = `git pull && sudo nixos-rebuild switch --flake`.
-- Always verify services start after rebuild: `systemctl is-active <service>`.
+- Deploy with **`nixup`** on the server (pull + switch); `nixrs` switches without
+  pulling. Both are discussed, with their gotchas, under "Deploying" above —
+  note in particular that **new user units need starting by hand**.
+- Verify services start after rebuild: `systemctl is-active <service>`. User
+  units need it twice: `XDG_RUNTIME_DIR=/run/user/1000 systemctl --user ...`.
 - Check listening ports: `ss -tlnp`.
-- Read logs: `journalctl -u <service> -n 50`.
+- Read logs: `journalctl -u <service> -n 50`, `journalctl --user -u <service>`.
+- Validate a change without root first: `nix flake check --no-build`, then
+  `nixos-rebuild build --flake .#homeserver-edt` (builds and warms the store).
 
 ### 7. Shared modules must work on all platforms
 `modules/common.nix` is imported by both NixOS and Darwin configurations.
@@ -123,8 +167,10 @@ hosts/
     networking.nix         — hostname, avahi, zerotier, ssh, firewall
     desktop.nix            — display manager, plasma, bluetooth
     services.nix           — cockpit, jellyfin, transmission, homepage, nginx
-    packages.nix           — system packages, fonts, users, shell
+    packages.nix           — system packages, fonts, users, shell (nixup/nixrs aliases)
     pi-agent/              — pi coding agent (deepseek models/settings)
+    AUDIO.md               — PipeWire/Wine latency notes; how the audio stack is tuned
+    AIRPLAY.md             — AirPlay audio + screen mirroring + now-playing display
   rpi3b/                   — Raspberry Pi 3B, lean always-on agent host over zerotier
     default.nix            — entrypoint (minimal, no commonModules)
     hardware-configuration.nix — SD root by label (NIXOS_SD)
@@ -144,6 +190,8 @@ modules/
     samba.nix
     reboot-to-windows.nix
     amd-gpu.nix
+    airplay.nix            — AirPlay: shairport-sync (audio), UxPlay (mirroring), now-playing UI
+    airplay-nowplaying.py  — the fullscreen now-playing window that airplay.nix wraps
     check-mounts.nix       — guards against chown on shared mounts
     arr.nix                 — nixarr (WIP)
 
