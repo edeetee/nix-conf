@@ -1,0 +1,68 @@
+{
+  "nodes": {
+    "bluez-nixpkgs": {
+      "locked": {
+        "lastModified": 1790390834,
+        "narHash": "sha256-StRyS/lFHtIw/UgJk+xo+HA66mtoWeDUbkJdvf2Byn4=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "d54020a6ac3211e9f4201631bdf67678818c0cdf",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "d54020a6ac3211e9f4201631bdf67678818c0cdf",
+        "type": "github"
+      }
+    },
+    "nixpkgs": {
+      "locked": {
+        "lastModified": 1790218706,
+        "narHash": "sha256-6e4Na3z008XpdVyOXgfasXIn1aN+z8AXFG+jXdQSyuI=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "c508844df6c28fa6dabc1b6af70f3ccbd65c5201",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "c508844df6c28fa6dabc1b6af70f3ccbd65c5201",
+        "type": "github"
+      }
+    },
+    "root": {
+      "inputs": {
+        "bluez-nixpkgs": "bluez-nixpkgs",
+        "nixpkgs": "nixpkgs",
+        "sink": "sink"
+      }
+    },
+    "sink": {
+      "inputs": {
+        "bluez-nixpkgs": [
+          "bluez-nixpkgs"
+        ],
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1791706376,
+        "narHash": "sha256-h9bzwdkqByYlIxPmhH/G6KlsGD7Cqdl9bYVAedYF1H4=",
+        "ref": "refs/heads/main",
+        "rev": "6d06253ca2a7dd903527cadf9de58ad8f654f379",
+        "revCount": 177,
+        "type": "git",
+        "url": "ssh://git@github.com/edeetee/sink"
+      },
+      "original": {
+        "type": "git",
+        "url": "ssh://git@github.com/edeetee/sink"
+      }
+    }
+  },
+  "root": "root",
+  "version": 7
+}

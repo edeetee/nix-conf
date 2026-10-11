@@ -6,7 +6,11 @@
 #
 # It runs the sink repository's own image build, pointed at this repository:
 #
-#   sink/nix/build-image.sh --flake <this repo> --sink-repo <sink checkout>
+#   sink/nix/build-image.sh --flake <this repo> --dir sink-pi \
+#     --sink-repo <sink checkout>
+#
+# `--dir sink-pi` names the split flake at `sink-pi/flake.nix`; the header of
+# scripts/sink-pi-switch.sh explains why the path form would be wrong.
 #
 # The image is written to the *sink* checkout's build/sink-pi.img by default, which
 # is where sink/nix/flash-sd.sh looks for it, so the next step is:
@@ -27,6 +31,7 @@ fi
 
 exec "$sink/nix/build-image.sh" \
   --flake "$conf" \
+  --dir sink-pi \
   --image images.sink-pi \
   --sink-repo "$sink" \
   "$@"

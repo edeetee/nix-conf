@@ -1,26 +1,32 @@
 # What running the sink instrument asks of a Raspberry Pi host, stated once.
 #
-# The layers around this one, and why it exists:
+# The three layers of this box, and why this file exists:
 #
-#   sink.nixosModules.piSink      everything that is true because *sink on a Pi*
-#   (sink repository)             needs it: the 460800 Bluetooth overlay, BlueALSA,
-#                                 the ALSA plugin path, the service tweaks. It knows
-#                                 nothing about a machine.
-#   modules/nixos/sink-machine.nix  (this file) the machine-wide policy a host that
-#                                 runs sink has to state, as options whose defaults
-#                                 reproduce hosts/sink-pi exactly, so a shared Pi can
-#                                 run sink alongside other systems without two
-#                                 conflicting definitions of the same option.
-#   hosts/sink-pi/default.nix     this box: hostname, users, WiFi, storage, and the
-#                                 instrument's own settings.
+#   sink.nixosModules.piSink   everything that is true because *sink on a Pi* needs
+#   (the sink repository)      it: the 460800 Bluetooth overlay, BlueALSA, the ALSA
+#                              plugin path, the service tweaks. It knows nothing
+#                              about a machine.
+# sink-machine.nix (this file)  the machine-wide policy a host that runs sink has
+#                              to state, as options whose defaults reproduce this box,
+#                              so a shared Pi can run sink alongside other systems
+#                              without two conflicting definitions of the same option.
+#   hosts/sink-pi/default.nix  this box: hostname, users, WiFi, storage, and the
+#                              instrument's own settings.
 #
-# The point of the split is composability. The reference host in the sink repository
-# is one machine, so it can set `boot.kernelParams`, `swapDevices`, the console, sudo,
-# SSH and the governor directly. A host that runs sink *and* something else must be
-# able to include the same behaviour without those becoming a takeover, so every value
-# here is an option (or a `lib.mkDefault`, which a host can beat) rather than a fact
-# baked into an `imports` list. `hosts/sink-pi/README.md`, "Where each piece lives",
-# records the decision for each item.
+# sink-pi is a *split flake* - sink-pi/flake.nix imports this file - rather than an
+# attribute of the repository-root flake, because its `sink` input is private and a
+# flake input is resolved for every command that evaluates its flake, even one that
+# never uses the input. Keeping it out of the root flake is what stops the private
+# repository from reaching homeserver-edt, rpi3b and the Darwin configurations. See
+# hosts/sink-pi/README.md, "A split flake".
+#
+# The point of the layering is composability. The reference host in the sink
+# repository is one machine, so it can set `boot.kernelParams`, `swapDevices`, the
+# console, sudo, SSH and the governor directly. A host that runs sink *and* something
+# else must be able to include the same behaviour without those becoming a takeover,
+# so every value here is an option (or a `lib.mkDefault`, which a host can beat)
+# rather than a fact baked into an `imports` list. hosts/sink-pi/README.md, "Where
+# each piece lives", records the decision for each item.
 #
 # The one deliberate `lib.mkForce` is `boot.kernelParams`, and it is not negotiable:
 # `console=ttyAMA0` comes from nixpkgs' sd-image-aarch64 module and ttyAMA0 is the

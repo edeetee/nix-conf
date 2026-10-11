@@ -186,10 +186,13 @@ hosts/
     local.nix              — the WiFi network (placeholders committed, edited in place)
     authorized_keys.txt    — who may SSH in (sink + root)
     README.md              — two-repo workflow, deploy/image commands, design ownership
-  Note: sink-pi depends on the private `~/dev/sink` flake (the app and the Pi
-  seam); scripts/sink-pi-switch.sh and scripts/sink-pi-image.sh override that
-  input with the local checkout. Builds happen in an aarch64 Docker container on
-  the Mac, never on the Pi. See hosts/sink-pi/README.md.
+  Note: sink-pi is a SPLIT FLAKE: the configuration lives in sink-pi/flake.nix,
+  which carries the private `~/dev/sink` input, while the top-level flake has no
+  reference to it (Nix resolves every flake input for every evaluation, so an
+  input at the top level would make homeserver-edt need the private repository).
+  scripts/sink-pi-{switch,image}.sh pass `--dir sink-pi` to the sink container
+  recipe (whole repo mounted, built as git+file:///src?dir=sink-pi#...). Builds
+  happen on the Mac, never on the Pi. See hosts/sink-pi/README.md.
 
 modules/
   common.nix               — shared config (shell, packages, aliases) for all machines
@@ -207,6 +210,10 @@ modules/
 
 lib/
   jj-tools/                — custom jj wrapper + tests
+
+sink-pi/                   — split flake for the instrument box (see hosts/sink-pi)
+  flake.nix                — inputs.sink (private) lives HERE, not at the top level
+  flake.lock               — this box's own pin (nixpkgs nixos-26.05)
 
 scripts/
   sink-pi-switch.sh        — deploy sink-pi: container build + delta copy to the Pi

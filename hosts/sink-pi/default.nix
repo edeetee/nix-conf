@@ -6,11 +6,12 @@
 #
 # This is the machine, and only the machine: hostname, users, wireless, storage and
 # the instrument's own settings. Everything that is true because *sink runs on a Pi*
-# comes from the sink repository's `nixosModules.piSink` (the flake adds it next to
-# this file), and the machine-wide policy that a shared Pi would have to state once -
-# boot parameters, swap, the governor, the deploy user, the boot report - comes from
-# modules/nixos/sink-machine.nix, imported below. `hosts/sink-pi/README.md` records
-# which item went where and why.
+# comes from the sink repository's `nixosModules.piSink` (sink-pi/flake.nix, a sibling
+# of hosts/, adds it next to this module), and the machine-wide policy that a shared Pi
+# would have to state once - boot parameters, swap, the governor, the deploy user, the
+# boot report - comes from modules/nixos/sink-machine.nix, imported below.
+# hosts/sink-pi/README.md records which item went where and why, and why this host is
+# its own flake.
 #
 # The sink repository keeps a reference copy of this host (`nix/hosts/sink-pi.nix`)
 # so the image can still be built straight from there. It is a snapshot, not a
@@ -262,8 +263,8 @@ in
   # --- small and headless ----------------------------------------------------
   #
   # The boot report, the firmware partition and the trusted deploy user are in
-  # sink-machine.nix (they are the same on any Pi box); what is left here is this
-  # box's own housekeeping.
+  # machines/nixos/sink-machine.nix (they are the same on any Pi box); what is left
+  # here is this box's own housekeeping.
 
   # No documentation build: it is a large part of a NixOS closure and this box has
   # no manual pages to read.

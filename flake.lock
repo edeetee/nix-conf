@@ -1,21 +1,5 @@
 {
   "nodes": {
-    "bluez-nixpkgs": {
-      "locked": {
-        "lastModified": 1791487292,
-        "narHash": "sha256-tqM7xDEsaeK1p6VvRygeZ9LkQRpUUkbRT02BHv6hnTM=",
-        "owner": "NixOS",
-        "repo": "nixpkgs",
-        "rev": "8edc0c72e3a38faf5434e40d1f19431125fe4b30",
-        "type": "github"
-      },
-      "original": {
-        "owner": "NixOS",
-        "ref": "nixpkgs-unstable",
-        "repo": "nixpkgs",
-        "type": "github"
-      }
-    },
     "brew-src": {
       "flake": false,
       "locked": {
@@ -585,7 +569,6 @@
     },
     "root": {
       "inputs": {
-        "bluez-nixpkgs": "bluez-nixpkgs",
         "deskflow-tap": "deskflow-tap",
         "flamenco": "flamenco",
         "home-manager": "home-manager",
@@ -600,31 +583,7 @@
         "nixpkgs": "nixpkgs_5",
         "nixvim": "nixvim",
         "nixvim-vsc": "nixvim-vsc",
-        "sink": "sink",
         "sops-nix": "sops-nix"
-      }
-    },
-    "sink": {
-      "inputs": {
-        "bluez-nixpkgs": [
-          "bluez-nixpkgs"
-        ],
-        "nixpkgs": [
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1791683990,
-        "narHash": "sha256-Q/Qts9FIbt/TNsXY6xM8ifmQ5UDvPKxkQwkisk0dnsE=",
-        "ref": "refs/heads/main",
-        "rev": "c5566ca6f7701fce9f2c45fda0bccbaba3a3fd5a",
-        "revCount": 174,
-        "type": "git",
-        "url": "ssh://git@github.com/edeetee/sink"
-      },
-      "original": {
-        "type": "git",
-        "url": "ssh://git@github.com/edeetee/sink"
       }
     },
     "sops-nix": {

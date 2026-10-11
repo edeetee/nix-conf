@@ -21,19 +21,34 @@ The rule when something is ambiguous: **if changing it would be meaningless on a
 non-Pi NixOS box running sink, it belongs in `~/dev/sink/nix/pi-sink.nix`; otherwise it
 belongs here.**
 
-The seam is the flake input. `flake.nix` takes `sink` as an input and imports
-`sink.nixosModules.piSink` into `nixosConfigurations.sink-pi`; the wrappers below
-*override* that input with the local checkout, so a change in `~/dev/sink` is what gets
-built — committed or not, as long as the file is **tracked by git** (an untracked file
-is invisible to `git+file://`, the same property `hosts/sink-pi/local.nix` relies on).
-No `nix flake lock` step is needed in the loop.
+## A split flake
 
-> **The `sink` input is private.** `flake.nix` points at
-> `git+ssh://git@github.com/edeetee/sink` rather than `github:edeetee/sink`, because the
-> `github:` fetcher goes through `api.github.com` anonymously and 404s on it. Anything
-> that evaluates this flake without the override — `nix flake check`, `nixup` on the
-> homeserver — therefore needs SSH access to that repository. The deploy and image
-> wrappers do **not**, because they override the input.
+The seam is a flake input, but it lives in a flake of its own: **`sink-pi/flake.nix`**,
+which takes `sink` (`git+ssh://git@github.com/edeetee/sink` — the repository is private,
+so the anonymous `github:` fetcher 404s) and imports `sink.nixosModules.piSink` into
+`nixosConfigurations.sink-pi`. The top-level `flake.nix` does **not** reference it, and
+that is not tidiness: Nix resolves *every* input of a flake before evaluating any
+output, even one the command never uses, so while `sink` was an input of the top-level
+flake every rebuild of `homeserver-edt`, `rpi3b` or the Darwin configurations needed
+read access to the private repository. The costs of the split are that
+`nixosConfigurations.sink-pi` is no longer an attribute of the root flake, that there
+are two `flake.lock`s, and that top-level `nix flake check` no longer validates this
+host — check `sink-pi/` instead.
+
+The flake root is a subdirectory of the repository, so the wrappers pass the whole
+repository plus `--dir sink-pi`: the entire tree is mounted and the reference is built
+as `git+file:///src?dir=sink-pi#...`. With `?dir=` the whole repository is the source
+tree and only the flake root is that subdirectory, which is why the sub-flake can read
+`../hosts/sink-pi` and `../modules/nixos/sink-machine.nix`. Do **not** pass
+`--flake ~/dev/nix-conf/sink-pi` instead: a bare subdirectory is a *path* flake, which
+would see untracked files and lose the tracked-only semantics that let
+`hosts/sink-pi/local.nix` hold the WiFi key uncommitted.
+
+The wrappers *override* the `sink` input with the local checkout, so a change in
+`~/dev/sink` is what gets built — committed or not, as long as the file is **tracked by
+git** (an untracked file is invisible to `git+file://`). No `nix flake lock` step is
+needed in the loop. Only a machine that evaluates `sink-pi/flake.nix` itself — never
+`nixup` on the homeserver — needs SSH access to the sink repository.
 
 ## Day to day: a change in sink, one command
 
@@ -43,8 +58,8 @@ cd ~/dev/nix-conf
 ./scripts/sink-pi-switch.sh 192.168.1.27    # or sink@<address>
 ```
 
-That runs `~/dev/sink/nix/switch.sh --flake ~/dev/nix-conf --host sink-pi
---sink-repo ~/dev/sink <target>`, which:
+That runs `~/dev/sink/nix/switch.sh --flake ~/dev/nix-conf --dir sink-pi --host
+sink-pi --sink-repo ~/dev/sink <target>`, which:
 
 1. builds `nixosConfigurations.sink-pi` in a `linux/arm64` Docker container with the
    `sink` input overridden by `~/dev/sink` (`--override-input sink git+file:///src-sink
@@ -61,7 +76,7 @@ which is why it is not the default.
 The equivalent without the wrapper, from the sink checkout:
 
 ```bash
-nix/switch.sh --flake ~/dev/nix-conf --sink-repo ~/dev/sink sink@192.168.1.27
+nix/switch.sh --flake ~/dev/nix-conf --dir sink-pi --sink-repo ~/dev/sink sink@192.168.1.27
 ```
 
 ### Changing the machine
@@ -73,12 +88,33 @@ touches the other hosts.
 
 ### Pinning, for machines that are not this laptop
 
-The override is a developer convenience. `flake.lock` is the real record: on a machine
-without a sink checkout, `nixos-rebuild --flake .#sink-pi` uses exactly the revision
-the lock records. Move it deliberately, after pushing sink:
+The override is a developer convenience. `sink-pi/flake.lock` is the real record, and
+because the configuration is its own flake it is updated *there*, not at the top level:
 
 ```bash
+cd ~/dev/nix-conf/sink-pi
 nix flake update sink
+```
+
+`nixpkgs` and `bluez-nixpkgs` are pinned to **exact revisions**, not branches:
+
+| input | rev | why |
+|---|---|---|
+| `nixpkgs` | `c508844df6c2` — `26.05.20260924.c508844` | the revision the board has been proved on: what the Pi's existing generations are (kernel 6.18.53), what the sink repository pins, and therefore what every latency, underrun and popping measurement was taken on |
+| `bluez-nixpkgs` | `d54020a6ac32` | the sink repository's pinned rev, so the patched BlueZ is byte-for-byte what was proved |
+
+`nix flake update nixpkgs` does not move a rev-pinned input: change the rev in
+`flake.nix` and `nix flake lock`. Keeping the package set fixed while the machine
+configuration changes is deliberate — one variable at a time. Because the Pi's store
+still holds that closure (its generations are `c508844`, and `nix.gc` prunes only older
+than 14 days), the next deploy after this pin is a small delta rather than the
+multi-gigabyte copy a nixpkgs move costs.
+
+Check the pin took effect with:
+
+```bash
+nix eval --raw .#nixosConfigurations.sink-pi.config.system.nixos.version  # 26.05.20260924.c508844
+nix eval --raw .#nixosConfigurations.sink-pi.pkgs.bluez.version          # 5.87
 ```
 
 ## A fresh SD card
@@ -91,10 +127,11 @@ cd ~/dev/nix-conf
 ```
 
 `scripts/sink-pi-image.sh` runs `~/dev/sink/nix/build-image.sh --flake ~/dev/nix-conf
---image images.sink-pi --sink-repo ~/dev/sink`, so the image is built from *this* flake
-and lands in the sink checkout, which is where `flash-sd.sh` looks for it. (The plain
-attribute is `nix build .#images.sink-pi` → `result/sd-image/*.img`; note `nix flake
-check` warns "unknown flake output 'images'", which is cosmetic — the attribute builds.)
+--dir sink-pi --image images.sink-pi --sink-repo ~/dev/sink`, so the image is built from
+the `sink-pi` sub-flake (`--dir sink-pi`) and lands in the sink checkout, which is where
+`flash-sd.sh` looks for it. The plain attribute is `sink-pi#images.sink-pi`
+(`cd sink-pi && nix build .#images.sink-pi` → `result/sd-image/*.img`); `nix flake check`
+warns "unknown flake output 'images'", which is cosmetic — the attribute builds.
 
 Writing the card is the human's command, not an agent's: `flash-sd.sh` in read-only
 mode is safe and prints what the write would do; `--write` is destructive and refuses
@@ -194,11 +231,18 @@ the reference host in the sink repository.
 
 ## Verifying a change without deploying
 
+The host is its own flake, so the root's `nix flake check` covers everything *except*
+this box; check both:
+
 ```bash
-nix flake check --no-build
+nix flake check --no-build                      # the rest of the repository
+cd sink-pi && nix flake check --no-build        # this host
 nix eval --raw .#nixosConfigurations.sink-pi.config.system.build.toplevel.drvPath
 nix eval --raw .#images.sink-pi.drvPath
 ```
+
+The system version in the derivation name should read `26.05.20260924.c508844` — the
+proved pin; anything else means the sub-flake's `nixpkgs` moved.
 
 A real `sink` switch, a real image build (needs Docker) and anything that writes the SD
 card are deliberate, user-run steps — never an agent's foreground command.
