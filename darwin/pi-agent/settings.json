@@ -3,9 +3,10 @@
     "npm:@hypabolic/pi-hypa",
     "npm:pi-web-access"
   ],
-  "lastChangelogVersion": "0.84.2",
+  "lastChangelogVersion": "1.1.0",
   "theme": "dark",
   "hideThinkingBlock": true,
   "defaultProvider": "deepseek",
-  "defaultModel": "deepseek-v4-flash"
+  "defaultModel": "deepseek-flash",
+  "tuiMode": "fullscreen"
 }

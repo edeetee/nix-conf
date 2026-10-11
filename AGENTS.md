@@ -181,6 +181,15 @@ hosts/
   Note: rpi3b is built on the homeserver (aarch64 via qemu-user emulation),
   never on the Pi itself. Updates are nixos-rebuild --target-host over ssh,
   never a re-flash. See hosts/rpi3b/install.md.
+  sink-pi/                 — Raspberry Pi 3B+, the sink MIDI instrument
+    default.nix            — the machine: hostname, users, wifi, storage, instrument settings
+    local.nix              — the WiFi network (placeholders committed, edited in place)
+    authorized_keys.txt    — who may SSH in (sink + root)
+    README.md              — two-repo workflow, deploy/image commands, design ownership
+  Note: sink-pi depends on the private `~/dev/sink` flake (the app and the Pi
+  seam); scripts/sink-pi-switch.sh and scripts/sink-pi-image.sh override that
+  input with the local checkout. Builds happen in an aarch64 Docker container on
+  the Mac, never on the Pi. See hosts/sink-pi/README.md.
 
 modules/
   common.nix               — shared config (shell, packages, aliases) for all machines
@@ -193,10 +202,19 @@ modules/
     airplay.nix            — AirPlay: shairport-sync (audio), UxPlay (mirroring), now-playing UI
     airplay-nowplaying.py  — the fullscreen now-playing window that airplay.nix wraps
     check-mounts.nix       — guards against chown on shared mounts
+    sink-machine.nix       — machine policy for running the sink instrument on a shared Pi
     arr.nix                 — nixarr (WIP)
 
 lib/
   jj-tools/                — custom jj wrapper + tests
+
+scripts/
+  sink-pi-switch.sh        — deploy sink-pi: container build + delta copy to the Pi
+  sink-pi-image.sh         — build the sink-pi SD image through the sink container recipe
+
+plans/                     — design docs for proposed (not yet built) changes
+  README.md                — lifecycle + index of plans
+  vaultwarden.md           — self-hosted Bitwarden (Vaultwarden), LAN-only, replicated
 
 darwin/                    — macOS Darwin config (MacBooks)
 .config/                   — managed dotfiles synced via home-manager
