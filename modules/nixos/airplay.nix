@@ -56,8 +56,13 @@
 #     instead. AirPlay 2 also binds its control, event and realtime-audio UDP
 #     sockets with local port 0 (rtsp.c: `conn->local_ap2_control_port = 0; //
 #     any port`) and hands the chosen port to the sender in the SETUP reply, so
-#     the sender's packets arrive inbound on a port nothing can know in advance:
-#     a host with a firewall needs the ephemeral range open (`ephemeralUdpPorts`).
+#     the sender's packets arrive inbound on a port nothing can know in advance.
+#     And AirPlay 2's *event* channel runs the other way round over TCP: the
+#     receiver binds a port, sends it as `eventPort`, and `ap2_event_receiver`
+#     accepts the sender's incoming connection. So a host with a firewall needs
+#     those ephemeral ranges open for TCP as well as UDP (`ephemeralPorts`) —
+#     opening only UDP gives a receiver that completes the handshake and then
+#     silently never plays.
 #
 #  4. Upstream assumes exclusive access to the output device — "A problem with
 #     this setup is that Shairport Sync expects exclusive access to the audio
@@ -260,7 +265,7 @@ in
       '';
     };
 
-    ephemeralUdpPorts = mkOption {
+    ephemeralPorts = mkOption {
       type = types.listOf (types.attrsOf types.port);
       default = [
         {
@@ -270,17 +275,26 @@ in
       ];
       example = [ ];
       description = ''
-        UDP ranges to open for AirPlay 2's dynamically-bound streams, used only
-        when `openFirewall = true`. AirPlay 2's control, event and
-        realtime-audio sockets are bound with local port 0 and the chosen ports
-        are handed to the sender in the SETUP reply, so the sender's packets
-        arrive inbound on ports that cannot be known in advance. The default
-        covers Linux's usual ephemeral range (`net.ipv4.ip_local_port_range`),
-        which is where those sockets land.
+        TCP *and* UDP ranges to open for AirPlay 2's dynamically-bound channels,
+        used only when `openFirewall = true`.
 
-        Set to `[]` to close the range: classic AirPlay and mirroring still
-        work, and an AirPlay 2 client connects and then stays silent. Only
-        meaningful on a host whose firewall is on.
+        UDP: the control and realtime-audio sockets, bound with local port 0
+        (`rtsp.c`: `conn->local_ap2_control_port = 0; // any port`) and handed to
+        the sender in the SETUP reply, so its packets arrive inbound on ports
+        nothing can predict.
+
+        TCP: the event channel. The receiver binds a port, advertises it as
+        `eventPort` in the SETUP reply, and `ap2_event_receiver` then *accepts*
+        the sender's incoming connection (`eintr_checked_accept`). Opening only
+        UDP leaves a receiver that answers the handshake and then never starts
+        playing, with nothing in the journal to say why — measured on sink-pi,
+        where the phone's connection to that port timed out and the log stopped
+        one line after a successful PTP setup.
+
+        Both land in the kernel's ephemeral range
+        (`net.ipv4.ip_local_port_range`), which is what the default covers. Set
+        to `[]` to close them: classic AirPlay and mirroring still work, and an
+        AirPlay 2 client connects and then goes quiet.
       '';
     };
 
@@ -305,10 +319,11 @@ in
       type = types.bool;
       default = true;
       description = ''
-        Open the receiver's ports: TCP `rtspPort`, nqptp's PTP ports (UDP
+        Open the receiver's ports: TCP `rtspPort` (and, for AirPlay 2, the
+        ephemeral TCP range its event channel needs), nqptp's PTP ports (UDP
         319/320, AirPlay 2 only), the classic AirPlay audio range (UDP
         6001-6011, which an AirPlay 2 build still uses when it falls back to
-        classic AirPlay for an older sender) and `ephemeralUdpPorts`.
+        classic AirPlay) and `ephemeralPorts`.
 
         The NixOS shairport-sync module's own `openFirewall` is deliberately not
         used: it opens TCP 5000, the *classic* RTSP port, while the AirPlay 2
@@ -577,6 +592,11 @@ in
       # RTSP, plus UxPlay's three TCP ports. cfg.rtspPort is in the list rather
       # than a hardcoded 5000/7000 so it always matches the config file.
       allowedTCPPorts = [ cfg.rtspPort ] ++ lib.optionals cfg.mirror.enable mirrorPortRange;
+      # AirPlay 2's event channel: the sender connects *in* to a port the
+      # receiver picked at random. Without this the session finishes its
+      # handshake and then dies silently — which is exactly what happened on
+      # sink-pi before this rule existed.
+      allowedTCPPortRanges = cfg.ephemeralPorts;
       # nqptp's PTP ports (AirPlay 2 only) and UxPlay's three UDP ports...
       allowedUDPPorts =
         lib.optionals cfg.airplay2 [
@@ -585,15 +605,14 @@ in
         ]
         ++ lib.optionals cfg.mirror.enable mirrorPortRange;
       # ...and AirPlay 1's audio range, which the AirPlay 2 build still uses when
-      # it reverts to classic AirPlay, plus the ephemeral ports AirPlay 2 binds
-      # for its own streams (see ephemeralUdpPorts).
+      # it reverts to classic AirPlay, plus AirPlay 2's own UDP streams.
       allowedUDPPortRanges = [
         {
           from = 6001;
           to = 6011;
         }
       ]
-      ++ cfg.ephemeralUdpPorts;
+      ++ cfg.ephemeralPorts;
     };
 
     # ── now-playing display (+ keep-awake while playing) ──────────────────

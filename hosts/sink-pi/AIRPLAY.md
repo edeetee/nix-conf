@@ -106,19 +106,31 @@ would pin `hw:0,0` open forever.
 |---|---|---|
 | RTSP (control) | TCP 7000 | AirPlay 2 default; a classic build uses 5000 (`shairport.c`) |
 | PTP timing | UDP 319, 320 | nqptp; AirPlay 2 only |
+| event channel | TCP 32768-60999 | the sender connects *into* a port the receiver picked |
+| AirPlay 2 streams | UDP 32768-60999 | control and realtime audio, same story |
 | classic air audio | UDP 6001-6011 | used when the AirPlay 2 build reverts to classic AirPlay |
-| AirPlay 2 streams | UDP 32768-60999 | see below |
 | mDNS | UDP 5353 | avahi, already on this host |
 
-The last row is the reason this module owns the firewall rather than using
+The bottom two rows are the reason this module owns the firewall rather than using
 `services.shairport-sync.openFirewall`, which opens TCP **5000** — the classic port,
-i.e. wrong for the AirPlay 2 package — and knows nothing about the ephemeral range.
-AirPlay 2 binds its control, event and realtime-audio sockets with local port 0
-(`rtsp.c`: `conn->local_ap2_control_port = 0; // any port`) and hands the chosen ports
-to the sender in the SETUP reply, so the sender's packets arrive inbound on ports
-nothing can predict at configuration time; closing that range gives a receiver that
-connects and then stays silent. `services.airplay.ephemeralUdpPorts = []` does exactly
-that if the range is ever unwanted.
+i.e. wrong for the AirPlay 2 package — and knows nothing about the dynamic ones.
+Those come in two flavours, and getting only one of them is the trap this box already
+fell into:
+
+- **UDP**: the control and realtime-audio sockets are bound with local port 0
+  (`rtsp.c`: `conn->local_ap2_control_port = 0; // any port`) and the chosen port is
+  handed to the sender in the SETUP reply, so its packets arrive inbound on a port
+  nothing can predict.
+- **TCP**: the *event* channel. The receiver binds a port, advertises it as
+  `eventPort`, and `ap2_event_receiver` then accepts the sender's incoming connection
+  (`eintr_checked_accept`). With only the UDP range open, the phone's connect to that
+  port is silently dropped: the handshake completes, nothing plays, and the journal
+  stops one line after a successful PTP setup — no error, because there is nothing on
+  the Pi to see.
+
+Both land in the kernel's ephemeral range, which is what `services.airplay.ephemeralPorts`
+(default `32768-60999`, applied to TCP and UDP) opens. `= []` closes them if that ever
+matters; the last two rows of the table go quiet, nothing else does.
 
 ## Operating it
 
@@ -129,6 +141,19 @@ shairport-sync -h                           # build flags + ALSA device names
 ss -tlnp | grep 7000                        # is RTSP actually listening
 systemctl stop shairport-sync               # give the card back to the synth alone
 ```
+
+**"The phone connects and nothing plays"** is the signature of a firewall problem on
+this box, not an AirPlay bug: the handshake happens over port 7000 and every later
+channel is on a port picked at runtime, so the useful question is whether the phone can
+reach *those*. Test it from the LAN without a phone at all — a dropped port times out,
+an open one is refused, and the difference is the whole diagnosis:
+
+```bash
+nc -vz -G 4 192.168.1.27 40000      # timeout = dropped; refused = the rule is in place
+```
+
+If it times out, `/etc/shairport-sync.conf` still shows what you expect — the ports are
+the module's business (`modules/nixos/airplay.nix`, `ephemeralPorts`), not the daemon's.
 
 To watch the two streams coexist while a phone is playing: `cat
 /proc/asound/card0/pcm0p/sub*/status` — `sub0` is the synth, `sub1` is AirPlay.
