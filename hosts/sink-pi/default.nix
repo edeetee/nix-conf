@@ -30,6 +30,10 @@ in
     (modulesPath + "/profiles/minimal.nix")
     (modulesPath + "/installer/sd-card/sd-image-aarch64.nix")
     ../../modules/nixos/sink-machine.nix
+    # The AirPlay receiver, in its headless shape (services.airplay.desktop =
+    # false below). Same file homeserver-edt imports from desktop.nix, and it
+    # reaches nothing in a session when desktop is off.
+    ../../modules/nixos/airplay.nix
   ];
 
   # --- boot ------------------------------------------------------------------
@@ -258,6 +262,31 @@ in
       alsa_latency_us = 40000;
     };
     midi.device = "MPK mini";
+  };
+
+  # --- airplay ----------------------------------------------------------------
+  #
+  # A headless receiver: no session here, so the system unit runs shairport-sync
+  # and it writes ALSA straight to the card the instrument is on. That is not a
+  # fight for the device - the bcm2835 driver exposes eight playback substreams,
+  # and a second client is accepted, drained in real time and does not disturb
+  # the synth's stream (measured; hosts/sink-pi/AIRPLAY.md has the numbers). What
+  # it does *not* do is touch the synth's path: shairport-sync opens the device
+  # only while a stream is playing, so an idle receiver holds no audio device at
+  # all and the two only share the card during playback.
+  #
+  # AirPlay 2 (the default, via `airplay2`) brings nqptp and with it the
+  # ephemeral-UDP firewall range the module opens; see the module for why. This
+  # box can afford the ffmpeg-sized part of that closure, so it keeps it.
+  services.airplay = {
+    enable = true;
+    desktop = false;
+
+    # The same card the instrument opens. Named directly rather than through the
+    # `default` plugin PCM, for the reason the synth's alsa_device is hw:0,0 too:
+    # the plugin layer does its own format/period conversion, and that was the
+    # popping (plans/remove-popping.md).
+    outputDevice = "hw:0,0";
   };
 
   # --- small and headless ----------------------------------------------------
