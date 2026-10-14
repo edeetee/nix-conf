@@ -87,6 +87,44 @@ cmux send --surface surface:75 \
 
 The `from` field is self-reported, so name the watcher honestly.
 
+## Progress in the sidebar
+
+A series is invisible unless the sidebar says where it is, and it is easy to get wrong in two ways:
+reporting each agent's progress (which restarts at 0 and reads as stuck), and never clearing it (a
+leftover bar looks like work in flight and the user will believe it).
+
+Use **aggregate** progress across the whole series, updated at every handoff:
+
+```bash
+WS="${CMUX_WORKSPACE_ID}"
+# N agents total, M *completed* (starts at 0), f = fraction of the current one (0.0 before it starts,
+# 0.5 mid-run, 0.9 nearly done). Invariant: when an agent lands, increment M and reset f to 0 — so the
+# series ends at M=N, f=0, i.e. 1.0. The min() is a guard, not decoration: M+f > N is easy to reach by
+# forgetting to reset f, and set-progress rejects values outside 0..1.
+cmux set-progress "$(python3 -c "print(min(1.0, ($M + $f) / $N))")" --label "agent $((M+1))/$N: <task>" --workspace "$WS"
+cmux set-status agents "$((M+1))/$N: <task>" --workspace "$WS" --color "#ff9500"
+cmux log --workspace "$WS" --level info -- "agent $((M+1)) of $N started: <task>"
+```
+
+Worked through with `N=4`: start `0.0`, mid-first `0.125`, first landed `0.25`, mid-second `0.375`,
+third landed `0.75`, all four landed `1.0`.
+
+Log one line per handoff, and use `--level success` when an agent lands its commits. The status line
+must name the *current* step, not the series as a whole — `3/4: screenshots` tells the user where to
+look.
+
+Teardown, which is the part that gets forgotten:
+
+```bash
+cmux clear-progress --workspace "$WS"
+cmux clear-status agents --workspace "$WS"
+cmux log --workspace "$WS" --level success -- "agent series complete: $N agents, $C commits"
+```
+
+Leave the `pi` status key alone — the cmux pi hook owns it — and never leave a progress bar or a
+status key behind when the work is done. If a series is abandoned or a sub-agent dies, clear or
+correct the bar in the same message where you tell the user about it.
+
 ## Rules
 
 - **One writer per working tree.** Series, not parallel, unless each agent gets its own git worktree
