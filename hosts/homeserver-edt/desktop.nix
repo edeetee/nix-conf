@@ -49,6 +49,37 @@
     };
   };
 
+  # ── Jellyfin Desktop as an always-present cast target ──────────────────
+  # Jellyfin can only be remote-controlled while a client is *running* and
+  # logged in — there is no way to wake a sleeping client from the phone. So
+  # the TV client lives in the session: cast from the Jellyfin app and the
+  # video appears here, with no need to launch anything on this box first.
+  #
+  # `--windowed` (not `--fullscreen`) keeps the Plasma desktop usable, which
+  # matters because this box is also the Steam machine. Casted video still goes
+  # fullscreen: the client honours the web player's HTML5 fullscreen request
+  # (see the `fullscreen` setting's help text in the client's
+  # settings_description.json).
+  #
+  # Restart=on-failure, deliberately not `always`: a crash comes back, but
+  # *quitting* the app stays quit so the desktop can be used. Start it again
+  # from the phone (KDE Connect run command) or with
+  # `systemctl --user start jellyfin-desktop`.
+  #
+  # Note: after deploying, a *new* user unit is not started on an already
+  # running user manager (see AGENTS.md "Deploying") — start it by hand once.
+  systemd.user.services.jellyfin-desktop = {
+    description = "Jellyfin Desktop TV client (remote-control target)";
+    after = [ "plasma-plasmashell.service" ];
+    wantedBy = [ "plasma-plasmashell.service" ];
+    serviceConfig = {
+      Type = "simple";
+      ExecStart = "${pkgs.jellyfin-desktop}/bin/jellyfin-desktop --tv --windowed";
+      Restart = "on-failure";
+      RestartSec = 5;
+    };
+  };
+
   # Enable wake for all Bluetooth USB controllers
   services.udev.extraRules = ''
     ACTION=="add", SUBSYSTEM=="usb", ATTR{bDeviceClass}=="e0", TEST=="power/wakeup", ATTR{power/wakeup}="enabled"

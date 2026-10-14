@@ -147,13 +147,53 @@ If a module needs platform-specific options, either:
 
 ### 8. Secrets (sops-nix)
 - Secrets live in `hosts/homeserver-edt/secrets.yaml` (encrypted).
-- Edit with: `sops hosts/homeserver-edt/secrets.yaml`
+- Edit with: `sops hosts/homeserver-edt/secrets.yaml` — **on the server.** See
+  "Editing from a Mac" below for why, and what to run instead.
 - Access in NixOS config as: `config.sops.secrets.<name>.path`
 - Age keys are derived from SSH host keys. To add a new host:
   ```
   nix-shell -p ssh-to-age --run "ssh-keyscan <host> | ssh-to-age"
   ```
-  Then add the key to `.sops.yaml`.
+  Then add the key to `.sops.yaml`, and run `sops updatekeys <file>` on a host
+  that can already decrypt it. Editing an existing file *preserves* its
+  recipients (they are read from the file's metadata), so `updatekeys` is only
+  needed after `.sops.yaml` changes — verified against sops 3.12.2.
+
+### Editing from a Mac
+
+`secrets.yaml` is effectively **server-owned**, for two reasons that both have
+to be understood before touching it from a laptop:
+
+1. The committed file's metadata lists only the server's keys, so a laptop
+   cannot decrypt the repo copy at all.
+2. The server carries local-only commits on this file (`deepseek api key`,
+   `flake.local`) that add keys the repo copy does not have — and sops-nix reads
+   the *server's* working copy. Committing an edit on the laptop and pushing it
+   makes the next `nixup` rebase collide on an encrypted file, which cannot be
+   merged by hand.
+
+So use:
+
+```
+./scripts/secrets-edit.sh
+```
+
+— it fetches the server's copy over ssh, opens `sops` on it, pushes it back,
+validates that the server can still decrypt it, and commits it there (where the
+local-only commits live, so nothing has to be reconciled).
+
+The laptop's age key was added 2026-10-14 (recipient `&macbook-max` in
+`.sops.yaml`) and lives where sops actually looks on macOS:
+
+```
+~/Library/Application Support/sops/age/keys.txt
+```
+
+**Not** `~/.config/sops/age/keys.txt` — sops resolves the key file through Go's
+`os.UserConfigDir()`, which on darwin is `~/Library/Application Support`. (The
+server is Linux, so there the same convention *does* mean
+`~/.config/sops/age/keys.txt`.) Setting `SOPS_AGE_KEY_FILE` also works if a
+non-default path is ever needed.
 
 ## Repo structure
 ```
@@ -165,12 +205,14 @@ hosts/
     hardware-configuration.nix
     boot.nix               — kernel, loader, plymouth
     networking.nix         — hostname, avahi, zerotier, ssh, firewall
-    desktop.nix            — display manager, plasma, bluetooth
+    desktop.nix            — display manager, plasma, bluetooth, jellyfin TV client
     services.nix           — cockpit, jellyfin, transmission, homepage, nginx
-    packages.nix           — system packages, fonts, users, shell (nixup/nixrs aliases)
+    packages.nix           — system packages, fonts, users (pinned uid), shell (nixup/nixrs)
+    mac-share.nix          — the Mac's SMB share as an on-demand cifs automount at /mnt/mac
     pi-agent/              — pi coding agent (deepseek models/settings)
     AUDIO.md               — PipeWire/Wine latency notes; how the audio stack is tuned
     AIRPLAY.md             — AirPlay audio + screen mirroring + now-playing display
+    TV-MEDIA.md            — casting to the TV, the phone remote, playing Mac files
   rpi3b/                   — Raspberry Pi 3B, lean always-on agent host over zerotier
     default.nix            — entrypoint (minimal, no commonModules)
     hardware-configuration.nix — SD root by label (NIXOS_SD)
@@ -218,6 +260,7 @@ sink-pi/                   — split flake for the instrument box (see hosts/sin
 scripts/
   sink-pi-switch.sh        — deploy sink-pi: container build + delta copy to the Pi
   sink-pi-image.sh         — build the sink-pi SD image through the sink container recipe
+  secrets-edit.sh          — edit homeserver-edt secrets from a machine that isn't the server
 
 plans/                     — design docs for proposed (not yet built) changes
   README.md                — lifecycle + index of plans

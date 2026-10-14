@@ -29,6 +29,12 @@
 
   users.users.edeetee = {
     isNormalUser = true;
+    # Pinned deliberately. Without this NixOS allocates the uid dynamically,
+    # and several things here assume it is 1000: /run/user/1000 in AGENTS.md
+    # and AIRPLAY.md, and the `uid=` option of the Mac share mount
+    # (mac-share.nix, which cannot guess a dynamically allocated uid).
+    # Verified on the host: `id -u edeetee` -> 1000.
+    uid = 1000;
     extraGroups = [
       "wheel"
       "video"

@@ -13,6 +13,19 @@
 keys:
   - &homeserver-edt age1g79q4cadrwz2fncgrsw77c04vkvfq6xpv46s0czvvm8n2475k3qstk6hf0
   - &edeetee age1ajfkycqvdpagukxpp5ra4c9jr23x5797q7p36y4z3gqud5l6y4uqfs57q3
+  # Edwards-MacBook-Max — lets secrets be edited from the laptop, not just on
+  # the server. The private key lives where sops actually looks on macOS:
+  #
+  #   ~/Library/Application Support/sops/age/keys.txt
+  #
+  # NOT ~/.config/sops/age/keys.txt — sops resolves the key file through Go's
+  # os.UserConfigDir(), which on darwin is ~/Library/Application Support. Verified
+  # by decrypting the file with no SOPS_* env var set. (The server is Linux, so
+  # there the same convention does mean ~/.config/sops/age/keys.txt.)
+  #
+  # Note the *value* of a secret still has to reach the server's working copy:
+  # that is the file sops-nix reads. See AGENTS.md "Secrets (sops-nix)".
+  - &macbook-max age1w2xf5z0068tk2p2u7rhykun4m7c5dt2pkfju0hnh066er07s8ursdtw2m7
 
 creation_rules:
   - path_regex: hosts/homeserver-edt/secrets\.yaml$
@@ -20,3 +33,4 @@ creation_rules:
       - age:
           - *homeserver-edt
           - *edeetee
+          - *macbook-max
