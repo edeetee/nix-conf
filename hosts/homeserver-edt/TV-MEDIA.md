@@ -124,11 +124,17 @@ unless it is embedded as `smb://user:pass@host/…`.
 `/mnt/mac` is a **cifs automount**: nothing is mounted at boot, and the first
 read of the path triggers the connection. If the Mac is asleep the read fails
 fast and the *next* read tries again, so `ls /mnt/mac` is a retry button.
-Prerequisites: File Sharing on the Mac, and the macOS Shared Folder name must
-match `shareName` in `mac-share.nix`.
+Prerequisites: File Sharing on the Mac. `shareName = "edeetee"` is the share
+macOS creates automatically for each user's **home directory**, so this one mount
+covers every folder — `/mnt/mac/Downloads`, `/mnt/mac/Movies`, … — with no
+per-folder setup on the Mac. (macOS also offers the whole volume as `Macintosh HD`
+once all folders are shared; point `shareName` at it for the entire disk.)
 
 The credentials come from sops (a mount.cifs credentials file), so this must
-exist **before** deploying or the switch fails at activation:
+exist **before** deploying: sops-nix validates the declared secret names while
+*building* `manifest.json`, so a missing one fails the build with
+`the key 'mac-smb-credentials' cannot be found`. That is before anything is
+switched, so it is harmless — just wasted evaluation.
 
 ```yaml
 # hosts/homeserver-edt/secrets.yaml  (edit with `sops`, on a host that can decrypt)
@@ -149,10 +155,16 @@ Shape of the change, and why each part is there:
 - **`boot.supportedFilesystems = [ "cifs" ]`** — this is what pulls in
   `cifs-utils` (`system.fsPackages`) and the module. With a `fileSystems` entry
   that wiring is automatic; with hand-written units it is not.
-- **`uid=1000,gid=100,file_mode=0644,dir_mode=0755`** — macOS' SMB server does
-  not implement the CIFS Unix extensions, so ownership and modes come from these
-  options. World-readable is what lets the `jellyfin` user read the files.
-  (`uid` is only expressible because `packages.nix` now pins `edeetee`'s uid to
+- **`uid=1000,gid=100,file_mode=0600,dir_mode=0700,ro`** — macOS' SMB server
+  does not implement the CIFS Unix extensions, so ownership and modes come
+  entirely from these options: a 0600 file on the Mac is readable by whomever
+  they allow here. Since the mount is the whole home directory they are
+  owner-only on purpose — `edeetee` on this host (Dolphin, VLC) reads
+everything and no other local user can. Widening for `jellyfin` (uid 146,
+  gid 975) means `gid=975` with `file_mode=0640,dir_mode=0750`; be aware that
+  exposes the whole home, including `~/.ssh` and the sops age key, to a
+  network-facing service. `ro` because nothing here should write to the Mac.
+  (`uid` is only expressible because `packages.nix` pins `edeetee`'s uid to
   1000 — NixOS otherwise allocates it dynamically.)
 - **`soft` + `echo_interval=10`** — a `hard` mount blocks the calling process
   until an absent Mac returns (a stuck Jellyfin scan thread); `soft` returns an
@@ -217,5 +229,5 @@ ssh homeserver-edt.local 'systemctl list-timers mac-share-heal.timer'
 | Cast target not in the phone's list | Client not running, or missing the "remote control of other users" permission, or within ~30 s of boot |
 | `/mnt/mac` lists nothing, `systemctl is-active mnt-mac.automount` says `inactive` | The start-limit wedge above; the heal timer fixes it within 2 min, or `sudo systemctl restart mnt-mac.automount` |
 | `/mnt/mac` empty but the automount is active | Mac asleep, File Sharing off, wrong `shareName`, or wrong credentials — check `journalctl -u mnt-mac.mount -n 30` |
-| Mount works, Jellyfin can't read the files | `file_mode`/`dir_mode`/`uid` options, or the `jellyfin` user cannot traverse `/mnt/mac` |
+| Mount works, Jellyfin can't read the files | By design: the mount is owner-only (`uid=1000`, `file_mode=0600`). Widening it is described above |
 | VLC `smb://` fails with "cannot open" | File Sharing off, or the share password prompt was dismissed on the TV |

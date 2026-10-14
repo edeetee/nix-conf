@@ -25,9 +25,14 @@ let
   # Avahi resolves this on this host (networking.nix sets `nssmdns4 = true`).
   macHost = "Edwards-MacBook-Max.local";
 
-  # Must match the Shared Folder name in macOS Settings → General → Sharing →
-  # File Sharing (the name, not the path).
-  shareName = "Media";
+  # macOS shares each user's home directory as a share named after the short
+  # username, and once every folder is made shareable it also offers the whole
+  # volume as "Macintosh HD". Using the home share means this *one* mount
+  # covers every folder — /mnt/mac/Downloads, /mnt/mac/Movies, … — with no
+  # per-folder setup on the Mac. Verified with `smbclient -L` against this host:
+  # it advertises `edeetee`, `Macintosh HD`, `TF24`, `into_the_vortex`,
+  # `Edward Taylor’s Public Folder` and `IPC$`.
+  shareName = "edeetee";
 
   mountPoint = "/mnt/mac";
 
@@ -64,14 +69,27 @@ in
         "credentials=${credentials}"
 
         # macOS' SMB server does not implement the CIFS Unix extensions, so
-        # ownership and permissions come from these options, not the server.
-        # 0644/0755 makes the files world-readable, which is what lets the
-        # `jellyfin` user (a different uid) read them.
+        # ownership and permissions come entirely from these options — a 0600
+        # file on the Mac is readable by whoever they allow here. Because this
+        # is the whole home directory, they are deliberately owner-only:
+        # edeetee on this host (Dolphin, VLC) reads everything, and no other
+        # local user can.
+        #
+        # To read these files as `jellyfin` (uid 146, gid 975) instead, widen to
+        # gid=975 with file_mode=0640,dir_mode=0750 — but know what that exposes:
+        # jellyfin is network-facing, and the home contains ~/.ssh and the sops
+        # age key at ~/Library/Application Support/sops/age/keys.txt, which
+        # decrypts every secret in secrets.yaml.
         "uid=${toString config.users.users.edeetee.uid}"
         "gid=${toString config.users.groups.users.gid}"
-        "file_mode=0644"
-        "dir_mode=0755"
+        "file_mode=0600"
+        "dir_mode=0700"
         "iocharset=utf8"
+
+        # Read-only. Nothing on this host has any business writing into the
+        # Mac's home, and a stray process writing over SMB is a data-loss risk
+        # with nothing to gain. Drop it if you ever want to push files back.
+        "ro"
 
         # `soft` returns errors when the Mac disappears instead of blocking the
         # calling process forever (a `hard` mount hangs a Jellyfin scan thread
