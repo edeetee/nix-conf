@@ -64,7 +64,17 @@ in
     # Deploy to the homeserver via nixos-rebuild's built-in remote mode.
     # --ask-sudo-password prompts locally once and pipes it to remote sudo
     # over stdin, so no permanent NOPASSWD rule is needed.
-    push-server = "nixos-rebuild switch --flake ~/dev/nix-conf#homeserver-edt --target-host homeserver-edt.local --ask-sudo-password";
+    #
+    # --build-host is not optional: without it nixos-rebuild builds *here*, and
+    # this Mac is aarch64-darwin with no x86_64-linux builder (no
+    # /etc/nix/machines, and nix.linux-builder is disabled), so the build fails.
+    # With it, the server builds and switches — the same work `nixup` does there.
+    push-server = "nixos-rebuild switch --flake ~/dev/nix-conf#homeserver-edt --build-host edeetee@homeserver-edt.local --target-host homeserver-edt.local --ask-sudo-password";
+    # The same deploy without a password prompt: pushes, pulls on the server as
+    # edeetee, pre-flights the sops secrets, then runs the NOPASSWD'd
+    # `nixos-deploy` (hosts/homeserver-edt/deploy.nix). This is the one that
+    # works from scripts and agents.
+    deploy-server = "~/dev/nix-conf/scripts/deploy-server.sh";
   };
 
   programs.zsh = {

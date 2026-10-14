@@ -57,6 +57,31 @@ relying on it:
    the build half only — `nixos-rebuild build --flake .#homeserver-edt` (no root
    needed) validates and warms the store, then ask the user to run `nixup`.
 
+### Deploying from the Mac
+
+All three of these build *and* switch on the server. That is not a preference:
+the Mac is aarch64-darwin with no x86_64-linux builder (`nix.linux-builder` is
+off, `/etc/nix/machines` does not exist), so `--build-host` is mandatory and a
+plain `nixos-rebuild switch --target-host …` fails at the build.
+
+| From | Password | What it is |
+| --- | --- | --- |
+| `ssh -t homeserver-edt.local 'zsh -ic nixup'` | typed (TTY) | the server's own alias; `-t` is what gives sudo a terminal |
+| `push-server` (Darwin alias) | prompted once, piped to remote sudo | `nixos-rebuild switch --build-host … --target-host … --ask-sudo-password`; the alias needs a `darwin-rebuild switch` on the Mac first, but the command itself works today |
+| `./scripts/deploy-server.sh` | none | pushes, pulls as `edeetee`, pre-flights the sops secrets, then runs the NOPASSWD'd `nixos-deploy` — the one that works from scripts and agents |
+
+The last two depend on `hosts/homeserver-edt/deploy.nix`, which is what grants the
+passwordless rule, so the **first** deploy of that module has to go through
+`nixup` on the server. Read the SECURITY note in that module before keeping it: a
+NOPASSWD rule for something that installs a configuration out of a user-writable
+directory is passwordless root for `edeetee`.
+
+`deploy-server.sh` also runs a pre-flight: every `sops.secrets.<name>` declared in
+the checkout must exist in `hosts/homeserver-edt/secrets.yaml`. sops-nix catches
+that while *building* `manifest.json`, i.e. before anything is switched, so the
+failure is harmless — but it costs a full evaluation and the message is opaque
+(`the key 'x' cannot be found`).
+
 ## Critical rules
 
 ### 0. Always commit to nix-conf, not just the live server

@@ -12,6 +12,7 @@
     ./services.nix
     ./packages.nix
     ./mac-share.nix
+    ./deploy.nix
     ../../modules/nixos/steam.nix
     ../../modules/nixos/samba.nix
     ../../modules/nixos/reboot-to-windows.nix
