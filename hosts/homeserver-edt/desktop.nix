@@ -66,6 +66,9 @@
   # from the phone (KDE Connect run command) or with
   # `systemctl --user start jellyfin-desktop`.
   #
+  # Those phone-side run commands are declared in kde.nix, not clicked into
+  # KDE Connect by hand — that is the only record of how to restart this.
+  #
   # Note: after deploying, a *new* user unit is not started on an already
   # running user manager (see AGENTS.md "Deploying") — start it by hand once.
   systemd.user.services.jellyfin-desktop = {

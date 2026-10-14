@@ -25,3 +25,5 @@ verification section — the repo rule is "verify before committing, not after".
 | Plan | Status | Summary |
 | --- | --- | --- |
 | [vaultwarden.md](./vaultwarden.md) | draft | Self-hosted Bitwarden (Vaultwarden), LAN-only, on rpi3b + homeserver-edt, with replication and tested restores. |
+| [kde-declarative-settings.md](./kde-declarative-settings.md) | in progress | Moved homeserver-edt's hand-edited Plasma settings (KDE Connect run commands, power/sleep keys) into nix-conf. Implemented and verified; not deployed. |
+| [tailscale.md](./tailscale.md) | draft | Tailscale as the private network (no public IP, nothing always-on for connectivity), rpi3b as subnet router + exit node, then retire ZeroTier. |

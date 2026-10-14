@@ -11,6 +11,21 @@
     firewall = {
       enable = false;
       allowedUDPPorts = [ 9 ];
+      # KDE Connect (desktop.nix, kde.nix: the phone's run commands). Declared
+      # although the firewall is off, so that KDE Connect does not silently
+      # stop working the day it is turned on.
+      allowedTCPPortRanges = [
+        {
+          from = 1714;
+          to = 1764;
+        }
+      ];
+      allowedUDPPortRanges = [
+        {
+          from = 1714;
+          to = 1764;
+        }
+      ];
     };
   };
 

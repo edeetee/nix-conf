@@ -21,6 +21,15 @@
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    # Declarative KDE Plasma settings, a home-manager module. Only
+    # homeserver-edt uses it (see nixosConfigurations below); it is a flake
+    # input rather than a vendored module because it tracks Plasma's own
+    # option churn, which is exactly what we do not want to maintain here.
+    plasma-manager = {
+      url = "github:nix-community/plasma-manager";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.home-manager.follows = "home-manager";
+    };
     nix-homebrew.url = "github:zhaofengli-wip/nix-homebrew";
     homebrew-core = {
       url = "github:homebrew/homebrew-core";
@@ -87,6 +96,7 @@
       nix-index-database,
       sops-nix,
       nixos-hardware,
+      plasma-manager,
       ...
     }:
     let
@@ -105,31 +115,38 @@
           homeArgs ? { },
         }:
         nix-darwin.lib.darwinSystem {
-          modules = commonModules ++ [
-            nix-homebrew.darwinModules.nix-homebrew
-            (import ./darwin/configuration.nix {
-              inherit
-                self
-                homebrew-core
-                homebrew-cask
-                nixvim-vsc
-                ;
-              user = username;
-            })
-            nixvim.nixDarwinModules.nixvim
-            home-manager.darwinModules.home-manager
-            nix-index-database.darwinModules.nix-index
-          ] ++ extraModules ++ [
-            {
-              home-manager.useGlobalPkgs = true;
-              home-manager.useUserPackages = true;
-              home-manager.users.${username} = import ./darwin/home.nix ({
-                inherit homeDirectory;
-                username = username;
-              } // homeArgs);
-              home-manager.backupFileExtension = "home-manager-backup";
-            }
-          ];
+          modules =
+            commonModules
+            ++ [
+              nix-homebrew.darwinModules.nix-homebrew
+              (import ./darwin/configuration.nix {
+                inherit
+                  self
+                  homebrew-core
+                  homebrew-cask
+                  nixvim-vsc
+                  ;
+                user = username;
+              })
+              nixvim.nixDarwinModules.nixvim
+              home-manager.darwinModules.home-manager
+              nix-index-database.darwinModules.nix-index
+            ]
+            ++ extraModules
+            ++ [
+              {
+                home-manager.useGlobalPkgs = true;
+                home-manager.useUserPackages = true;
+                home-manager.users.${username} = import ./darwin/home.nix (
+                  {
+                    inherit homeDirectory;
+                    username = username;
+                  }
+                  // homeArgs
+                );
+                home-manager.backupFileExtension = "home-manager-backup";
+              }
+            ];
         };
     in
     {
@@ -141,6 +158,25 @@
           nixvim.nixosModules.nixvim
           nix-index-database.nixosModules.default
           sops-nix.nixosModules.sops
+          # Declarative Plasma settings (hosts/homeserver-edt/kde.nix).
+          #
+          # home-manager is wired here and NOT in commonModules: that list is
+          # also fed to mkDarwin, which already imports the *darwin* HM module
+          # through nix-darwin. rpi3b deliberately gets neither.
+          home-manager.nixosModules.home-manager
+          {
+            # One nixpkgs instantiation instead of two.
+            home-manager.useGlobalPkgs = true;
+            # NixOS-native package handling: HM's own packages (man-db,
+            # shared-mime-info, hm-session-vars.sh, ...) are built into
+            # /etc/profiles/per-user/edeetee by users.users.edeetee.packages at
+            # switch time. The default (false) would instead have HM's
+            # activation run `nix-env -i home-manager-path` at boot, mutating
+            # ~/.nix-profile — which on this host holds a hand-installed
+            # nixops-1.7 from years ago and is not ours to rewrite.
+            home-manager.useUserPackages = true;
+            home-manager.sharedModules = [ plasma-manager.homeModules.plasma-manager ];
+          }
         ];
       };
 

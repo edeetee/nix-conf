@@ -11,6 +11,7 @@
     ./desktop.nix
     ./services.nix
     ./packages.nix
+    ./home.nix
     ./mac-share.nix
     ./deploy.nix
     ../../modules/nixos/steam.nix
