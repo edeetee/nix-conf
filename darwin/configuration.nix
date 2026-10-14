@@ -22,6 +22,13 @@ in
     (pkgs.writeShellScriptBin "nvim-vsc" "exec -a $0 ${
       nixvim-vsc.packages.${pkgs.stdenv.hostPlatform.system}.default
     }/bin/nvim $@")
+    # transmission-remote, to drive the homeserver's torrent daemon
+    # (services.transmission in hosts/homeserver-edt/services.nix: RPC on 9091,
+    # no auth, whitelist disabled). Deliberately nixpkgs rather than a brew:
+    # this is transmission 4.1.3, the same version the daemon runs, and the v3
+    # and v4 RPC are not interchangeable. It is cached for aarch64-darwin, so
+    # there is nothing to build and activation is instant.
+    pkgs.transmission_4
   ];
 
   homebrew = {
@@ -75,6 +82,10 @@ in
     # `nixos-deploy` (hosts/homeserver-edt/deploy.nix). This is the one that
     # works from scripts and agents.
     deploy-server = "~/dev/nix-conf/scripts/deploy-server.sh";
+    # Drive the homeserver's torrent daemon from here: `torrents -l`,
+    # `torrents -a file.torrent`, `torrents -t all -s`. Drop this if you would
+    # rather type the host out each time.
+    torrents = "transmission-remote homeserver-edt.local:9091";
   };
 
   programs.zsh = {
