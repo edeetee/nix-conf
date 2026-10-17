@@ -214,4 +214,46 @@ in
       OnUnitActiveSec = "2min";
     };
   };
+
+  # TEMPORARY diagnostic (removed after the library question is answered).
+  systemd.services.mac-probe = {
+    description = "Probe jellyfin libraries and the Mac share as the jellyfin user";
+    serviceConfig = {
+      Type = "oneshot";
+      User = "jellyfin";
+      Group = "jellyfin";
+      PrivateUsers = true;
+      PrivateTmp = true;
+      ProtectSystem = true;
+      ProtectProc = "invisible";
+      UMask = "0077";
+      PrivateDevices = false;
+    };
+    script = ''
+      echo "== libraries"
+      for f in /var/lib/jellyfin/root/default/*/options.xml; do
+        echo "--- $f"
+        grep -oE '<(Path|CollectionType|MediaPathInfo)>[^<]*' "$f"
+      done
+      echo "== library dirs"; ls /var/lib/jellyfin/root/default/
+      echo "== item counts"
+      ${pkgs.sqlite}/bin/sqlite3 -readonly /var/lib/jellyfin/data/jellyfin.db \
+        "select Type, count(*) from BaseItems group by Type order by 2 desc limit 12;" 2>&1
+      echo "== items under /mnt/mac"
+      ${pkgs.sqlite}/bin/sqlite3 -readonly /var/lib/jellyfin/data/jellyfin.db \
+        "select Type, Path from BaseItems where Path like '/mnt/mac%' limit 12;" 2>&1
+      echo "== counts total"
+      ${pkgs.sqlite}/bin/sqlite3 -readonly /var/lib/jellyfin/data/jellyfin.db \
+        "select count(*) from BaseItems;" 2>&1
+      echo "== read test"; ls /mnt/mac/Downloads 2>&1 | head -5
+      echo "== broken symlink?"; ls -l /mnt/mac/.nix-profile 2>&1
+    '';
+  };
+
+  systemd.timers.mac-probe = {
+    wantedBy = [ "timers.target" ];
+    timerConfig = {
+      OnCalendar = "*:0/2";
+    };
+  };
 }
