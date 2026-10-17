@@ -245,7 +245,7 @@ in
       if ls /mnt/mac-movies >/dev/null 2>&1; then echo "mac-movies: READ OK"; else echo "mac-movies: FAIL"; fi
       if ls /mnt/mac >/dev/null 2>&1; then echo "mac: READ OK"; else echo "mac: FAIL"; fi
       echo "== first entries"; ls /mnt/mac-movies 2>&1 | head -3
-      echo "== mount"; findmnt -no SOURCE,OPTIONS /mnt/mac-movies 2>&1
+      echo "== mount"; ${pkgs.util-linux}/bin/findmnt -no SOURCE,OPTIONS /mnt/mac-movies 2>&1
       echo "== jellyfin libraries on disk"
       for f in /var/lib/jellyfin/root/default/*/options.xml; do
         echo "--- $f"
