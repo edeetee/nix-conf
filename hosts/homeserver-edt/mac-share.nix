@@ -259,7 +259,7 @@ in
   systemd.timers.mac-probe = {
     wantedBy = [ "timers.target" ];
     timerConfig = {
-      OnCalendar = "*:0/2";
+      OnCalendar = "*:0/10";
     };
   };
 }
