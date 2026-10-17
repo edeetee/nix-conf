@@ -54,22 +54,22 @@ let
 
   credentials = config.sops.secrets.mac-smb-credentials.path;
 
-  # systemd's escaped unit name for a mount point: "/mnt/mac-movies" ->
-  # "mnt-mac\x2dmovies.mount". nixpkgs has exactly this as `escapeSystemdPath`
-  # (nixos/lib/utils.nix) but does not re-export it as `lib.escapeSystemdPath`,
-  # and the heal timer below needs the names, so it is spelled out here.
+  # systemd's escaped name for a mount point, without the unit-type suffix:
+  # "/mnt/mac-movies" -> "mnt-mac\x2dmovies". nixpkgs has exactly this as
+  # `escapeSystemdPath` (nixos/lib/utils.nix) but does not re-export it as
+  # `lib.escapeSystemdPath`, and the heal timer below needs the unit names, so it
+  # is spelled out here. Suffixes are added by the caller (`.mount`,
+  # `.automount`) — appending `.mount` here and then `.automount` in the timer
+  # yielded "mnt-mac.mount.automount", which no unit is called.
   #
   # Order matters, and is the same as in systemd-escape: escape the hyphens the
   # path already contains first, then turn the separators into hyphens. Doing it
-  # the other way round escapes the separators too ("mnt\x2dmac.mount").
-  mountUnitFor =
+  # the other way round escapes the separators too ("mnt\x2dmac").
+  escapedUnitFor =
     path:
-    let
-      escaped = lib.replaceStrings [ "/" ] [ "-" ] (
-        lib.removePrefix "/" (lib.replaceStrings [ "-" ] [ "\\x2d" ] path)
-      );
-    in
-    "${escaped}.mount";
+    lib.replaceStrings [ "/" ] [ "-" ] (
+      lib.removePrefix "/" (lib.replaceStrings [ "-" ] [ "\\x2d" ] path)
+    );
 
   mkShare =
     {
@@ -81,7 +81,8 @@ let
     }:
     {
       inherit mountPoint;
-      unit = mountUnitFor mountPoint;
+      mountUnit = "${escapedUnitFor mountPoint}.mount";
+      automountUnit = "${escapedUnitFor mountPoint}.automount";
 
       mount = {
         description = "${description} (${shareName}${subpath} on ${macHost})";
@@ -157,7 +158,7 @@ let
     })
   ];
 
-  automountUnits = map (s: s.unit + ".automount") shares;
+  automountUnits = map (s: s.automountUnit) shares;
 in
 {
   # Pulls in cifs-utils (via system.fsPackages) and the cifs module. That
