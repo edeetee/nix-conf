@@ -214,13 +214,4 @@ in
       OnUnitActiveSec = "2min";
     };
   };
-
-  # One-off cleanup: `/mnt/mac-movies` was a second, Movies-only mount that is
-  # gone now that the whole share is world-readable. switch-to-configuration
-  # stops the removed .mount/.automount first, so by the time tmpfiles runs this
-  # is an empty leftover directory — remove it, so nobody mistakes it for a
-  # share that stopped working. `r` (not `R`) is deliberate: it refuses to delete
-  # a non-empty directory, so a still-mounted tree cannot be wiped. Drop this
-  # rule once the deploy that removes the directory has happened.
-  systemd.tmpfiles.rules = [ "r /mnt/mac-movies" ];
 }
