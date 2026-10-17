@@ -217,7 +217,7 @@ in
     # the PWM clock) and a large block to keep the per-block overhead down.
     preset = "chip-tune";
     params = {
-      volume = 0.5;
+      volume = 0.25;
       scale = "pentatonic_minor";
       root = "A";
     };
