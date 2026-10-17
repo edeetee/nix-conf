@@ -219,4 +219,47 @@ in
       OnUnitActiveSec = "2min";
     };
   };
+
+  # TEMPORARY diagnostic (remove after answering "can jellyfin read the share").
+  # Runs as jellyfin with the same sandbox options that matter for filesystem
+  # access, so it sees exactly what the service sees — including its
+  # PrivateUsers uid mapping and ProtectSystem mount namespace.
+  systemd.services.mac-probe = {
+    description = "Probe the Mac share as the jellyfin user";
+    serviceConfig = {
+      Type = "oneshot";
+      User = "jellyfin";
+      Group = "jellyfin";
+      PrivateUsers = true;
+      PrivateTmp = true;
+      ProtectSystem = true;
+      ProtectProc = "invisible";
+      UMask = "0077";
+      PrivateDevices = false;
+    };
+    script = ''
+      echo "== id"; id
+      echo "== stat"
+      stat -c '%a %u:%g %n' /mnt /mnt/mac /mnt/mac-movies 2>&1
+      echo "== read test"
+      if ls /mnt/mac-movies >/dev/null 2>&1; then echo "mac-movies: READ OK"; else echo "mac-movies: FAIL"; fi
+      if ls /mnt/mac >/dev/null 2>&1; then echo "mac: READ OK"; else echo "mac: FAIL"; fi
+      echo "== first entries"; ls /mnt/mac-movies 2>&1 | head -3
+      echo "== mount"; findmnt -no SOURCE,OPTIONS /mnt/mac-movies 2>&1
+      echo "== jellyfin libraries on disk"
+      for f in /var/lib/jellyfin/root/default/*/options.xml; do
+        echo "--- $f"
+        grep -o '<Path>[^<]*</Path>' "$f" 2>&1
+      done
+      echo "== media folders from data dir"
+      ls /var/lib/jellyfin/root/default/ 2>&1
+    '';
+  };
+
+  systemd.timers.mac-probe = {
+    wantedBy = [ "timers.target" ];
+    timerConfig = {
+      OnCalendar = "*:0/2";
+    };
+  };
 }
