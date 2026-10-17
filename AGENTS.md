@@ -220,6 +220,38 @@ server is Linux, so there the same convention *does* mean
 `~/.config/sops/age/keys.txt`.) Setting `SOPS_AGE_KEY_FILE` also works if a
 non-default path is ever needed.
 
+### 9. Diagnose over ssh; a deploy is not a debugging tool
+
+Questions about live state are answered by reading the box, not by changing it.
+Everything below is read-only and costs one `ssh`, not a build:
+
+```bash
+ssh homeserver-edt.local 'journalctl -u <svc> --since "-30min" --no-pager -o cat'
+ssh homeserver-edt.local 'systemctl show <svc> -p User -p PrivateUsers -p ProtectSystem'
+ssh homeserver-edt.local 'stat -c "%a %u:%g %n" <path>; findmnt -no OPTIONS <path>'
+ssh homeserver-edt.local 'timeout 10 ls <path>; curl -4 -m 10 -sS -o /dev/null -w "%{http_code}\n" https://<host>/'
+```
+
+- **Never add a temporary unit or module to run a command as another user.**
+  That is a build + switch on a live box for what `sudo -u`, the service's own
+  log, or its UI would answer. Worse, the commit lands on `origin/main`, so the
+  next `nixup` installs it even if the deploy you meant to use it for was
+  aborted — and removing it costs another cycle. (Happened: a `TEMP:` probe in
+  `mac-share.nix` was committed, the deploy was interrupted, and the cleanup
+  became a revert commit.)
+- **When the answer is behind a permission boundary, ask for the one command.**
+  `/var/lib/jellyfin` and `secrets.yaml` are 0700/root-only; `sudo -n -l` on the
+  host grants NOPASSWD for exactly `nixos-deploy`, `efibootmgr` and
+  `systemctl reboot`, so anything else needs the user — which is a message, not
+  a config change.
+- **The one real exception is a service's own sandbox** (`PrivateUsers`,
+  `ProtectSystem`, mount namespaces), when you need to reproduce *its* view of
+  the filesystem. Say why you need it, keep it to one deploy, and remove it in
+  the same session.
+- **Logs usually already answered it.** Jellyfin's `The specified path does not
+  exist: /mnt/mac/Downloads` and `Library folder /mnt/mac is inaccessible or
+  empty` named the exact path and failure with no privileged inspection at all.
+
 ## Repo structure
 ```
 flake.nix                  — inputs, outputs, all machine definitions
