@@ -1,9 +1,27 @@
 # The Mac's files, available to this box on demand.
 #
-# Mounts a macOS SMB share at /mnt/mac, created lazily: nothing is mounted at
-# boot, and the first read of the path (VLC, Dolphin, `ls`, a Jellyfin scan)
-# triggers the connection. If the Mac is asleep or off that read fails fast and
-# the *next* read tries again — so `ls /mnt/mac` is a retry button.
+# Two mounts, both cifs automounts created lazily: nothing is mounted at boot,
+# and the first read of a path (VLC, Dolphin, `ls`, a Jellyfin scan) triggers the
+# connection. If the Mac is asleep or off that read fails fast and the *next*
+# read tries again — so `ls /mnt/mac` is a retry button.
+#
+#   /mnt/mac         the whole home share, owner-only (edeetee on this host)
+#   /mnt/mac-movies  ~/Movies only, world-readable so the *jellyfin* user can
+#                    read it without handing that service the whole home
+#
+# Two mounts rather than one because a cifs mount has exactly one owner: with
+# `nounix` (macOS does not implement the CIFS Unix extensions) ownership and
+# modes come entirely from `uid=`/`gid=`/`file_mode=`/`dir_mode=`, so a single
+# mount cannot be "edeetee's, except this one subtree is also jellyfin's".
+#
+# Why the second mount is world-readable instead of group-readable for
+# `jellyfin` (gid 975): the nixpkgs Jellyfin module sets `PrivateUsers=yes`, so
+# jellyfin runs in a user namespace where only its own uid/gid is mapped and
+# every other owner shows up as `nobody`/`nogroup`. Group ownership of the mount
+# is therefore invisible to it, and only the *other* permission bits are
+# consulted. `gid=975,file_mode=0640` would not work; `file_mode=0444` does.
+# The exposure is bounded by what is mounted: Movies, not `~/.ssh` and not the
+# sops age key in `~/Library/Application Support/sops/age/keys.txt`.
 #
 # Why the units are declared explicitly instead of using `fileSystems` with
 # `x-systemd.automount` in `options`: NixOS turns `fileSystems` entries into its
@@ -13,9 +31,9 @@
 # is unambiguous and version-proof.
 #
 # Deliberately NOT in check-mounts.nix's blockedPaths: that guard exists to stop
-# services chowning *shared* mounts, and this mount is expected to be owned by
-# edeetee (uid=), not root. Do not add it there, and do not add a
-# systemd.tmpfiles rule for its ownership — tmpfiles would chown the mount.
+# services chowning *shared* mounts, and these mounts are expected to be owned by
+# edeetee (uid=), not root. Do not add them there, and do not add a
+# systemd.tmpfiles rule for their ownership — tmpfiles would chown the mount.
 #
 # See also: TV-MEDIA.md (the workflow), and the "files from the Mac" section
 # there for the no-mount alternative (`vlc smb://…` straight off the share).
@@ -27,22 +45,125 @@ let
 
   # macOS shares each user's home directory as a share named after the short
   # username, and once every folder is made shareable it also offers the whole
-  # volume as "Macintosh HD". Using the home share means this *one* mount
-  # covers every folder — /mnt/mac/Downloads, /mnt/mac/Movies, … — with no
-  # per-folder setup on the Mac. Verified with `smbclient -L` against this host:
-  # it advertises `edeetee`, `Macintosh HD`, `TF24`, `into_the_vortex`,
+  # volume as "Macintosh HD". Using the home share means the mounts below can
+  # point at one *subtree* of it — `what=` takes a path inside the share — with
+  # no per-folder setup on the Mac. Verified with `smbclient -L` against this
+  # host: it advertises `edeetee`, `Macintosh HD`, `TF24`, `into_the_vortex`,
   # `Edward Taylor’s Public Folder` and `IPC$`.
   shareName = "edeetee";
 
-  mountPoint = "/mnt/mac";
-
   credentials = config.sops.secrets.mac-smb-credentials.path;
+
+  # systemd's escaped unit name for a mount point: "/mnt/mac-movies" ->
+  # "mnt-mac\x2dmovies.mount". nixpkgs has exactly this as `escapeSystemdPath`
+  # (nixos/lib/utils.nix) but does not re-export it as `lib.escapeSystemdPath`,
+  # and the heal timer below needs the names, so it is spelled out here.
+  #
+  # Order matters, and is the same as in systemd-escape: escape the hyphens the
+  # path already contains first, then turn the separators into hyphens. Doing it
+  # the other way round escapes the separators too ("mnt\x2dmac.mount").
+  mountUnitFor =
+    path:
+    let
+      escaped = lib.replaceStrings [ "/" ] [ "-" ] (
+        lib.removePrefix "/" (lib.replaceStrings [ "-" ] [ "\\x2d" ] path)
+      );
+    in
+    "${escaped}.mount";
+
+  mkShare =
+    {
+      mountPoint,
+      subpath ? "",
+      description,
+      fileMode,
+      dirMode,
+    }:
+    {
+      inherit mountPoint;
+      unit = mountUnitFor mountPoint;
+
+      mount = {
+        description = "${description} (${shareName}${subpath} on ${macHost})";
+        what = "//${macHost}/${shareName}${subpath}";
+        where = mountPoint;
+        type = "cifs";
+        options = lib.concatStringsSep "," [
+          "credentials=${credentials}"
+
+          # Ownership for `nounix` SMB: edeetee owns the mount (Dolphin, VLC),
+          # and `fileMode`/`dirMode` decide who else may read. Kept per-share
+          # rather than global because that is the whole point of the split.
+          "uid=${toString config.users.users.edeetee.uid}"
+          "gid=${toString config.users.groups.users.gid}"
+          "file_mode=${fileMode}"
+          "dir_mode=${dirMode}"
+          "iocharset=utf8"
+
+          # Read-only. Nothing on this host has any business writing into the
+          # Mac's home, and a stray process writing over SMB is a data-loss risk
+          # with nothing to gain. Drop it if you ever want to push files back.
+          "ro"
+
+          # `soft` returns errors when the Mac disappears instead of blocking the
+          # calling process forever (a `hard` mount hangs a Jellyfin scan thread
+          # until the Mac comes back). `echo_interval=10` shortens how long an
+          # unresponsive server takes to be noticed (default 60s; reconnection
+          # itself is attempted at twice this value).
+          "soft"
+          "echo_interval=10"
+
+          "_netdev" # never fsck / treat as network in ordering
+        ];
+        # No wantedBy: the automount unit below pulls this in on first access.
+        # That is what keeps the Mac out of the boot path.
+      };
+
+      automount = {
+        where = mountPoint;
+        wantedBy = [ "multi-user.target" ];
+        automountConfig = {
+          DirectoryMode = "0755"; # also creates the mount point
+          # Throw the mount away after 5 minutes idle. This is the most important
+          # option here: it turns "stale mount pointing at a Mac that has been
+          # asleep for an hour" into "fresh connection on next access", instead
+          # of relying on the kernel's reconnect heuristics.
+          TimeoutIdleSec = "300";
+        };
+      };
+    };
+
+  shares = [
+    (mkShare {
+      mountPoint = "/mnt/mac";
+      description = "Mac home share";
+      # Because this is the whole home directory, owner-only is deliberate:
+      # edeetee reads everything, and no other local user can. Widen these and
+      # everything in the home — `~/.ssh`, the sops age key — becomes readable by
+      # every service account on this box (jellyfin, nginx, homepage-dashboard,
+      # transmission, samba-wsdd), several of which are network-facing.
+      fileMode = "0600";
+      dirMode = "0700";
+    })
+    (mkShare {
+      mountPoint = "/mnt/mac-movies";
+      subpath = "/Movies"; # must exist on the Mac, or the mount fails
+      description = "Mac Movies folder, readable by jellyfin";
+      # World-readable on purpose: `PrivateUsers=yes` on jellyfin means only the
+      # `other` bits apply to it (see the header). Write bits are moot under the
+      # global `ro`, and left off so the intent is unambiguous.
+      fileMode = "0444";
+      dirMode = "0755";
+    })
+  ];
+
+  automountUnits = map (s: s.unit + ".automount") shares;
 in
 {
   # Pulls in cifs-utils (via system.fsPackages) and the cifs module. That
   # automatic wiring is triggered by `boot.supportedFilesystems`, which we
-  # cannot get from a `fileSystems.<name>.fsType` here because the mount is
-  # declared as a systemd unit instead.
+  # cannot get from a `fileSystems.<name>.fsType` here because the mounts are
+  # declared as systemd units instead.
   boot.supportedFilesystems = [ "cifs" ];
   boot.kernelModules = [ "cifs" ];
 
@@ -54,99 +175,43 @@ in
   #
   # Added on the host that can decrypt it:  sops hosts/homeserver-edt/secrets.yaml
   # sops-nix writes it root-owned 0400 at /run/secrets/, which is what the
-  # (root) mount unit needs.
+  # (root) mount units need. One file serves both mounts.
   sops.secrets.mac-smb-credentials = {
     mode = "0400";
   };
 
-  systemd.mounts = [
-    {
-      description = "Mac share (${shareName} on ${macHost})";
-      what = "//${macHost}/${shareName}";
-      where = mountPoint;
-      type = "cifs";
-      options = lib.concatStringsSep "," [
-        "credentials=${credentials}"
-
-        # macOS' SMB server does not implement the CIFS Unix extensions, so
-        # ownership and permissions come entirely from these options — a 0600
-        # file on the Mac is readable by whoever they allow here. Because this
-        # is the whole home directory, they are deliberately owner-only:
-        # edeetee on this host (Dolphin, VLC) reads everything, and no other
-        # local user can.
-        #
-        # To read these files as `jellyfin` (uid 146, gid 975) instead, widen to
-        # gid=975 with file_mode=0640,dir_mode=0750 — but know what that exposes:
-        # jellyfin is network-facing, and the home contains ~/.ssh and the sops
-        # age key at ~/Library/Application Support/sops/age/keys.txt, which
-        # decrypts every secret in secrets.yaml.
-        "uid=${toString config.users.users.edeetee.uid}"
-        "gid=${toString config.users.groups.users.gid}"
-        "file_mode=0600"
-        "dir_mode=0700"
-        "iocharset=utf8"
-
-        # Read-only. Nothing on this host has any business writing into the
-        # Mac's home, and a stray process writing over SMB is a data-loss risk
-        # with nothing to gain. Drop it if you ever want to push files back.
-        "ro"
-
-        # `soft` returns errors when the Mac disappears instead of blocking the
-        # calling process forever (a `hard` mount hangs a Jellyfin scan thread
-        # until the Mac comes back). `echo_interval=10` shortens how long an
-        # unresponsive server takes to be noticed (default 60s; reconnection
-        # itself is attempted at twice this value).
-        "soft"
-        "echo_interval=10"
-
-        "_netdev" # never fsck / treat as network in ordering
-      ];
-      # No wantedBy: the automount unit below pulls this in on first access.
-      # That is what keeps the Mac out of the boot path.
-    }
-  ];
-
-  systemd.automounts = [
-    {
-      where = mountPoint;
-      wantedBy = [ "multi-user.target" ];
-      automountConfig = {
-        DirectoryMode = "0755"; # also creates /mnt/mac
-        # Throw the mount away after 5 minutes idle. This is the most important
-        # option here: it turns "stale mount pointing at a Mac that has been
-        # asleep for an hour" into "fresh connection on next access", instead of
-        # relying on the kernel's reconnect heuristics.
-        TimeoutIdleSec = "300";
-      };
-    }
-  ];
+  systemd.mounts = map (s: s.mount) shares;
+  systemd.automounts = map (s: s.automount) shares;
 
   # The one hole in automount semantics (systemd issue #16811: automount units
-  # have no Restart=). If the .mount unit fails repeatedly within the default
+  # have no Restart=). If a .mount unit fails repeatedly within the default
   # start-limit window — 5 starts / 10s, easily reached by something enumerating
   # the path while the Mac is asleep — systemd propagates "start limit hit" to
   # the automount unit, which then goes FAILED and tears down the autofs point.
-  # After that /mnt/mac is a plain empty directory and *nothing* will ever mount
-  # it again: accesses cannot retry, because the thing that retries is gone.
+  # After that the mount point is a plain empty directory and *nothing* will ever
+  # mount it again: accesses cannot retry, because the thing that retries is gone.
   #
   # This timer is the missing Restart=, and is what makes "it reconnects
-  # whenever something tries to read it" actually hold.
+  # whenever something tries to read it" actually hold. It covers every share
+  # above, so a new one only has to be added to `shares`.
   systemd.services.mac-share-heal = {
-    description = "Re-arm the Mac share automount if systemd gave up on it";
+    description = "Re-arm the Mac share automounts if systemd gave up on them";
     serviceConfig = {
       Type = "oneshot";
     };
     script = ''
-      if ! ${config.systemd.package}/bin/systemctl is-active --quiet mnt-mac.automount; then
-        echo "mnt-mac.automount is not active (failed: start limit), re-arming"
-        ${config.systemd.package}/bin/systemctl reset-failed mnt-mac.automount mnt-mac.mount || true
-        ${config.systemd.package}/bin/systemctl start mnt-mac.automount
-      fi
+      for unit in ${lib.concatMapStringsSep " " (u: "'${u}'") automountUnits}; do
+        if ! ${config.systemd.package}/bin/systemctl is-active --quiet "$unit"; then
+          echo "$unit is not active (failed: start limit), re-arming"
+          ${config.systemd.package}/bin/systemctl reset-failed "$unit" "''${unit%.automount}.mount" || true
+          ${config.systemd.package}/bin/systemctl start "$unit"
+        fi
+      done
     '';
   };
 
   systemd.timers.mac-share-heal = {
-    description = "Check the Mac share automount is still armed";
+    description = "Check the Mac share automounts are still armed";
     wantedBy = [ "timers.target" ];
     timerConfig = {
       OnBootSec = "2min";
