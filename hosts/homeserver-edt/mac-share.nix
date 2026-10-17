@@ -1,27 +1,34 @@
 # The Mac's files, available to this box on demand.
 #
-# Two mounts, both cifs automounts created lazily: nothing is mounted at boot,
-# and the first read of a path (VLC, Dolphin, `ls`, a Jellyfin scan) triggers the
+# One mount, a cifs automount created lazily: nothing is mounted at boot, and the
+# first read of the path (VLC, Dolphin, `ls`, a Jellyfin scan) triggers the
 # connection. If the Mac is asleep or off that read fails fast and the *next*
 # read tries again — so `ls /mnt/mac` is a retry button.
 #
-#   /mnt/mac         the whole home share, owner-only (edeetee on this host)
-#   /mnt/mac-movies  ~/Movies only, world-readable so the *jellyfin* user can
-#                    read it without handing that service the whole home
+# The whole home share is **world-readable** (0444/0755), deliberately: that is
+# what lets any local account read it, `jellyfin` above all. Two facts force
+# this shape:
 #
-# Two mounts rather than one because a cifs mount has exactly one owner: with
-# `nounix` (macOS does not implement the CIFS Unix extensions) ownership and
-# modes come entirely from `uid=`/`gid=`/`file_mode=`/`dir_mode=`, so a single
-# mount cannot be "edeetee's, except this one subtree is also jellyfin's".
+#   * A cifs mount with `nounix` (macOS does not implement the CIFS Unix
+#     extensions) has exactly one owner — `uid=`/`gid=`/`file_mode=`/`dir_mode=`
+#     are applied to the whole tree — so per-user access cannot be expressed
+#     except through the `other` bits.
+#   * The nixpkgs Jellyfin module sets `PrivateUsers=yes`, so jellyfin runs in a
+#     user namespace where only its own uid/gid is mapped and this mount's owner
+#     renders as `nobody`. Group ownership is invisible to it and only the
+#     `other` bits are consulted, which is why `gid=975,file_mode=0640` cannot
+#     work here. (Verified on the host with a probe run as uid 146 inside the
+#     service's sandbox: owners showed as 65534:65534, 0444/0755 read fine.)
 #
-# Why the second mount is world-readable instead of group-readable for
-# `jellyfin` (gid 975): the nixpkgs Jellyfin module sets `PrivateUsers=yes`, so
-# jellyfin runs in a user namespace where only its own uid/gid is mapped and
-# every other owner shows up as `nobody`/`nogroup`. Group ownership of the mount
-# is therefore invisible to it, and only the *other* permission bits are
-# consulted. `gid=975,file_mode=0640` would not work; `file_mode=0444` does.
-# The exposure is bounded by what is mounted: Movies, not `~/.ssh` and not the
-# sops age key in `~/Library/Application Support/sops/age/keys.txt`.
+# The cost, stated once so it is not a surprise later: everything under the
+# Mac's home is readable by every local account, including `~/.ssh` and the sops
+# age key at `~/Library/Application Support/sops/age/keys.txt` (which decrypts
+# every secret in `secrets.yaml`). Services on this box that are network-facing
+# — jellyfin, nginx, homepage-dashboard, transmission (whose RPC is
+# unauthenticated and bound to 0.0.0.0), samba-wsdd — can therefore read those
+# if they are ever compromised. Narrow this by mounting a subtree instead (the
+# `subpath` field below): `fileMode`/`dirMode` of 0600/0700 make it owner-only
+# again.
 #
 # Why the units are declared explicitly instead of using `fileSystems` with
 # `x-systemd.automount` in `options`: NixOS turns `fileSystems` entries into its
@@ -31,9 +38,9 @@
 # is unambiguous and version-proof.
 #
 # Deliberately NOT in check-mounts.nix's blockedPaths: that guard exists to stop
-# services chowning *shared* mounts, and these mounts are expected to be owned by
-# edeetee (uid=), not root. Do not add them there, and do not add a
-# systemd.tmpfiles rule for their ownership — tmpfiles would chown the mount.
+# services chowning *shared* mounts, and this mount is expected to be owned by
+# edeetee (uid=), not root. Do not add it there, and do not add a
+# systemd.tmpfiles rule for its ownership — tmpfiles would chown the mount.
 #
 # See also: TV-MEDIA.md (the workflow), and the "files from the Mac" section
 # there for the no-mount alternative (`vlc smb://…` straight off the share).
@@ -138,21 +145,9 @@ let
     (mkShare {
       mountPoint = "/mnt/mac";
       description = "Mac home share";
-      # Because this is the whole home directory, owner-only is deliberate:
-      # edeetee reads everything, and no other local user can. Widen these and
-      # everything in the home — `~/.ssh`, the sops age key — becomes readable by
-      # every service account on this box (jellyfin, nginx, homepage-dashboard,
-      # transmission, samba-wsdd), several of which are network-facing.
-      fileMode = "0600";
-      dirMode = "0700";
-    })
-    (mkShare {
-      mountPoint = "/mnt/mac-movies";
-      subpath = "/Movies"; # must exist on the Mac, or the mount fails
-      description = "Mac Movies folder, readable by jellyfin";
-      # World-readable on purpose: `PrivateUsers=yes` on jellyfin means only the
-      # `other` bits apply to it (see the header). Write bits are moot under the
-      # global `ro`, and left off so the intent is unambiguous.
+      # World-readable on purpose — see the header. Every directory in the mount
+      # gets dirMode, every file fileMode, so the whole home is traversable and
+      # readable by any local account; the mount stays `ro` regardless.
       fileMode = "0444";
       dirMode = "0755";
     })
@@ -219,4 +214,13 @@ in
       OnUnitActiveSec = "2min";
     };
   };
+
+  # One-off cleanup: `/mnt/mac-movies` was a second, Movies-only mount that is
+  # gone now that the whole share is world-readable. switch-to-configuration
+  # stops the removed .mount/.automount first, so by the time tmpfiles runs this
+  # is an empty leftover directory — remove it, so nobody mistakes it for a
+  # share that stopped working. `r` (not `R`) is deliberate: it refuses to delete
+  # a non-empty directory, so a still-mounted tree cannot be wiped. Drop this
+  # rule once the deploy that removes the directory has happened.
+  systemd.tmpfiles.rules = [ "r /mnt/mac-movies" ];
 }
