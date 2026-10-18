@@ -108,6 +108,18 @@ let
           "dir_mode=${dirMode}"
           "iocharset=utf8"
 
+          # macOS stores symlinks as SMB "Minshall+French" symlinks (the
+          # `XSym` file convention), not as Unix symlinks, which the CIFS Unix
+          # extensions would carry. Without `mfsymlinks` the client shows them
+          # as ordinary broken files, and reading one fails with
+          # `System.IO.IOException: Invalid argument`. That is what killed
+          # Jellyfin's scan of ~/Downloads: `.app` bundles are full of them
+          # (`mimoComposer.app/Contents/Frameworks/BXSwiftUI.framework/BXSwiftUI`
+          # → `../Versions/A/BXSwiftUI`), and each one aborted path resolution.
+          # `mapposix` (a default, visible in `findmnt`) maps the illegal SMB
+          # characters; `mfsymlinks` is the one that makes the symlinks real.
+          "mfsymlinks"
+
           # Read-only. Nothing on this host has any business writing into the
           # Mac's home, and a stray process writing over SMB is a data-loss risk
           # with nothing to gain. Drop it if you ever want to push files back.

@@ -251,6 +251,13 @@ ssh homeserver-edt.local 'timeout 10 ls <path>; curl -4 -m 10 -sS -o /dev/null -
 - **Logs usually already answered it.** Jellyfin's `The specified path does not
   exist: /mnt/mac/Downloads` and `Library folder /mnt/mac is inaccessible or
   empty` named the exact path and failure with no privileged inspection at all.
+- **A networking change can kill the deploy that applies it.** Deploys run over
+  `ssh homeserver-edt.local`, and macOS prefers AAAA for that name, so disabling
+  IPv6 mid-switch cut the deploy's own connection: the rebuild finished, the
+  client sat until the 900 s tool timeout, and it looked like a hang. Before
+  deploying anything that touches `networking.*`, either prove the current
+  transport is IPv4 (`ssh -4 …`) or expect to reconnect and verify afterwards.
+  The same class of thing applies to firewall and interface changes.
 
 ## Repo structure
 ```
