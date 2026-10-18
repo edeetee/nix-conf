@@ -108,16 +108,20 @@ let
           "dir_mode=${dirMode}"
           "iocharset=utf8"
 
-          # macOS stores symlinks as SMB "Minshall+French" symlinks (the
-          # `XSym` file convention), not as Unix symlinks, which the CIFS Unix
-          # extensions would carry. Without `mfsymlinks` the client shows them
-          # as ordinary broken files, and reading one fails with
-          # `System.IO.IOException: Invalid argument`. That is what killed
-          # Jellyfin's scan of ~/Downloads: `.app` bundles are full of them
-          # (`mimoComposer.app/Contents/Frameworks/BXSwiftUI.framework/BXSwiftUI`
-          # → `../Versions/A/BXSwiftUI`), and each one aborted path resolution.
-          # `mapposix` (a default, visible in `findmnt`) maps the illegal SMB
-          # characters; `mfsymlinks` is the one that makes the symlinks real.
+          # Symlinks, macOS side: the macOS SMB server exports them as SMB
+          # reparse points, and the Linux cifs client does not resolve those
+          # targets — `stat`/`readlink` return `EINVAL` either way. `mfsymlinks`
+          # decodes the *other* convention (the `XSym` "Minshall+French" files
+          # that Samba/smbclient create), so all it changes here is presentation:
+          # entries list as symlinks (`l?????????`, no mode, no target) instead of
+          # as ordinary broken files. Verified on the host on kernel 6.18 — the
+          # target of `~/Downloads/mimoComposer.app/…/BXSwiftUI.framework/BXSwiftUI`
+          # is still unreadable with the option enabled.
+          # Kept because it is what makes them *look* like symlinks and because
+          # it costs nothing; the remaining EINVAL is a client/server mismatch,
+          # not a config error. Consequence for Jellyfin: one non-fatal
+          # `Error resolving path …` per symlink encountered — it skips the entry
+          # and continues, so it is log noise rather than a broken scan.
           "mfsymlinks"
 
           # Read-only. Nothing on this host has any business writing into the
