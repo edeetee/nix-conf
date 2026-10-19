@@ -55,11 +55,11 @@
   # the TV client lives in the session: cast from the Jellyfin app and the
   # video appears here, with no need to launch anything on this box first.
   #
-  # `--windowed` (not `--fullscreen`) keeps the Plasma desktop usable, which
-  # matters because this box is also the Steam machine. Casted video still goes
-  # fullscreen: the client honours the web player's HTML5 fullscreen request
-  # (see the `fullscreen` setting's help text in the client's
-  # settings_description.json).
+  # `--fullscreen` starts the client fullscreen on every launch. It used to run
+  # `--windowed` to keep the Plasma desktop usable (this box is also the Steam
+  # machine), so switch the TV back to the desktop with the client's own exit
+  # shortcut/Alt+Tab if you need the desktop; quitting still stays quit (see
+  # Restart below).
   #
   # Restart=on-failure, deliberately not `always`: a crash comes back, but
   # *quitting* the app stays quit so the desktop can be used. Start it again
@@ -77,7 +77,7 @@
     wantedBy = [ "plasma-plasmashell.service" ];
     serviceConfig = {
       Type = "simple";
-      ExecStart = "${pkgs.jellyfin-desktop}/bin/jellyfin-desktop --tv --windowed";
+      ExecStart = "${pkgs.jellyfin-desktop}/bin/jellyfin-desktop --tv --fullscreen";
       Restart = "on-failure";
       RestartSec = 5;
     };
