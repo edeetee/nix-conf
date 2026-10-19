@@ -281,6 +281,7 @@ hosts/
     services.nix           — cockpit, jellyfin, transmission, homepage, nginx
     packages.nix           — system packages, fonts, users (pinned uid), shell (nixup/nixrs)
     mac-share.nix          — the Mac's SMB share as an on-demand cifs automount at /mnt/mac
+    unified-remote.nix      — Unified Remote (phone → media keys), plus mpv-mpris
     pi-agent/              — pi coding agent (deepseek models/settings)
     AUDIO.md               — PipeWire/Wine latency notes; how the audio stack is tuned
     AIRPLAY.md             — AirPlay audio + screen mirroring + now-playing display
