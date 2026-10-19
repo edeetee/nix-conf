@@ -42,6 +42,24 @@
 #     the way the vendor's urserver-start script does it. Deliberately not done
 #     here: this is the free-tier change.
 { pkgs, lib, ... }:
+let
+  # urserver is an *interactive REPL on stdin*: it announces "enter 'exit' to
+  # terminate server" and treats a stdin read that returns EOF as that exit.
+  # systemd's default StandardInput=null is exactly such a stdin, and the first
+  # version of this unit pointed ExecStart straight at the binary — it logged
+  # "starting server...", then "> stopping server... / exiting..." (once after
+  # 60 s, once instantly), which reads like a crash and is not one. So it gets
+  # a pipe whose writer never writes and never closes: `sleep infinity`.
+  #
+  # The pipeline makes urserver a child of this shell rather than systemd's main
+  # PID; that costs nothing (the shell exits when the server does, so Restart
+  # still fires) and is the only way to express "stdin is an open pipe" from a
+  # unit file.
+  urserverStart = pkgs.writeShellScript "urserver-start" ''
+    set -euo pipefail
+    ${pkgs.coreutils}/bin/sleep infinity | exec ${lib.getExe pkgs.urserver}
+  '';
+in
 {
   # mpv-mpris: mpv as an MPRIS player, so the media keys above (and playerctl,
   # and Plasma's media widget) have something to act on.
@@ -68,8 +86,11 @@
     partOf = [ "graphical-session.target" ];
     wantedBy = [ "graphical-session.target" ];
     serviceConfig = {
-      ExecStart = lib.getExe pkgs.urserver;
-      Restart = "on-failure";
+      ExecStart = urserverStart;
+      # `always`, not `on-failure`: the server can also leave through its own
+      # "stopping server... / exiting..." path with status 0 (see
+      # urserverStart), and `on-failure` would leave it dead and silent.
+      Restart = "always";
       RestartSec = 3;
     };
   };

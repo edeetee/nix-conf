@@ -276,6 +276,20 @@ user unit is not started on an already-running user manager:
 ssh homeserver-edt.local 'XDG_RUNTIME_DIR=/run/user/1000 systemctl --user start urserver'
 ```
 
+Two things that are easy to misread when it looks broken:
+
+- **`> stopping server... / exiting...` in the journal is not a crash.**
+  `urserver` is an interactive REPL on stdin and reads a stdin EOF as the `exit`
+  command; a unit started on systemd's default `/dev/null` stdin dies that way
+  (after 60 s, or immediately). `unified-remote.nix` therefore starts it on a
+  pipe held open by `sleep infinity`, and the unit is `Restart=always` rather
+  than `on-failure` because that exit path has status 0.
+- **The web manager is bound to `127.0.0.1:9510` only.** Port-forward to the
+  IPv4 address, not the name: `ssh -L 9510:127.0.0.1:9510 homeserver-edt.local`,
+  then open http://localhost:9510/web. The phone app does not need this — it
+  finds the box on the LAN over UDP 9511 and connects to TCP 9512, which are on
+  every interface.
+
 ## Verifying
 
 ```bash
