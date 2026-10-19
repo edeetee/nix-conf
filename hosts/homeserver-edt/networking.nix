@@ -106,4 +106,14 @@
   # its 300 s idle timeout, or `systemctl restart mnt-mac.automount` forces it.
   networking.enableIPv6 = false;
   boot.kernel.sysctl."net.ipv6.conf.lo.disable_ipv6" = 0;
+
+  # `all`/`default` alone did not actually disable the wifi interface: after a
+  # deploy on 2026-10-20, `all.disable_ipv6` and `default.disable_ipv6` both read
+  # 1 while `wlp5s0.disable_ipv6` read 0 and still held a global 2404:-address,
+  # so jellyfin went on burning the 100 s TMDb timeout on every lookup. Neither
+  # key retro-applies to an interface that already exists, and the one that does
+  # not exist yet inherits `default`. Pinning the interface covers whichever
+  # order systemd-sysctl and the wifi driver happen to come up in; if the NIC is
+  # ever renamed, update the key (see `ip -br link`).
+  boot.kernel.sysctl."net.ipv6.conf.wlp5s0.disable_ipv6" = 1;
 }
