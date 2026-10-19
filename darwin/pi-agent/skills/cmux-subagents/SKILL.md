@@ -30,9 +30,14 @@ intervene, and a series runs unattended with no chance to steer it.
    PANE=$(cmux identify --json | grep -o '"pane_ref" : "[^"]*"' | head -1 | cut -d'"' -f4)
    NEW=$(cmux new-surface --workspace "${CMUX_WORKSPACE_ID}" --pane "$PANE" \
            --type terminal --focus false | awk '{print $2}')
-   cmux send --surface "$NEW" "cd $(pwd) && pi 'read /tmp/pi-agents/01-movement.md and follow it'\n"
+   cmux send --surface "$NEW" "cd $(pwd) && PI_BUDGET_USD=0.05 pi 'read /tmp/pi-agents/01-movement.md and follow it'\n"
    cmux rename-tab --surface "$NEW" "agent 01"
    ```
+
+   Pass `PI_BUDGET_USD` on the spawn line: the budget extension caps spend per user request, so a
+   sub-agent's whole run sits under one cap (default $0.05; size it to the task — ~$0.02 for a
+   one-file fix, $0.15+ for a multi-phase plan). A `/budget` set in your own session is not
+   inherited. At 100% the agent is told to finish and report; 130% aborts it.
 
    Passing the prompt as a *positional argument* to an interactive `pi` opens the TUI with the
    prompt already submitted. Do not spawn a bare `pi`, sleep, and then type the prompt: that race is
