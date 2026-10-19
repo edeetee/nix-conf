@@ -122,6 +122,12 @@ export default function (pi: ExtensionAPI) {
 		return { systemPrompt: `${event.systemPrompt}\n\n${guidance(cap)}` };
 	});
 
+	pi.on("message_end", async (event, ctx) => {
+		// A message typed while the agent is running is queued as a user message and
+		// does not go through before_agent_start; it is still a new user request.
+		if (event.message?.role === "user") resetWindow(ctx);
+	});
+
 	pi.on("turn_end", async (event, ctx) => {
 		if (cap === null) return;
 
