@@ -259,6 +259,14 @@ ssh homeserver-edt.local 'timeout 10 ls <path>; curl -4 -m 10 -sS -o /dev/null -
   transport is IPv4 (`ssh -4 …`) or expect to reconnect and verify afterwards.
   The same class of thing applies to firewall and interface changes.
 
+### 10. Spend limits on spawned agents
+
+Every `pi` an agent starts — a cmux tab, a `bash &` watcher, a nested helper — gets
+`PI_BUDGET_USD` on the spawn line, sized to the task (~$0.02 one-file fix, $0.05 normal,
+$0.15+ multi-phase). The budget extension caps **one user request**, so a `pi -p` child's
+whole run sits under that cap; a `/budget` set in the parent session is not exported. At
+100% the child is told to finish and report, at 130% it is aborted — leave enough to report.
+
 ## Repo structure
 ```
 flake.nix                  — inputs, outputs, all machine definitions
