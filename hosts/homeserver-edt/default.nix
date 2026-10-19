@@ -2,6 +2,9 @@
 #
 # Imports all host-specific modules. Shared modules (common, nixvim, etc.)
 # are imported by the flake so they apply to all machines.
+#
+# unified-remote.nix sits next to packages.nix rather than in modules/nixos/
+# because it is one phone remote for one host's mpv, not a reusable feature.
 
 {
   imports = [
@@ -11,6 +14,7 @@
     ./desktop.nix
     ./services.nix
     ./packages.nix
+    ./unified-remote.nix
     ./home.nix
     ./mac-share.nix
     ./deploy.nix

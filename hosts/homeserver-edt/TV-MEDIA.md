@@ -1,15 +1,17 @@
 # Watching things on the TV
 
-Three separate things, often confused with each other, all about getting video
+Four separate things, often confused with each other, all about getting video
 onto the Sony TV that this box drives:
 
 | Want | Mechanism | Needs the phone? |
 | --- | --- | --- |
 | Browse a library, cast to the TV, control from the phone | Jellyfin + Jellyfin Desktop as a cast target | Yes |
+| Play/pause/volume for mpv (or anything else on MPRIS) from the phone | Unified Remote's free Media remote + mpv-mpris | Yes |
 | Relaunch/stop a TV app from the phone without walking over | KDE Connect run commands | Yes |
 | Play a file that lives on the Mac | `/mnt/mac` (cifs automount) or `vlc smb://…` | No |
+| Let Jellyfin serve Mac media | a library on `/mnt/mac/<folder>` | Yes |
 
-AirPlay (audio + screen mirroring) is a fourth, unrelated path — that one is in
+AirPlay (audio + screen mirroring) is a fifth, unrelated path — that one is in
 `AIRPLAY.md`.
 
 ## 1. Jellyfin Desktop is always a cast target
@@ -121,8 +123,18 @@ unless it is embedded as `smb://user:pass@host/…`.
 
 ### With a mount: `/mnt/mac` (mac-share.nix)
 
-`/mnt/mac` is a **cifs automount**: nothing is mounted at boot, and the first
-read of the path triggers the connection. If the Mac is asleep the read fails
+One cifs automount of the whole home share, **world-readable** (`0444/0755`, and
+`ro`), so any local account can read it — Jellyfin included. Two facts force
+that shape: a `nounix` cifs mount has exactly one owner, and the nixpkgs Jellyfin
+module sets `PrivateUsers=yes`, which makes the mount's owner render as `nobody`
+to jellyfin, so only the `other` bits are ever consulted. The price is that
+`~/.ssh` and the sops age key under `~/Library/Application Support/sops/age/`
+are readable by every service account on this box; narrow it by mounting a
+`subpath` with `fileMode = "0600"/dirMode = "0700"` if that ever matters more
+than the convenience.
+
+It is lazy: nothing is mounted at boot, and the first read of the path triggers
+the connection. If the Mac is asleep the read fails
 fast and the *next* read tries again, so `ls /mnt/mac` is a retry button.
 Prerequisites: File Sharing on the Mac. `shareName = "edeetee"` is the share
 macOS creates automatically for each user's **home directory**, so this one mount
@@ -155,17 +167,14 @@ Shape of the change, and why each part is there:
 - **`boot.supportedFilesystems = [ "cifs" ]`** — this is what pulls in
   `cifs-utils` (`system.fsPackages`) and the module. With a `fileSystems` entry
   that wiring is automatic; with hand-written units it is not.
-- **`uid=1000,gid=100,file_mode=0600,dir_mode=0700,ro`** — macOS' SMB server
+- **`uid=1000,gid=100,file_mode=0444,dir_mode=0755,ro`** — macOS' SMB server
   does not implement the CIFS Unix extensions, so ownership and modes come
-  entirely from these options: a 0600 file on the Mac is readable by whomever
-  they allow here. Since the mount is the whole home directory they are
-  owner-only on purpose — `edeetee` on this host (Dolphin, VLC) reads
-everything and no other local user can. Widening for `jellyfin` (uid 146,
-  gid 975) means `gid=975` with `file_mode=0640,dir_mode=0750`; be aware that
-  exposes the whole home, including `~/.ssh` and the sops age key, to a
-  network-facing service. `ro` because nothing here should write to the Mac.
-  (`uid` is only expressible because `packages.nix` pins `edeetee`'s uid to
-  1000 — NixOS otherwise allocates it dynamically.)
+  entirely from these options, applied to the whole tree: a 0600 file on the Mac
+  is readable by whomever they allow here. `edeetee` stays the owner (`uid` is
+  only expressible because `packages.nix` pins that uid; NixOS otherwise
+  allocates it dynamically) while everyone else reads — see the header of
+  `mac-share.nix` for why world-readable, not group-readable, is the only option
+  that reaches jellyfin. `ro` because nothing here should write to the Mac.
 - **`soft` + `echo_interval=10`** — a `hard` mount blocks the calling process
   until an absent Mac returns (a stuck Jellyfin scan thread); `soft` returns an
   error instead. `echo_interval` shortens dead-connection detection from 60 s.
@@ -188,22 +197,84 @@ down the autofs point. After that `/mnt/mac` is a plain empty directory and
 **nothing will ever mount it again**: accesses cannot retry, because the thing
 that retried is gone.
 
-`mac-share-heal.timer` (every 2 min) checks `systemctl is-active
-mnt-mac.automount`, and if it is not active resets the failed state and re-arms
-it. Manual equivalent, if ever needed:
+`mac-share-heal.timer` (every 2 min) checks every Mac automount
+(`mnt-mac.automount`) and, for any that is not active, resets the failed state
+and re-arms it. Manual equivalent, if ever needed:
 
 ```bash
 ssh homeserver-edt.local 'sudo systemctl restart mnt-mac.automount'
 ```
 
-### Do not point a Jellyfin library at it
+### Jellyfin libraries
 
-A library rooted on a share that comes and goes makes Jellyfin mark items
-missing on every scan that lands while the Mac is asleep, and mangles resume
-state. If Mac media should be a *library*, sync it to `/mnt/hdd` instead
-(rsync/Syncthing) — the mount is for "play this file now". Also note that if the
-Mac sleeps mid-playback, playback stalls: that is inherent to pulling from a
-Mac, mount or not (`caffeinate -i` on the Mac avoids it).
+Point a library at `/mnt/mac/<folder>` and it works: the mount is readable by
+any local account now, and jellyfin re-arms it on first access (verified inside
+jellyfin's sandbox). The caveat that remains is the Mac itself — a library rooted
+on a share that comes and goes makes Jellyfin mark items missing on every scan
+that lands while the Mac is asleep, and mangles resume state. That is why the
+general advice is still to sync Mac media to `/mnt/hdd` (rsync/Syncthing) if it
+should behave like a permanent library. Also note that if the Mac sleeps
+mid-playback, playback stalls: that is inherent to pulling from a Mac, mount or
+not (`caffeinate -i` on the Mac avoids it).
+
+## 4. mpv from the phone: Unified Remote + mpv-mpris
+
+The KDE Connect route in §2 is one command per button, and the phone cannot use
+Plasma's media widget at all: **the iOS KDE Connect app has no MPRIS plugin**, so
+no number of MPRIS players on this host will put media controls in it. The way
+around it is to send the right *keys* instead of MPRIS messages, which is the
+whole of Unified Remote's free **Media** remote:
+
+    iPhone → urserver (this host) → uinput virtual device → KWin
+           → XF86AudioPlay → Plasma media controller → MPRIS → mpv-mpris → mpv
+
+Both halves live in `unified-remote.nix`:
+
+- `mpvScripts.mpris` is installed as `/etc/mpv/scripts/mpris.so` — mpv's
+  *system* script directory (`mpv-unwrapped` is built with `--sysconfdir=/etc`)
+  — so mpv appears on the session bus as an MPRIS player. No wrapper, and
+  home-manager stays reserved for the Plasma settings (see `home.nix`).
+- `urserver` runs as a user service in the graphical session. It needs **no**
+  udev rule or input group: systemd's `uaccess` rule already grants the active
+  session's user rw on `/dev/uinput` (`getfacl /dev/uinput` →
+  `user:edeetee:rw-`), and the server picks its input backend from
+  `XDG_SESSION_TYPE`, i.e. uinput on this Wayland session. Injection as kernel
+  input events is also why the keys reach KWin's global shortcuts.
+
+What it is not: it is transport only — play/pause, next, previous, stop, volume
+up/down/mute — and it acts on whichever player Plasma has marked **active**, not
+on mpv by name. With VLC playing, VLC takes the keys; star the one you want in
+Plasma's media widget. Starting a *file* from the phone is not part of this route
+(that is the paid custom remote, or the web UI in the `simple-mpv-webui`
+alternative).
+
+The Media remote is one of Unified Remote's free 18 — `/remotes/all` tags it
+`browse-card-free` — so no purchase is involved, and nothing copies remotes into
+a writable directory: the built-in ones are read-only out of the Nix store
+(`$out/bin/remotes`) on purpose.
+
+**Set a password before relying on it.** `urserver` has no authentication by
+default and listens on every interface, while this host's firewall is off
+(`networking.nix`). The manager is at http://localhost:9510/web; that setting is
+the server's own app state under `~/.urserver` and `~/.config`, not Nix — and
+note that uinput access means "can type into your session".
+
+```bash
+# is it up, and which input backend did it choose
+ssh homeserver-edt.local 'XDG_RUNTIME_DIR=/run/user/1000 systemctl --user status urserver'
+ssh homeserver-edt.local 'XDG_RUNTIME_DIR=/run/user/1000 journalctl --user -u urserver -n 50'
+# the virtual input device it should have created
+ssh homeserver-edt.local 'grep -i -A3 unified /proc/bus/input/devices'
+# the other half: mpv as an MPRIS player, while something is playing
+ssh homeserver-edt.local 'playerctl -l; playerctl -p mpv metadata'
+```
+
+After the first `nixup` that adds this, start the unit by hand — AGENTS.md: a new
+user unit is not started on an already-running user manager:
+
+```bash
+ssh homeserver-edt.local 'XDG_RUNTIME_DIR=/run/user/1000 systemctl --user start urserver'
+```
 
 ## Verifying
 
@@ -222,11 +293,17 @@ ssh homeserver-edt.local "smbclient -U edeetee //Edwards-MacBook-Max.local/Media
 
 # 5. the heal timer is firing
 ssh homeserver-edt.local 'systemctl list-timers mac-share-heal.timer'
+
+# 6. the phone remote (§4): server up, and mpv visible on MPRIS
+ssh homeserver-edt.local 'XDG_RUNTIME_DIR=/run/user/1000 systemctl --user is-active urserver'
+ssh homeserver-edt.local 'playerctl -l'
 ```
 
 | Symptom | Cause |
 | --- | --- |
 | Cast target not in the phone's list | Client not running, or missing the "remote control of other users" permission, or within ~30 s of boot |
+| Phone's Media remote buttons do nothing | No active MPRIS player (mpv not running, or VLC holds the keys), or the uinput device is missing — `grep -i unified /proc/bus/input/devices` |
+| mpv missing from `playerctl -l` | `mpv-mpris` not loaded: `/etc/mpv/scripts/mpris.so` absent (not deployed) or mpv started before it existed — restart mpv |
 | `/mnt/mac` lists nothing, `systemctl is-active mnt-mac.automount` says `inactive` | The start-limit wedge above; the heal timer fixes it within 2 min, or `sudo systemctl restart mnt-mac.automount` |
 | `/mnt/mac` empty but the automount is active | Mac asleep, File Sharing off, wrong `shareName`, or wrong credentials — check `journalctl -u mnt-mac.mount -n 30` |
 | Mount works, Jellyfin can't read the files | By design: the mount is owner-only (`uid=1000`, `file_mode=0600`). Widening it is described above |
