@@ -15,18 +15,26 @@
  * check — a difference well inside the run-to-run spread. So the advice is now
  * opt-in (PI_BUDGET_GUIDANCE=full) and the default is just the numbers.
  *
+ * "About N requests left at this burn rate" used to ride in that tick; it is gone. It
+ * extrapolates from the mean cost per turn, which assumes a flat burn rate, and the rate is
+ * not flat — the context is re-sent on every turn, cache hits move the price, and a run's
+ * turns are not the same size. Over 86 real ticks the prediction was within ±50% of the
+ * turns that actually followed 23% of the time, too generous 69% of the time (median 2.0x,
+ * p90 11x), and not even monotone: one window reported 39, then 31, then 68, then 67
+ * requests left while the percent used climbed 11 -> 31%. The percent and the dollars are
+ * the provider's own numbers, so the tick keeps those and drops the guess.
+ *
  * What: every user prompt opens a new window. Spend in that window is checked on
  * every turn end:
  *
- *   - every 10%  -> one custom message in context: percent used, dollars left,
- *                   and roughly how many requests that buys at this burn rate.
+ *   - every 10%  -> one custom message in context: percent used and dollars left.
  *                   Only when the turn ended in a tool call, so it steers the
  *                   next request instead of adding one.
  *   - 100%       -> one message: finish the current edits, run the checks once,
  *                   report, stop.
  *   - 130%       -> abort.
  *
- * The same numbers are kept live in the footer status line (`budget 0.0060/0.1000 · 6%`),
+ * The same numbers are kept live in the footer status line (`budget 0.006/0.100 · 6%`),
  * updated on every turn and on every cap change, so the spend is visible while you type the
  * next prompt without spending a model request on it. It is dim below half the cap, warning
  * from half, error at the cap, and reads `no cap` when the limit is off.
@@ -51,7 +59,7 @@
  * the advice does not" finding as above. Turn 50 adds one imperative line, because by then the real
  * choice is finish-or-report.
  *
- * The limit defaults to $0.10 per user request and is inert only when explicitly
+ * The limit defaults to $0.05 per user request and is inert only when explicitly
  * turned off. Resolution order:
  *
  *   PI_BUDGET_USD=0.25 pi ...   # per process, inherited by spawned agents
@@ -72,11 +80,12 @@
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 
-// $0.10, not $0.05: measured over 101 prompts (25 sessions, DeepSeek Flash) the p90
-// prompt cost $0.099 and the mean $0.046, so a $0.05 cap interrupted ordinary work
-// roughly one time in five. An aborted task is paid for twice — the context is re-sent
-// when it is re-prompted — so the tight cap was itself a cost.
-const DEFAULT_CAP_USD = 0.1;
+// $0.05 is the default as chosen. It was $0.10 for a while on the measurement below, and that
+// measurement still stands: over 101 prompts (25 sessions, DeepSeek Flash) the p90 prompt cost
+// $0.099 and the mean $0.046, so $0.05 catches roughly one ordinary prompt in five. An aborted
+// task is paid for twice — the context is re-sent when it is re-prompted — so when aborts show up
+// the fix is a per-spawn PI_BUDGET_USD sized to the task, not a bigger global default.
+const DEFAULT_CAP_USD = 0.05;
 const TICK_FRACTION = 0.1;
 const ABORT_FRACTION = 1.3;
 /** Turns of one user request at which the in-context cost milestone is sent. */
@@ -99,7 +108,7 @@ const STATUS_KEY = "budget";
  * How much prose rides along with the numbers:
  *
  *   (default)                facts only: no system-prompt block, ticks state the
- *                            budget, percent used and requests left
+ *                            budget, percent used and dollars left
  *   PI_BUDGET_GUIDANCE=full  also prepend `guidance` to the system prompt and
  *                            append an imperative to every tick (kept for A/B)
  */
@@ -125,7 +134,11 @@ function spentUsd(ctx: ExtensionContext): number {
 }
 
 function money(value: number): string {
-	return `$${value.toFixed(4)}`;
+	// Three decimals: a tenth of a cent is the resolution anyone acts on, and the percent
+	// next to it carries the fine detail. A nonzero amount must not round to $0.000, or
+	// the first tick of an early turn reads as free.
+	const rounded = value.toFixed(3);
+	return value > 0 && rounded === "0.000" ? "<$0.001" : `$${rounded}`;
 }
 
 function describe(spent: number, cap: number): string {
@@ -280,7 +293,6 @@ export default function (pi: ExtensionAPI) {
 	/** Total branch spend when the current user request started. */
 	let windowStart = 0;
 	let windowTurns = 0;
-	let lastWindowSpend = 0;
 	let lastBucket = 0;
 	let stopRequested = false;
 	/** What the footer's stats line appends; kept current by `updateStatus`. */
@@ -290,7 +302,6 @@ export default function (pi: ExtensionAPI) {
 	const resetWindow = (ctx: ExtensionContext) => {
 		windowStart = spentUsd(ctx);
 		windowTurns = 0;
-		lastWindowSpend = 0;
 		lastBucket = 0;
 		stopRequested = false;
 	};
@@ -451,12 +462,6 @@ export default function (pi: ExtensionAPI) {
 		const spent = Math.max(0, spentUsd(ctx) - windowStart);
 		windowTurns += 1;
 		const perTurn = spent / windowTurns;
-		const lastTurn = Math.max(0, spent - lastWindowSpend);
-		lastWindowSpend = spent;
-		const requestsLeft = Math.max(
-			0,
-			Math.round((cap - spent) / Math.max(lastTurn, perTurn, 1e-9)),
-		);
 
 		updateStatus(ctx, spent);
 
@@ -518,7 +523,7 @@ export default function (pi: ExtensionAPI) {
 					type: "custom_message" as const,
 					customType: SAVED_TYPE,
 					display: true,
-					content: `Budget ${describe(spent, cap)}; about ${requestsLeft} request(s) left at this burn rate.${turnLine}${closing}`,
+					content: `Budget ${describe(spent, cap)}.${turnLine}${closing}`,
 				},
 			],
 		};
@@ -532,7 +537,8 @@ export default function (pi: ExtensionAPI) {
 			if (arg === "") {
 				const spent = Math.max(0, spentUsd(ctx) - windowStart);
 				const session = spentUsd(ctx);
-				const suffix = session > spent + 0.00005 ? ` · ${money(session)} this session` : "";
+				// Compare what is actually printed: a difference too small to render is noise.
+				const suffix = money(session) !== money(spent) ? ` · ${money(session)} this session` : "";
 				ctx.ui.notify(
 					cap === null
 						? `budget: ${money(spent)} on this message · no limit${suffix}`

@@ -28,6 +28,13 @@ let
   # file rots.
   commands = {
     "shutdown" = "shutdown now";
+    # Session switch (tv-session.nix): Bigscreen is the TV UI, plasma is the
+    # desktop, including Steam. The script ends the session, so the phone should
+    # expect the display to blink and the other UI to come up.
+    "TV mode" = "tv-session bigscreen";
+    "Desktop mode" = "tv-session plasma";
+    # Jellyfin Desktop is no longer autostarted; it is the direct-play fallback
+    # (AC-3/DTS) and not a remote-control target — see desktop.nix.
     "Jellyfin TV" = "systemctl --user start jellyfin-desktop";
     "Jellyfin TV (stop)" = "systemctl --user stop jellyfin-desktop";
   };

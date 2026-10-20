@@ -49,35 +49,27 @@
     };
   };
 
-  # ── Jellyfin Desktop as an always-present cast target ──────────────────
-  # Jellyfin can only be remote-controlled while a client is *running* and
-  # logged in — there is no way to wake a sleeping client from the phone. So
-  # the TV client lives in the session: cast from the Jellyfin app and the
-  # video appears here, with no need to launch anything on this box first.
+  # ── Jellyfin Desktop: installed, not autostarted; Plezy is the TV app now ──────────────────
+  # It is no longer autostarted. Plezy (packages.nix) is the TV app, launched
+  # from the Plasma Bigscreen launcher or from the phone (KDE Connect run
+  # commands in kde-connect-run-commands.nix). This client stays installed as
+  # the direct-play fallback for AC-3/DTS (AUDIO.md) and is started explicitly:
   #
-  # `--fullscreen` starts the client fullscreen on every launch. It used to run
-  # `--windowed` to keep the Plasma desktop usable (this box is also the Steam
-  # machine), so switch the TV back to the desktop with the client's own exit
-  # shortcut/Alt+Tab if you need the desktop; quitting still stays quit (see
-  # Restart below).
+  #   systemctl --user start jellyfin-desktop
+  #
+  # It is NOT a remote-control target, despite what this comment block used to
+  # claim: its sessions report SupportsRemoteControl=false, so the phone app
+  # never lists it in Play On (jellyfin/jellyfin-desktop#1260, open since
+  # 2026-10-07). Autostarting it fullscreen was holding the TV for a use case it
+  # cannot serve. Details and the player comparison: plans/plasma-bigscreen.md.
   #
   # Restart=on-failure, deliberately not `always`: a crash comes back, but
-  # *quitting* the app stays quit so the desktop can be used. Start it again
-  # from the phone (KDE Connect run command) or with
-  # `systemctl --user start jellyfin-desktop`.
-  #
-  # Those phone-side run commands are declared in kde.nix, not clicked into
-  # KDE Connect by hand — that is the only record of how to restart this.
-  #
-  # Note: after deploying, a *new* user unit is not started on an already
-  # running user manager (see AGENTS.md "Deploying") — start it by hand once.
+  # quitting stays quit so the desktop can be used.
   systemd.user.services.jellyfin-desktop = {
-    description = "Jellyfin Desktop TV client (remote-control target)";
-    after = [ "plasma-plasmashell.service" ];
-    wantedBy = [ "plasma-plasmashell.service" ];
+    description = "Jellyfin Desktop (direct-play fallback, manual start)";
     serviceConfig = {
       Type = "simple";
-      ExecStart = "${pkgs.jellyfin-desktop}/bin/jellyfin-desktop --tv --fullscreen";
+      ExecStart = "${pkgs.jellyfin-desktop}/bin/jellyfin-desktop --fullscreen";
       Restart = "on-failure";
       RestartSec = 5;
     };

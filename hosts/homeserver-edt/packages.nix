@@ -10,6 +10,11 @@
     nvtopPackages.amd
     pkgsRocm.blender
     jellyfin-desktop
+    # TV app for the Plasma Bigscreen session (see plans/plasma-bigscreen.md):
+    # mpv-based playback, TV-shaped UI, and unlike jellyfin-desktop a client
+    # that may be controllable from the phone. In the pinned nixpkgs at 1.30.0;
+    # `nix flake update nixpkgs` or the already-enabled flatpak gets a newer one.
+    plezy
     kdePackages.kdeconnect-kde
     # mpv sits next to VLC for exactly the files VLC mangles: AC-3/DTS (e.g.
     # "DD5.1" releases). VLC bitstreams those instead of decoding, and a

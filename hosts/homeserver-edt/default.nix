@@ -12,6 +12,7 @@
     ./boot.nix
     ./networking.nix
     ./desktop.nix
+    ./tv-session.nix
     ./services.nix
     ./packages.nix
     ./unified-remote.nix
