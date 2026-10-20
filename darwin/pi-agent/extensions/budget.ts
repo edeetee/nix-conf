@@ -31,6 +31,26 @@
  * next prompt without spending a model request on it. It is dim below half the cap, warning
  * from half, error at the cap, and reads `no cap` when the limit is off.
  *
+ * The stats line is icon-led — `↑` input, `↓` output, `↺` cache read, `✎` cache write, `◉` cache hit
+ * rate, `$` session cost, `▮` context used, `↻` turns in this request, a filling gauge for the cap,
+ * and the billing clock. Colour carries the meaning wherever a number has a threshold: hit rate and
+ * context go success -> warning -> error, cost is accent, and only the cap and the clock change
+ * tone as they get worse.
+ *
+ * The billing clock (`⚡ peak 2h15m` / `☾ off-peak 3h10m`) is the provider's price window, because
+ * the same tokens cost double inside one. For DeepSeek, peak is 01:00-04:00 and 06:00-10:00 UTC,
+ * Monday to Friday (Beijing business hours); nights, weekends and Chinese public holidays are half
+ * price. Verified against api-docs.deepseek.com/quick_start/pricing. The countdown is the time left
+ * in the current window, refreshed every 30 s and costing no model request. Change the windows in
+ * PEAK_WINDOWS if the provider moves them; a provider without peak pricing should skip this item
+ * rather than show a clock that means nothing.
+ *
+ * Deep turns are discouraged by naming the turn, not by scolding: the `↻` counter is always
+ * visible, and at turns 10, 20, 35, 50, 70, 100 and 150 the agent is told in context what the turn
+ * number is, what a turn costs, and how much context is being re-sent — the same "the number steers,
+ * the advice does not" finding as above. Turn 50 adds one imperative line, because by then the real
+ * choice is finish-or-report.
+ *
  * The limit defaults to $0.10 per user request and is inert only when explicitly
  * turned off. Resolution order:
  *
@@ -59,6 +79,18 @@ import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 const DEFAULT_CAP_USD = 0.1;
 const TICK_FRACTION = 0.1;
 const ABORT_FRACTION = 1.3;
+/** Turns of one user request at which the in-context cost milestone is sent. */
+const TURN_MILESTONES: readonly number[] = [10, 20, 35, 50, 70, 100, 150];
+/**
+ * Provider price windows that cost double: `[startHour, endHour)` in UTC, on weekdays only.
+ * DeepSeek charges off-peak rates outside these; peak is Beijing business hours.
+ */
+const PEAK_WINDOWS: ReadonlyArray<readonly [number, number]> = [
+	[1, 4],
+	[6, 10],
+];
+const HOUR_MS = 3_600_000;
+const DAY_MS = 24 * HOUR_MS;
 const SAVED_TYPE = "budget";
 /** Footer status key; distinct from other extensions' keys (e.g. "auto-mode"). */
 const STATUS_KEY = "budget";
@@ -100,18 +132,69 @@ function describe(spent: number, cap: number): string {
 	return `${money(spent)} of ${money(cap)} (${Math.round((spent / cap) * 100)}%)`;
 }
 
+function utcMidnight(now: Date): number {
+	return Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+}
+
+/** Mon-Fri in UTC; the day of `dayStart`, which is a UTC midnight timestamp. */
+function isWeekdayUTC(dayStart: number): boolean {
+	const day = new Date(dayStart).getUTCDay();
+	return day >= 1 && day <= 5;
+}
+
+/** When the current billing window ends, i.e. when the price changes. */
+function billingBoundary(now: Date, peak: boolean): Date {
+	const midnight = utcMidnight(now);
+	for (let day = 0; day <= 9; day += 1) {
+		const dayStart = midnight + day * DAY_MS;
+		if (!isWeekdayUTC(dayStart)) continue;
+		for (const [startHour, endHour] of PEAK_WINDOWS) {
+			const start = dayStart + startHour * HOUR_MS;
+			const end = dayStart + endHour * HOUR_MS;
+			if (peak) {
+				if (now.getTime() >= start && now.getTime() < end) return new Date(end);
+			} else if (start > now.getTime()) {
+				return new Date(start);
+			}
+		}
+	}
+	// Unreachable for the windows above; keeps the countdown honest if they are edited badly.
+	return new Date(now.getTime() + DAY_MS);
+}
+
+/** `45m`, `2h15m`, `1d3h` — the time left in a window, at the granularity a countdown needs. */
+function remainingTime(ms: number): string {
+	const minutes = Math.max(0, Math.round(ms / 60_000));
+	if (minutes < 60) return `${minutes}m`;
+	const hours = Math.floor(minutes / 60);
+	if (hours < 24) return `${hours}h${String(minutes % 60).padStart(2, "0")}m`;
+	return `${Math.floor(hours / 24)}d${hours % 24}h`;
+}
+
+/** `⚡ peak 2h15m` (double price) or `☾ off-peak 3h10m` (half price). */
+function billingStatus(now = new Date()): { peak: boolean; text: string; tone: "warning" | "success" } {
+	const minutes = now.getUTCHours() * 60 + now.getUTCMinutes();
+	const peak =
+		isWeekdayUTC(utcMidnight(now)) && PEAK_WINDOWS.some(([s, e]) => minutes >= s * 60 && minutes < e * 60);
+	const left = remainingTime(billingBoundary(now, peak).getTime() - now.getTime());
+	return peak
+		? { peak, text: `⚡ peak ${left}`, tone: "warning" }
+		: { peak, text: `☾ off-peak ${left}`, tone: "success" };
+}
+
 /**
  * The status line: window spend against the cap, colored by how much of it is gone.
  * In interactive mode this rides on the footer's *stats* line (see `installFooter`), because
  * `ctx.ui.setStatus()` renders every status entry on a line of its own below the stats line.
  * RPC clients have no footer and do take `setStatus`, so there the number goes through that.
  */
-function statusFor(spent: number, cap: number | null): { text: string; tone: string } {
-	if (cap === null) return { text: `no cap · ${money(spent)}`, tone: "dim" };
+function statusFor(spent: number, cap: number | null): { text: string; tone: string; fraction: number } {
+	if (cap === null) return { text: `no cap · ${money(spent)}`, tone: "dim", fraction: 0 };
 	const fraction = spent / cap;
 	return {
 		text: `${money(spent)}/${money(cap)} · ${Math.round(fraction * 100)}%`,
 		tone: fraction >= 1 ? "error" : fraction >= 0.5 ? "warning" : "dim",
+		fraction,
 	};
 }
 
@@ -248,12 +331,17 @@ export default function (pi: ExtensionAPI) {
 		ctx.ui.setStatus(STATUS_KEY, undefined);
 		ctx.ui.setFooter((tui, theme, footerData) => {
 			requestRender = () => tui.requestRender();
+			// The billing clock is wall-clock state, so the footer has to refresh on its own
+			// rather than only when a turn lands.
+			const ticker = setInterval(() => requestRender?.(), 30_000);
 			let cachedKey = "";
 			let totals = usageTotals(ctx);
 
 			return {
 				invalidate() {},
-				dispose() {},
+				dispose() {
+					clearInterval(ticker);
+				},
 				render(width: number): string[] {
 					const key = `${ctx.sessionManager.getLeafId() ?? ""}:${ctx.sessionManager.getEntries().length}`;
 					if (key !== cachedKey) {
@@ -272,24 +360,32 @@ export default function (pi: ExtensionAPI) {
 					const contextWindow = usage?.contextWindow ?? ctx.model?.contextWindow ?? 0;
 					const percent = usage?.percent ?? 0;
 
-					const parts: string[] = [];
-					if (totals.input) parts.push(`↑${tokenCount(totals.input)}`);
-					if (totals.output) parts.push(`↓${tokenCount(totals.output)}`);
-					if (totals.cacheRead) parts.push(`R${tokenCount(totals.cacheRead)}`);
-					if (totals.cacheWrite) parts.push(`W${tokenCount(totals.cacheWrite)}`);
+					const segments: string[] = [];
+					if (totals.input) segments.push(theme.fg("dim", `↑${tokenCount(totals.input)}`));
+					if (totals.output) segments.push(theme.fg("dim", `↓${tokenCount(totals.output)}`));
+					if (totals.cacheRead) segments.push(theme.fg("muted", `↺${tokenCount(totals.cacheRead)}`));
+					if (totals.cacheWrite) segments.push(theme.fg("muted", `✎${tokenCount(totals.cacheWrite)}`));
 					if ((totals.cacheRead || totals.cacheWrite) && totals.hitRate !== undefined) {
-						parts.push(`CH${totals.hitRate.toFixed(1)}%`);
+						// A cache hit is 50x cheaper than a miss here, so a low rate is a real cost signal.
+						const hitTone = totals.hitRate >= 90 ? "success" : totals.hitRate >= 60 ? "warning" : "error";
+						segments.push(theme.fg(hitTone, `◉${totals.hitRate.toFixed(0)}%`));
 					}
-					if (totals.cost) parts.push(`$${totals.cost.toFixed(3)}`);
+					if (totals.cost) segments.push(theme.fg("accent", `$${totals.cost.toFixed(3)}`));
 
-					const contextText = `${percent.toFixed(1)}%/${tokenCount(contextWindow)}`;
+					const contextText = `▮${percent.toFixed(1)}%/${tokenCount(contextWindow)}`;
 					const contextColor = percent > 90 ? ("error" as const) : percent > 70 ? ("warning" as const) : ("dim" as const);
+					segments.push(theme.fg(contextColor, contextText));
 
-					const left = [
-						...parts.map((part) => theme.fg("dim", part)),
-						theme.fg(contextColor, contextText),
-						theme.fg(current.tone, current.text),
-					].join(" ");
+					// Turns are the cost multiplier (each one re-sends the context), so they get a slot.
+					if (windowTurns > 0) segments.push(theme.fg("muted", `↻${windowTurns}`));
+
+					const gauge = ["○", "◔", "◑", "◕", "●"][Math.min(4, Math.floor(current.fraction * 4))];
+					segments.push(theme.fg(current.tone, `${gauge}${current.text}`));
+
+					const billing = billingStatus();
+					segments.push(theme.fg(billing.tone, billing.text));
+
+					const left = segments.join(" ");
 
 					const model = ctx.model?.id ?? "no-model";
 					const thinking = ctx.thinkingLevel ?? "off";
@@ -394,25 +490,38 @@ export default function (pi: ExtensionAPI) {
 		}
 
 		const bucket = Math.floor((spent / cap) * (1 / TICK_FRACTION));
-		if (continuing && bucket > lastBucket) {
-			lastBucket = bucket;
-			return {
-				continue: true,
-				entries: [
-					{
-						type: "custom_message" as const,
-						customType: SAVED_TYPE,
-						display: true,
-						content: GUIDANCE
-							? `Budget ${describe(spent, cap)}; about ${requestsLeft} request(s) left at this ` +
-								"burn rate. Make the smallest changes that satisfy the request; run the checks " +
-								"once when you are done."
-							: `Budget ${describe(spent, cap)}; about ${requestsLeft} request(s) left at this burn rate.`,
-					},
-				],
-			};
-		}
+		const moneyTick = bucket > lastBucket;
 		lastBucket = Math.max(lastBucket, bucket);
+		const milestone = TURN_MILESTONES.includes(windowTurns);
+		if (!continuing || (!moneyTick && !milestone)) return;
+
+		// A turn milestone names the driver — turns x context — so continuing is a visible choice
+		// rather than a drift. Facts only until turn 50; after that one imperative line.
+		const usage = ctx.getContextUsage();
+		const contextText =
+			usage && usage.contextWindow
+				? ` Context is ${tokenCount(Math.round(((usage.percent ?? 0) / 100) * usage.contextWindow))}` +
+					` (${(usage.percent ?? 0).toFixed(0)}% of the window) and is re-sent on every turn.`
+				: "";
+		const turnLine = milestone
+			? ` Turn ${windowTurns} of this request costs about ${money(perTurn)} on average;${contextText}`
+			: "";
+		const closing = milestone && windowTurns >= 50
+			? " If the rest is mechanical, finish it; if it needs a new direction, report now and let the next request take it."
+			: GUIDANCE
+				? " Make the smallest changes that satisfy the request; run the checks once when you are done."
+				: "";
+		return {
+			continue: true,
+			entries: [
+				{
+					type: "custom_message" as const,
+					customType: SAVED_TYPE,
+					display: true,
+					content: `Budget ${describe(spent, cap)}; about ${requestsLeft} request(s) left at this burn rate.${turnLine}${closing}`,
+				},
+			],
+		};
 	});
 
 	pi.registerCommand("budget", {
