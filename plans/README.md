@@ -26,4 +26,6 @@ verification section — the repo rule is "verify before committing, not after".
 | --- | --- | --- |
 | [vaultwarden.md](./vaultwarden.md) | draft | Self-hosted Bitwarden (Vaultwarden), LAN-only, on rpi3b + homeserver-edt, with replication and tested restores. |
 | [kde-declarative-settings.md](./kde-declarative-settings.md) | in progress | Moved homeserver-edt's hand-edited Plasma settings (KDE Connect run commands, power/sleep keys) into nix-conf. Implemented and verified; not deployed. |
+| [plasma-bigscreen.md](./plasma-bigscreen.md) | draft | A second Wayland session (KDE Plasma Bigscreen) as the TV UI, chosen at login by a state file, with a `tv-session` command and TTY/ssh/KDE Connect ways to get back to Plasma. |
+| [cheaper-models.md](./cheaper-models.md) | draft | Cheaper models for the pi agent loop: no hosted candidate beats DeepSeek Flash's cache-read price at a 3.5M-token-cached-token/prompt profile, and 12 GB of VRAM cannot hold 140k context. Keep the model, use off-peak pricing, cut turns × context. |
 | [tailscale.md](./tailscale.md) | draft | Tailscale as the private network (no public IP, nothing always-on for connectivity), rpi3b as subnet router + exit node, then retire ZeroTier. |

@@ -3,7 +3,21 @@
     "deepseek": {
       "baseUrl": "https://api.deepseek.com",
       "api": "openai-completions",
-      "apiKey": "$DEEPSEEK_API_KEY"
+      "apiKey": "$DEEPSEEK_API_KEY",
+      "modelOverrides": {
+        "deepseek-flash": {
+          "inputLimits": {
+            "images": {
+              "resize": {
+                "maxWidth": 1280,
+                "maxHeight": 1280,
+                "maxBytes": 409600,
+                "jpegQuality": 72
+              }
+            }
+          }
+        }
+      }
     }
   }
 }
