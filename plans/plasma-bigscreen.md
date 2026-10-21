@@ -404,6 +404,15 @@ One method lesson: `tv-session bigscreen` is not a dry run. Probing it "to see w
 refuses" actually switched the box and ended the user's session. Use `tv-session status` to
 inspect; read the script before running it.
 
+**How the TV UI is actually driven (measured).** Unified Remote sending **arrow keys** —
+`urserver`'s uinput injection, the same chain that carries media keys to mpv in
+`unified-remote.nix`, delivered by KWin to the Bigscreen shell. It was judged to feel native.
+KDE Connect remote-input also works (trackpad/keyboard) but is fiddlier for lists. A gamepad
+is supported by `inputhandler` (SDL) and none was connected; HDMI-CEC is fully supported by
+Bigscreen but has **no hardware** here (no `/dev/cec*`; RDNA2 has no CEC), so the TV remote
+would need a Pulse-Eight USB-CEC adapter. There is no way to script navigation: the
+inputhandler's D-Bus interface is controller-oriented and exposes no "send key".
+
 ## 10. Options that are not coupled to Plasma (checked 2026-10-21)
 
 The plan's actual goal is narrow — *the phone app can start and control playback on the TV,

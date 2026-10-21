@@ -1,4 +1,12 @@
-# Unified Remote — the phone remote for mpv.
+# Unified Remote — the phone remote for mpv, and for the TV UI.
+#
+# Two users of the same chain. The media keys drive mpv through MPRIS (§4 of
+# TV-MEDIA.md); the *arrow keys* drive the Plasma Bigscreen shell, which is the
+# measured-best way to control the TV UI from the phone — Bigscreen has no
+# D-Bus "send key" API, nothing here speaks X11, and `urserver` already injects
+# kernel-level input events that KWin delivers to whatever has focus. See
+# TV-MEDIA.md §1b for the alternatives that were checked (CEC: no hardware;
+# gamepad: none connected; KDE Connect: works, fiddlier).
 #
 # Why this exists at all: the iOS KDE Connect app has no MPRIS/media plugin
 # (its whole plugin set is Battery, Clipboard, FindMyPhone, Ping, Presenter,

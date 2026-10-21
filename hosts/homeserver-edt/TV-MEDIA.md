@@ -5,56 +5,52 @@ onto the Sony TV that this box drives:
 
 | Want | Mechanism | Needs the phone? |
 | --- | --- | --- |
-| Browse a library, cast to the TV, control from the phone | Jellyfin + Jellyfin Desktop as a cast target | Yes |
+| A TV-shaped UI on the box (couch launcher, remote navigation) | Plasma Bigscreen shell, swapped in place with `plasma-bigscreen-swap-session` | No |
+| Drive that TV UI from the phone | **Unified Remote arrow keys** (measured working), or KDE Connect remote-input | Yes |
+| Browse a library, cast to the TV, control playback from the phone | Jellyfin **web** client on the TV (a controllable session) — *not* Jellyfin Desktop, see §1 | Yes |
 | Play/pause/volume for mpv (or anything else on MPRIS) from the phone | Unified Remote's free Media remote + mpv-mpris | Yes |
-| Relaunch/stop a TV app from the phone without walking over | KDE Connect run commands | Yes |
+| Relaunch/stop a TV app, or swap the TV UI, from the phone without walking over | KDE Connect run commands | Yes |
 | Play a file that lives on the Mac | `/mnt/mac` (cifs automount) or `vlc smb://…` | No |
 | Let Jellyfin serve Mac media | a library on `/mnt/mac/<folder>` | Yes |
 
 AirPlay (audio + screen mirroring) is a fifth, unrelated path — that one is in
 `AIRPLAY.md`.
 
-## 1. Jellyfin Desktop is always a cast target
+## 1. **Not** a cast target: Jellyfin Desktop
 
 There is no standalone "Jellyfin remote" app: remote control is a feature of
-every Jellyfin client, and it can only control a client that is **running and
-logged in**. A sleeping client cannot be woken from the phone, which is exactly
-why the TV client is now part of the session rather than something launched by
-hand:
+every Jellyfin client, and it can only control a client that (a) is running and
+logged in and (b) **advertises `SupportsRemoteControl`**. Jellyfin Desktop does
+not — its sessions report the capability as false
+([jellyfin-desktop#1260](https://github.com/jellyfin/jellyfin-desktop/issues/1260),
+open), which is why it never appears in the phone's Play On list while a
+browser session does. It therefore no longer autostarts: it is the manual
+direct-play fallback for AC-3/DTS (`AUDIO.md`), started with
+`systemctl --user start jellyfin-desktop` or the "Jellyfin TV" KDE Connect
+command. What is installed as the TV app instead is **Plezy** (`packages.nix`),
+launched from the Bigscreen launcher.
 
-```nix
-# desktop.nix
-systemd.user.services.jellyfin-desktop = {
-  after = [ "plasma-plasmashell.service" ];
-  wantedBy = [ "plasma-plasmashell.service" ];
-  serviceConfig.ExecStart = "${pkgs.jellyfin-desktop}/bin/jellyfin-desktop --tv --windowed";
-  serviceConfig.Restart = "on-failure";
-};
-```
+For casting *playback* control, run the **Jellyfin web** client on the TV — e.g.
+`plasma-bigscreen-webapp --name Jellyfin http://localhost:8096`, or Firefox from
+the launcher — and the phone's Play On works. Design notes and the whole player
+comparison: `plans/plasma-bigscreen.md`.
 
 Decisions worth remembering:
 
-- **`--tv --windowed`, not `--fullscreen`.** This box is also the Steam machine,
-  so the client must not own the screen permanently. It does not have to: the
-  client honours the web player's HTML5 fullscreen request, so a casted video
-  still goes fullscreen (the client's own `fullscreen` setting help says
-  *"Regular HTML5 fullscreen does still work"*). If this box ever becomes a pure
-  media appliance, change `--windowed` to `--fullscreen`.
-- **`Restart=on-failure`, not `always`.** A crash comes back; *quitting* the app
-  stays quit so the desktop can be used, and it needs an explicit restart.
-- **No login step at runtime.** Jellyfin Desktop is a QtWebEngine shell around
-  jellyfin-web, so "logged in" is just a device token in its WebEngine profile
-  (`~/.local/share/jellyfin-desktop/profiles/<id>/QtWebEngine`), pointing at
-  `http://localhost:8096`. It is only lost by revoking the device in Dashboard →
-  Devices, "sign out of all devices", or wiping that directory.
-
-Timing: the cast target appears roughly 15–30 s after boot (Plasma → app →
-WebEngine → session registration). Casting inside that window just won't list it.
-
-The one permission that gates everything: Dashboard → Users → `edeetee` →
-**"Allow remote control of other users"** (or "Allow remote control of shared
-devices"). Without one of those the phone's cast UI stays hidden, which looks
-identical to "the client isn't running".
+- **Plezy is the TV app; Jellyfin Desktop is manual.** `desktop.nix` keeps the
+  service (for AC-3/DTS direct play) but with no `wantedBy`, so it starts only
+  when asked. `--fullscreen` is enough now that nothing else needs the screen
+  back: quitting still stays quit, because `Restart=on-failure` is deliberate
+  (a crash comes back, a quit does not).
+- **The permission that still gates remote control** of any session: Dashboard →
+  Users → `edeetee` → **"Allow remote control of other users"** (or "Allow
+  remote control of shared devices"). Without one of those the phone's cast UI
+  stays hidden, which looks identical to "the client isn't running".
+- **Login state is just a device token.** Any Jellyfin client on this box keeps
+  it in its own profile directory (`~/.local/share/jellyfin-desktop/profiles/…`
+  for Jellyfin Desktop, `~/.var/app/…` or `~/.local/share/plezy` for Plezy). It
+  is lost by revoking the device in Dashboard → Devices, by "sign out of all
+  devices", or by wiping that directory — not by rebooting.
 
 ```bash
 # status / manual control (over ssh)
@@ -65,6 +61,31 @@ ssh homeserver-edt.local 'XDG_RUNTIME_DIR=/run/user/1000 systemctl --user start 
 Note the AGENTS.md deploy rule: a *new* user unit is not started on an
 already-running user manager, so after the first `nixup` that adds this unit it
 must be started by hand once (or by rebooting).
+
+## 1b. Controlling the Bigscreen shell itself
+
+Measured options, best first (2026-10-21):
+
+| Input | Works? | Notes |
+| --- | --- | --- |
+| **Unified Remote arrows/enter** | **yes, and it feels native** | Same uinput chain as §4 — `urserver` synthesises key events, KWin delivers them to the Bigscreen shell. The free "Keyboard"/*custom arrow* remote is enough; no mpv/mpris involvement |
+| KDE Connect remote input | yes | Trackpad + keyboard, paired iPhone. Fine for clicking, fiddly for lists |
+| Gamepad (DualShock) | supported, none connected as of that date | Bigscreen's `inputhandler` drives SDL controllers; `/dev/input/js0` here is the ASRock RGB controller, not a pad |
+| TV remote over HDMI-CEC | **no hardware** | Bigscreen has full CEC support (`cecEnabled`, `isCecControllerConnected`, `sendActiveSource/Standby` on `org.kde.plasma.bigscreen.inputhandler`), but there is no `/dev/cec*` — RDNA2 has no CEC and no Pulse-Eight dongle is attached. That dongle is the only path to the Sony remote driving this UI |
+| Scripted/D-Bus navigation | no | The inputhandler's D-Bus interface is controller-oriented only; it exposes no "send key" method |
+
+Switching between the TV UI and the desktop:
+
+```bash
+plasma-bigscreen-swap-session   # toggles: shell swapped in place, windows kept
+tv-session bigscreen|plasma     # changes what SDDM autologins into (survives reboot)
+tv-session status
+```
+
+The first is the day-to-day one and is also a KDE Connect run command ("Swap TV
+UI"). The second ends the graphical session, so SDDM must be willing to
+re-autologin — `sddm.settings.Autologin.Relogin = true` in `tv-session.nix` is
+what makes that true; without it the box comes back with no session at all.
 
 ## 2. Phone side: KDE Connect run commands
 
