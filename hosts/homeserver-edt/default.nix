@@ -15,6 +15,7 @@
     ./tv-session.nix
     ./bigscreen-overlay.nix
     ./plezy-overlay.nix
+    ./plezy-fullscreen.nix
     ./services.nix
     ./packages.nix
     ./unified-remote.nix

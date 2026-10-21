@@ -64,6 +64,12 @@ in
     searchPlugins.webSearchKeywords.default = "duckduckgo";
   };
 
+  # KWin script that forces Plezy fullscreen (plezy-fullscreen.nix). KWin reads
+  # its enabled-scripts list from kwinrc at startup, so this takes effect at the
+  # next session start; `plezy-fullscreen.nix` documents the one-off D-Bus call
+  # that applies it to a running session.
+  programs.plasma.configFile.kwinrc.Plugins.plezy-fullscreenEnabled = true;
+
   # KDE Connect run commands, into every paired device's directory.
   #
   # That directory is the *remote* device's id, so hard-coding one would mean a
