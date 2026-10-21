@@ -28,7 +28,15 @@
 { lib, pkgs, ... }:
 let
   bigscreen = pkgs.kdePackages.plasma-bigscreen or null;
+  bigscreenAvailable = bigscreen != null;
   bigscreenSession = "plasma-bigscreen-wayland";
+
+  # Plasma is started from its own binary, not from a session .desktop file. The
+  # files only exist in the *installed sessions* package, which reaches a session
+  # only through XDG_DATA_DIRS — and SDDM does not necessarily hand that to the
+  # session it launches. A missing session file must never mean "no session", so
+  # the desktop path depends on nothing but a store path.
+  startPlasma = "${pkgs.kdePackages.plasma-workspace}/bin/startplasma-wayland";
 
   # Resolves a session name to its .desktop file without hard-coding store paths
   # and without referencing `sessionData.desktops` (which would be a cycle: it is
@@ -52,22 +60,19 @@ let
     ${findSession}
 
     state="''${XDG_STATE_HOME:-$HOME/.local/state}/tv-session"
-    case "$(cat "$state" 2>/dev/null || echo plasma)" in
-      bigscreen) name=${bigscreenSession} ;;
-      *)         name=plasma ;;
-    esac
+    mode=$(cat "$state" 2>/dev/null || echo plasma)
 
-    # Never refuse to log in: an unreadable state file, or a mode whose session
-    # is gone, falls back to the desktop rather than to a black screen.
-    if ! file=$(find_session "$name"); then
-      echo "tv-session: no '$name' session installed, starting plasma" >&2
-      file=$(find_session plasma) || { echo "tv-session: no plasma session either" >&2; exit 1; }
+    if [ "$mode" = bigscreen ]; then
+      if file=$(find_session ${bigscreenSession}); then
+        exec_line=$(sed -n 's/^Exec=//p' "$file" | head -n1 | sed 's/ *%[a-zA-Z]//g')
+        if [ -n "$exec_line" ]; then exec sh -c "$exec_line"; fi
+      fi
+      # Unreadable state, or a mode whose session is gone: log in to the desktop
+      # rather than to a black screen.
+      echo "tv-session: no ${bigscreenSession} session found, starting plasma" >&2
     fi
 
-    # Take the launch command from the session file NixOS generated.
-    exec_line=$(sed -n 's/^Exec=//p' "$file" | head -n1 | sed 's/ *%[a-zA-Z]//g')
-    [ -n "$exec_line" ] || { echo "tv-session: no Exec= in $file" >&2; exit 1; }
-    exec sh -c "$exec_line"
+    exec ${startPlasma}
   '';
 
   # The session SDDM autologins into; it re-execs the real one above.
@@ -104,7 +109,7 @@ let
         ;;
     esac
 
-    if [ "$1" = bigscreen ] && ! find_session ${bigscreenSession} >/dev/null; then
+    if [ "$1" = bigscreen ] && [ "${if bigscreenAvailable then "1" else "0"}" != 1 ]; then
       echo "tv-session: plasma-bigscreen is not installed in this system (the pinned" >&2
       echo "nixpkgs has Plasma 6.6; the package starts at Plasma 6.8) — staying on plasma." >&2
       exit 1
