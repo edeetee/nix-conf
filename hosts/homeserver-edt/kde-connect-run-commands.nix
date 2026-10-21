@@ -28,11 +28,18 @@ let
   # file rots.
   commands = {
     "shutdown" = "shutdown now";
-    # Session switch (tv-session.nix): Bigscreen is the TV UI, plasma is the
-    # desktop, including Steam. The script ends the session, so the phone should
-    # expect the display to blink and the other UI to come up.
-    "TV mode" = "tv-session bigscreen";
-    "Desktop mode" = "tv-session plasma";
+    # Two different mechanisms, both here because they fail differently:
+    #
+    #   * `plasma-bigscreen-swap-session` swaps the *shell* in place (it reads
+    #     PLASMA_BIGSCREEN_LAUNCH_REASON from the session environment and
+    #     toggles). Instant, keeps every window and the running session — this
+    #     is the one to use day to day.
+    #   * `tv-session` changes which session *SDDM autologins into* and ends the
+    #     current graphical session, so it survives a reboot. Slower, and it
+    #     needs SDDM's Autologin.Relogin (set in tv-session.nix) to come back.
+    "Swap TV UI" = "plasma-bigscreen-swap-session";
+    "TV mode (restart)" = "tv-session bigscreen";
+    "Desktop mode (restart)" = "tv-session plasma";
     # Jellyfin Desktop is no longer autostarted; it is the direct-play fallback
     # (AC-3/DTS) and not a remote-control target — see desktop.nix.
     "Jellyfin TV" = "systemctl --user start jellyfin-desktop";

@@ -1,8 +1,10 @@
 # Plasma Bigscreen as the TV session (with a switch back to Plasma)
 
 Status: **in progress, and questioned** — the session switcher, Plezy as the TV app and the
-removal of the `jellyfin-desktop` autostart are implemented (§3). **Bigscreen itself is not
-enabled yet**: the pinned nixpkgs does not contain the package (§9). §10 lists the
+removal of the `jellyfin-desktop` autostart are implemented (§3). **Update 2026-10-21: the
+§9.1 overlay was built and deployed and Bigscreen 6.7.5 is running on the box** — see §9.4
+and §9.5 for what it took and what it measured. The older status note follows: Bigscreen
+itself was not in the pinned nixpkgs (§9) at the time this was written. §10 lists the
 non-Plasma-coupled options, and one of them (`jellyfin-mpv-shim`) solves the actual problem
 — remote control of the TV — with no new shell at all. Read §10 before spending anything
 more on the Bigscreen path.
@@ -365,6 +367,42 @@ No. It ships only in nixpkgs; there is no upstream KDE flake and no dedicated th
 packaging that this plan could find. The nearest upstream activity is nixpkgs PR #459790
 ("plasma: add mobile"), open with a merge conflict and marked stale — not a source to depend
 on. So the real choice stays: overlay the one derivation (§9.1), or bump the pin (§9.2).
+
+### 9.4 What the overlay needed, measured
+
+The §9.1 approach works: `plasma-bigscreen` **6.7.5 runs on Plasma 6.6.4**. Four things were
+required, each found the hard way on the server:
+
+| Problem | Fix |
+| --- | --- |
+| `find_package(Plasma 6.7.0 REQUIRED)` — 6.7.5 pins libplasma, PlasmaActivities(Stats) and LibKWorkspace to 6.7 | `postPatch` rewrites `PROJECT_DEP_VERSION` to `6.6.0`; the CMake macros and the C++ used are unchanged across the gap. The Qt 6.10 / KF6 6.14 floors were already satisfied |
+| The pinned `mkKdeDerivation` cannot describe an out-of-tree package: it reads `projectInfo`/`licenseInfo`/`dependencies` from generated JSON with no entry for it — a hard error, not a fallback | build machinery imported from the newer tree (`pkgs/kde/lib/mk-kde-derivation.nix`) but **bound to the pinned KDE scope**, so libs and toolchain stay 6.6 |
+| `qmllint` check fails: 6.6's qmllint cannot import the 6.7 module set | `dontQmlLint = 1` (check-phase only; the package had already built and installed) |
+| Session package rejected: "did not specify any session names" | `passthru.providedSessions = [ "plasma-bigscreen-wayland" ]` |
+
+Runtime result: the shell loads and is usable. Only QML warnings — `ScrollView.qml`
+`Cannot read property 'visible'/'active' of null`, and a binding loop at
+`org.kde.bigscreen.homescreen/HomeScreen.qml:53` — no fatal import errors, which was the main
+risk of a two-minor jump.
+
+### 9.5 Two switchers, and the bug that made the first look broken
+
+| Mechanism | What it does | Survives reboot |
+| --- | --- | --- |
+| `plasma-bigscreen-swap-session` (upstream) | swaps the **shell** in place with `plasmashell --replace`, keeping the session and every window; toggles on `PLASMA_BIGSCREEN_LAUNCH_REASON` | no |
+| `tv-session bigscreen\|plasma` | writes `~/.local/state/tv-session` and ends the **graphical session**; SDDM re-autologins into the wrapper | yes |
+
+Two bugs were found and fixed during the first live attempt:
+
+1. **SDDM `Autologin.Relogin` defaults to false.** Ending the session started nothing at all
+   — no session, no greeter — and needed root to recover. Fixed in `tv-session.nix` with
+   `sddm.settings.Autologin.Relogin = true`.
+2. **`loginctl terminate-user` killed the ssh session that asked for the switch**, so the
+   script could neither finish nor report. It now terminates only the `wayland` session.
+
+One method lesson: `tv-session bigscreen` is not a dry run. Probing it "to see whether it
+refuses" actually switched the box and ended the user's session. Use `tv-session status` to
+inspect; read the script before running it.
 
 ## 10. Options that are not coupled to Plasma (checked 2026-10-21)
 
