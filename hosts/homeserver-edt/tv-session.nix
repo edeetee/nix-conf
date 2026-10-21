@@ -117,12 +117,20 @@ let
 
     mkdir -p "$(dirname "$state")"
     echo "$1" > "$state"
-    echo "tv-session: switching to $1, ending this session…"
-    # Ends the session so SDDM autologins into the wrapper again. If polkit
-    # refuses, the state file has already changed: logging out from the session
-    # menu does the same thing.
-    loginctl terminate-user "$(id -un)" ||
-      echo "tv-session: log out from the session menu to apply" >&2
+    echo "tv-session: switching to $1, ending the graphical session…"
+    # End ONLY the graphical session: `loginctl terminate-user` also kills every
+    # ssh session, which terminates the very command that asked for the switch
+    # (and would drop a remote session mid-repair). SDDM then re-autologins into
+    # the wrapper, which reads the new state.
+    switched=0
+    for s in $(loginctl show-user "$(id -u)" -p Sessions --value); do
+      if [ "$(loginctl show-session "$s" -p Type --value)" = wayland ]; then
+        loginctl terminate-session "$s" && switched=1
+      fi
+    done
+    if [ "$switched" = 0 ]; then
+      echo "tv-session: no graphical session to end; log out to apply" >&2
+    fi
   '';
 in
 {
@@ -131,6 +139,12 @@ in
     # SDDM autologins into this (autoLogin.enable in desktop.nix); the wrapper
     # re-execs plasma or bigscreen from the state file.
     defaultSession = "homeserver-tv";
+    # NixOS defaults Relogin to false, which means "autologin once, then sit at
+    # the greeter forever". Without this, `tv-session` writes the new state,
+    # ends the session, and nothing ever starts again — the box is left with no
+    # graphical session at all (measured, 2026-10-21). It also makes a crashed
+    # TV session retry instead of needing root to restart display-manager.
+    sddm.settings.Autologin.Relogin = true;
   };
 
   # Bigscreen's app launcher needs its portal configuration to find apps.
