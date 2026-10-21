@@ -52,6 +52,15 @@ in
           # The launcher and its session file point at plasma-workspace's
           # libexec, which is a different store path than upstream expects.
           postPatch = ''
+            # 6.7.5 declares a hard floor of Plasma 6.7 for libplasma,
+            # PlasmaActivities(Stats) and LibKWorkspace (PROJECT_DEP_VERSION).
+            # Those are release pins, not API requirements — the CMake macros and
+            # the C++ used here are unchanged between 6.6.4 and 6.7 — so relax
+            # them and let the compiler and the QML runtime be the judge. The
+            # Qt/KF6/ECM floors (6.10 / 6.14) are already met by the pin.
+            substituteInPlace CMakeLists.txt \
+              --replace-fail 'set(PROJECT_DEP_VERSION "6.7.0")' 'set(PROJECT_DEP_VERSION "6.6.0")'
+
             substituteInPlace bin/plasma-bigscreen-wayland.in \
               --replace-fail @KDE_INSTALL_FULL_LIBEXECDIR@ "${prev.kdePackages.plasma-workspace}/libexec"
 
