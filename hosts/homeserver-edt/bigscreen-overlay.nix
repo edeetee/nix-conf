@@ -63,6 +63,8 @@ in
 
           extraNativeBuildInputs = [ prev.pkg-config ];
 
+          passthru.providedSessions = [ "plasma-bigscreen-wayland" ];
+
           extraBuildInputs = [
             prev.kdePackages.qtwebengine
             prev.kdePackages.kdeconnect-kde
