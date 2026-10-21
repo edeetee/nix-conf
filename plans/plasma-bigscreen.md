@@ -283,3 +283,58 @@ What was shipped instead (`hosts/homeserver-edt/tv-session.nix`, plus edits to
 
 Still open: **bump nixpkgs** (whole-system update: kernel, Plasma 6.6 → 6.8, everything) or
 **wait**. That is a separate decision with its own deploy risk, deliberately not taken here.
+
+### 9.1 Option C — overlay *only* the shell (no nixpkgs bump)
+
+Mechanically possible, and cheaper than a full bump. The evidence:
+
+- The nixpkgs package is `mkKdeDerivation` with `postPatch` over the launcher script, one
+  CMake flag, and build inputs `qtwebengine kdeconnect-kde libcec libcec_platform sdl3` —
+  i.e. QML + a shell script, not compiled Plasma-internal API.
+- Every symbol it needs already exists in **the pinned** nixpkgs: `kdePackages.callPackage`,
+  `kdePackages.mkKdeDerivation`, `kdePackages.qtwebengine`, `libcec`, `sdl3` (checked by
+  eval against the flake input).
+- `hosts/homeserver-edt/tv-session.nix` already reads `pkgs.kdePackages.plasma-bigscreen
+  or null`, so an overlay that adds that one attribute switches the session on with no
+  further edits.
+
+Sketch — a second input used purely as a **source tree**, built by the pinned scope:
+
+```nix
+# flake.nix
+inputs.nixpkgs-bigscreen.url = "github:nixos/nixpkgs/nixpkgs-unstable";  # source only
+
+# host module
+{ inputs, lib, ... }:
+{
+  nixpkgs.overlays = [
+    (final: prev: {
+      kdePackages = prev.kdePackages // {
+        plasma-bigscreen = prev.kdePackages.callPackage
+          "${inputs.nixpkgs-bigscreen}/pkgs/kde/plasma/plasma-bigscreen"
+          { };
+        # 6.8's QML is two Plasma minors away from the 6.6 runtime; pin the tag to
+        # the closest release instead, by overriding src to v6.7.5:
+        #   { version = "6.7.5"; src = fetchurl { ... }; }
+      };
+    })
+  ];
+}
+```
+
+What makes it *worth* trying: the blast radius is the TV session only. The desktop session
+never loads the shell, and `tv-session bigscreen` still refuses/handles a bad state, so a
+broken shell is a wasted experiment, not a broken box.
+
+What makes it **unsupported**, and why it should not be committed as the final answer:
+
+| Risk | Effect |
+| --- | --- |
+| QML imports/API introduced in Plasma 6.7/6.8 are absent from the 6.6 runtime | shell fails to load → blank TV session; desktop unaffected |
+| build-time skew (`QT_FIND_PRIVATE_MODULES`, ECM/KF6 CMake macros, `qtwebengine`) | build fails, no runtime risk — a later tag (6.7.5) is the first thing to try |
+| it can silently break on any Plasma point bump | no upstream support for the combination; the honest end state is still a nixpkgs bump |
+
+Test order, cheapest first: **(1)** `nixos-rebuild build --flake .#homeserver-edt` on the
+server with the overlay (proves it builds); **(2)** `tv-session bigscreen` plus a nested QML
+smoke test rather than a logout, if one can be found; **(3)** only then log the TV session in,
+with a TTY (`Ctrl+Alt+F2` → `tv-session plasma`) ready.
