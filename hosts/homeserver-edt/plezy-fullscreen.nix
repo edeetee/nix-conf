@@ -8,11 +8,14 @@
 # hand-writing a `kwinrulesrc` (whose rule enums are undocumented enough that a
 # wrong value fails silently).
 #
-# The script is installed into `$out/share/kwin/scripts`, so it is visible to
-# KWin through XDG_DATA_DIRS, and enabled by the `kwinrc` key written in
-# `kde.nix` (`[Plugins] plezy-fullscreenEnabled`). Enabling happens at KWin
-# start, i.e. at session start — for the *running* session it has to be loaded
-# once over D-Bus:
+# The script is installed into `$out/share/kwin/scripts` (visible to KWin through
+# XDG_DATA_DIRS) and carries `EnabledByDefault: true` in its metadata, so no
+# kwinrc key is needed — which matters here: under the Bigscreen session KWin
+# writes and reads `~/.config/plasma-bigscreen/kwinrc`, not `~/.config/kwinrc`
+# (that directory holds exactly the four files KDE's mediacenter profile owns),
+# so a flag written to the ordinary kwinrc would be silently ignored by the TV
+# session. Enablement still takes effect at KWin start, i.e. at session start;
+# for the *running* session load it once over D-Bus:
 #
 #   busctl --user call org.kde.KWin /Scripting org.kde.kwin.Scripting \
 #     loadScript s /run/current-system/sw/share/kwin/scripts/plezy-fullscreen/contents/code/main.js
@@ -36,7 +39,8 @@
           "Name": "Plezy fullscreen",
           "Description": "Start com.edde746.plezy fullscreen",
           "License": "MIT",
-          "Version": "1.0"
+          "Version": "1.0",
+          "EnabledByDefault": true
         },
         "X-Plasma-API": "javascript",
         "X-Plasma-MainScript": "code/main.js"
