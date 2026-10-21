@@ -74,6 +74,15 @@ in
 
           passthru.providedSessions = [ "plasma-bigscreen-wayland" ];
 
+          # mkKdeDerivation enables the qmllint check, and 6.7's QML does not
+          # lint cleanly under 6.6's qmllint: the modules are ones the older
+          # qmllint cannot import, so it reports "Failed to import
+          # org.kde.bigscreen.webapp" and exits non-zero. The package itself
+          # builds and installs fine (the failing check is installCheck-phase
+          # only), and this is a TV shell on a non-standard stack — a linter's
+          # opinion of it is not the gate.
+          dontQmlLint = 1;
+
           extraBuildInputs = [
             prev.kdePackages.qtwebengine
             prev.kdePackages.kdeconnect-kde
