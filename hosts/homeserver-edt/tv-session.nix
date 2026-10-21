@@ -71,20 +71,22 @@ let
   '';
 
   # The session SDDM autologins into; it re-execs the real one above.
-  sessionPackage = (pkgs.writeTextDir "share/wayland-sessions/homeserver-tv.desktop" ''
-    [Desktop Entry]
-    Name=HomeServer TV
-    Comment=Plasma or Plasma Bigscreen, chosen by ~/.local/state/tv-session
-    Exec=${start}
-    DesktopNames=KDE
-    Type=Application
-  '') // {
-    # Read as a top-level attribute by the display-manager module
-    # (`p.providedSessions`) and normally set through passthru; both are set
-    # here because this package is hand-made rather than a kdePackages build.
-    providedSessions = [ "homeserver-tv" ];
-    passthru.providedSessions = [ "homeserver-tv" ];
-  };
+  sessionPackage =
+    (pkgs.writeTextDir "share/wayland-sessions/homeserver-tv.desktop" ''
+      [Desktop Entry]
+      Name=HomeServer TV
+      Comment=Plasma or Plasma Bigscreen, chosen by ~/.local/state/tv-session
+      Exec=${start}
+      DesktopNames=KDE
+      Type=Application
+    '')
+    // {
+      # Read as a top-level attribute by the display-manager module
+      # (`p.providedSessions`) and normally set through passthru; both are set
+      # here because this package is hand-made rather than a kdePackages build.
+      providedSessions = [ "homeserver-tv" ];
+      passthru.providedSessions = [ "homeserver-tv" ];
+    };
 
   switch = pkgs.writeShellScriptBin "tv-session" ''
     ${findSession}
