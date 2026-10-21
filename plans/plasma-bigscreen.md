@@ -338,3 +338,28 @@ Test order, cheapest first: **(1)** `nixos-rebuild build --flake .#homeserver-ed
 server with the overlay (proves it builds); **(2)** `tv-session bigscreen` plus a nested QML
 smoke test rather than a logout, if one can be found; **(3)** only then log the TV session in,
 with a TTY (`Ctrl+Alt+F2` → `tv-session plasma`) ready.
+
+### 9.2 Option D — the whole `kdePackages` scope from a newer nixpkgs (rejected)
+
+Possible in one line (`kdePackages = newpkgs.kdePackages`), and tempting because it avoids
+touching the kernel and systemd. Rejected anyway:
+
+- **The cost is nearly the same.** Plasma 6.8 means kwin, plasma-workspace, plasma-desktop,
+  KF6, Qt, KIO, kdecoration and friends rebuilt. The pin is on `nixpkgs-unstable`, so a newer
+  unstable rev gets **binary-cache hits** — a pin bump is mostly a large download, not hours of
+  compilation. On cache hits the two options are close in cost; on misses, both lose.
+- **The pin bump is the tested combination; this is not.** A pinned Plasma 6.6-era NixOS
+  module driving a 6.8 stack, with systemd/pipewire/SDDM left behind, is a mix nobody runs or
+  reports bugs against. KDE components talk to each other at runtime (portal backends, kded,
+  kactivitymanagerd, KIO, `kdeconnect-kde`, plasma-manager's generated config), so skew
+  shows up as session-level misbehaviour that is hard to bisect — unlike a pin bump, which
+  either builds and boots or is rolled back with a generation.
+- **If the KDE stack is being replaced anyway, replace the pin.** Same work, supported path,
+  clean rollback (`nixos-rebuild --rollback`, old generations stay), and a diff you can read.
+
+### 9.3 Is there an alternate flake for Bigscreen?
+
+No. It ships only in nixpkgs; there is no upstream KDE flake and no dedicated third-party
+packaging that this plan could find. The nearest upstream activity is nixpkgs PR #459790
+("plasma: add mobile"), open with a merge conflict and marked stale — not a source to depend
+on. So the real choice stays: overlay the one derivation (§9.1), or bump the pin (§9.2).
