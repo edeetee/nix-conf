@@ -1,9 +1,11 @@
 # Plasma Bigscreen as the TV session (with a switch back to Plasma)
 
-Status: **in progress** — the session switcher, Plezy as the TV app and the removal of the
-`jellyfin-desktop` autostart are implemented (§3). **Bigscreen itself is not enabled yet**:
-the pinned nixpkgs does not contain the package (§9). Nothing deployed; the user asked to
-stay off the box while the TV was in use.
+Status: **in progress, and questioned** — the session switcher, Plezy as the TV app and the
+removal of the `jellyfin-desktop` autostart are implemented (§3). **Bigscreen itself is not
+enabled yet**: the pinned nixpkgs does not contain the package (§9). §10 lists the
+non-Plasma-coupled options, and one of them (`jellyfin-mpv-shim`) solves the actual problem
+— remote control of the TV — with no new shell at all. Read §10 before spending anything
+more on the Bigscreen path.
 
 ## 1. Why
 
@@ -363,3 +365,54 @@ No. It ships only in nixpkgs; there is no upstream KDE flake and no dedicated th
 packaging that this plan could find. The nearest upstream activity is nixpkgs PR #459790
 ("plasma: add mobile"), open with a merge conflict and marked stale — not a source to depend
 on. So the real choice stays: overlay the one derivation (§9.1), or bump the pin (§9.2).
+
+## 10. Options that are not coupled to Plasma (checked 2026-10-21)
+
+The plan's actual goal is narrow — *the phone app can start and control playback on the TV,
+with mpv-grade audio* — and Plasma Bigscreen is only one way to host that. It is also the
+most coupled one: a shell has to match the running Plasma major (§9), so it drags a whole
+nixpkgs bump along with it. Everything below sidesteps that by being an **app**, not a
+shell.
+
+| Option | In this flake's pin | Remote control from the phone | On-TV 10-foot UI | Notes |
+| --- | --- | --- | --- | --- |
+| `jellyfin-mpv-shim` 2.9.0 | **yes** | **yes** — upstream: "The Jellyfin mobile apps can fully control the client" | no (phone is the browser) | direct play via mpv, so AC-3/DTS decode like the fallback client |
+| `kodi` 21.3 + `kodiPackages.jellyfin` 2.0.0 / `kodiPackages.jellycon` 0.9.1 | **yes** | **yes** — added "since day 1" in jellyfin-kodi; add-on has a documented remote-control/event path | yes (Kodi's own) | own session available: `services.xserver.desktopManager.kodi` (module exists in the pin's nixpkgs) |
+| `fladder` 0.10.3 | **yes** | **no** — Play To/cast is an open discussion (#1024) | yes (Flutter, real TV layout) | best as a browser for the library, not as the cast target |
+| `plezy` 1.30.0 | yes, but **Plex-only** | untested | yes | Jellyfin landed in 2.0.0 (2026-05-11); the pin is 1.30.0, i.e. *before* Jellyfin support — the TV app named in `packages.nix` cannot open a Jellyfin server at all |
+| old Qt `jellyfin-media-player` | no — the attr now resolves to `jellyfin-desktop-2.0.0` | **no** | n/a | going back does not help: JMP never advertised the capability either (jellyfin-media-player#918, `SupportsRemoteControl: false`) |
+
+Sources: jellyfin/jellyfin-mpv-shim README; jellyfin/jellyfin-kodi issue #709 and the
+add-on's event-monitoring/remote-control docs; DonutWare/Fladder discussion #1024;
+jellyfin/jellyfin-media-player#918. Package versions and the Kodi session module were
+checked by eval against this flake's own pin, not from the web.
+
+### 10.1 Recommendation
+
+**A — `jellyfin-mpv-shim` as a user service in the existing Plasma session.** The phone app's
+Jellyfin client is the library browser; mpv on the box is the player. No shell, no session
+wrapper, no Plasma bump, and it is the only option whose remote control is a documented
+feature rather than an open issue. This deletes §3's session switcher instead of extending
+it — the box keeps autologging into Plasma, and `tv-session` loses its reason to exist
+unless Kodi is also wanted.
+
+**B — Kodi as the TV session** (`services.xserver.desktopManager.kodi`), if an on-TV UI is
+wanted without Plasma. Castable, passthrough audio, remote-friendly, and the session is a
+first-class NixOS module in the current pin — so the `tv-session` wrapper and its state file
+are still useful (add `kodi` as a second mode), but Bigscreen's Plasma-version coupling
+disappears.
+
+**C — Bigscreen last.** It buys only the couch launcher, at the price of a whole nixpkgs
+bump, and it is still pre-release upstream.
+
+### 10.2 What to verify before committing to A or B
+
+Not yet tested on the box (the TV was in use), and each is a minutes-long experiment:
+
+- Does a `jellyfin-mpv-shim` session appear in the phone's **Play On** and accept
+  pause/seek? That is the §6.4 test, applied to the shim rather than to Plezy.
+- mpv-shim's audio path: it spawns its own mpv, so it must be told to follow the default
+  sink / the HDMI passthrough settings in `AUDIO.md`, or it reintroduces the VLC problem.
+- Under Plasma the shim is a plain fullscreen mpv window, so a stray notification or a
+  keyboard shortcut can uncover the desktop — acceptable, but it is the difference that
+  Bigscreen's session was supposed to buy.
