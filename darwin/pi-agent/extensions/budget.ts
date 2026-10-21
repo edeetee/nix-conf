@@ -70,9 +70,11 @@
  *
  * The cap is per user message, not per session: sending a message resets it. A
  * `pi -p` sub-agent sees one user message, so its cap is its whole run — which is
- * why spawners should pass PI_BUDGET_USD sized to the task. Because an agent reading
- * `$0.045 of $0.050 (90%)` will otherwise read it as "the session is nearly out" and
- * start rationing, every in-context budget message says which window it is counting.
+ * why spawners should pass PI_BUDGET_USD sized to the task. The 100% message names
+ * that reset: an agent reading `Budget $0.045 of $0.050 (90%)` can otherwise read it
+ * as a session running out and ration a cap that re-arms on its next prompt. The 10%
+ * ticks stay numbers only — one clause on every tick is noise, and by 100% it is the
+ * only thing left to say.
  *
  * Sending a prompt also resets the window, including a prompt queued while the
  * agent is running. Only the last 130% abort is destructive: the 100% message is
@@ -105,12 +107,6 @@ const DAY_MS = 24 * HOUR_MS;
 const SAVED_TYPE = "budget";
 /** Footer status key; distinct from other extensions' keys (e.g. "auto-mode"). */
 const STATUS_KEY = "budget";
-
-/**
- * The one thing a tick must not be misread as: an agent at 90% of a $0.05 cap is
- * near the end of *this reply*, not of its session, and the next prompt re-arms it.
- */
-const PER_MESSAGE_TICK = " The cap is per message — the next user message starts a fresh one.";
 
 /**
  * How much prose rides along with the numbers:
@@ -478,10 +474,7 @@ export default function (pi: ExtensionAPI) {
 		);
 
 		if (spent >= cap * ABORT_FRACTION && stopRequested) {
-			ctx.ui.notify(
-				`budget: ${describe(spent, cap)} — over this message's cap, stopping (your next prompt resets it)`,
-				"error",
-			);
+			ctx.ui.notify(`budget: ${describe(spent, cap)} — over the cap, stopping`, "error");
 			ctx.abort();
 			return;
 		}
@@ -489,10 +482,7 @@ export default function (pi: ExtensionAPI) {
 		if (spent >= cap) {
 			if (stopRequested) return;
 			stopRequested = true;
-			ctx.ui.notify(
-				`budget: ${describe(spent, cap)} — asking the agent to stop (this message's cap; the next one resets)`,
-				"warning",
-			);
+			ctx.ui.notify(`budget: ${describe(spent, cap)} — asking the agent to stop`, "warning");
 			return {
 				continue: true,
 				entries: [
@@ -538,7 +528,7 @@ export default function (pi: ExtensionAPI) {
 					type: "custom_message" as const,
 					customType: SAVED_TYPE,
 					display: true,
-					content: `Budget ${describe(spent, cap)}.${PER_MESSAGE_TICK}${turnLine}${closing}`,
+					content: `Budget ${describe(spent, cap)}.${turnLine}${closing}`,
 				},
 			],
 		};

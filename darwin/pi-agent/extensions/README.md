@@ -23,14 +23,14 @@ entries, so it is the provider's own cost number, not an estimate. On each turn 
 
 | spend | effect |
 | --- | --- |
-| each 10% | one `custom_message` in context: `Budget $0.006 of $0.012 (48%). The cap is per message — the next user message starts a fresh one.` |
-| 100% | one message: finish the current edits, run the checks once, report, stop — naming the fresh budget the next prompt starts |
+| each 10% | one `custom_message` in context: `Budget $0.006 of $0.012 (48%).` |
+| 100% | one message: finish the current edits, run the checks once, report, stop — and name the fresh budget the next prompt starts |
 | 130% | `ctx.abort()` |
 
-Both in-context messages name the window, because `$0.045 of $0.050 (90%)` otherwise reads as "the
-session is nearly out" and the agent starts rationing a cap that re-arms on the next prompt. The
-human-facing notifications and `/budget` say the same: `spend on this message`, `over this message's
-cap`.
+Only the 100% message says which window it counts: `$0.045 of $0.050 (90%)` can read as a session
+running out, so the stop message closes with `the next user message starts a fresh $0.05 budget`. The
+10% ticks stay numbers only — a clause on every tick is noise, and at 100% it is the only thing left
+to say.
 
 Those ticks used to add "about N requests left at this burn rate". Dropped: extrapolating from
 the mean cost per turn assumes a flat burn rate, and the rate is not flat (context is re-sent,
