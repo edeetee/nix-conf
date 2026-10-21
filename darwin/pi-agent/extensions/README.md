@@ -23,9 +23,24 @@ entries, so it is the provider's own cost number, not an estimate. On each turn 
 
 | spend | effect |
 | --- | --- |
-| each 10% | one `custom_message` in context: `Budget 60% used ($0.0058 of $0.0120); about 3 request(s) left at this burn rate.` |
-| 100% | one message: finish the current edits, run the checks once, report, stop |
+| each 10% | one `custom_message` in context: `Budget $0.006 of $0.012 (48%). The cap is per message — the next user message starts a fresh one.` |
+| 100% | one message: finish the current edits, run the checks once, report, stop — naming the fresh budget the next prompt starts |
 | 130% | `ctx.abort()` |
+
+Both in-context messages name the window, because `$0.045 of $0.050 (90%)` otherwise reads as "the
+session is nearly out" and the agent starts rationing a cap that re-arms on the next prompt. The
+human-facing notifications and `/budget` say the same: `spend on this message`, `over this message's
+cap`.
+
+Those ticks used to add "about N requests left at this burn rate". Dropped: extrapolating from
+the mean cost per turn assumes a flat burn rate, and the rate is not flat (context is re-sent,
+cache hits move the price). Over 86 real ticks it was within ±50% of the turns that actually
+followed 23% of the time, too generous 69% of the time (median 2.0x, p90 11x), and not even
+monotone — one window reported 39, then 31, then 68, then 67 left while the percent used climbed
+11% → 31%. An A/B against the same ticks without the clause (n=5 and n=6 per arm, $0.005 and
+$0.012 caps, same 4-file task) showed no difference: median cost $0.00791 vs $0.00811 and
+$0.01266 vs $0.01269, median 5 vs 5 and 6 vs 6 turns, 19/19 hidden in both. So the number only
+risked steering runs deeper than the cap would fund.
 
 Ticks are only injected when the last turn ended in a tool call, so they steer a request that
 was going to happen anyway instead of adding one. The cap is also written into the system
@@ -59,7 +74,8 @@ A `/budget` choice is stored as a session entry, so it survives resume and fork.
 `PI_BUDGET_USD` is read at process start and is not exported by `/budget` — pass it on the
 spawn line when starting a child.
 
-The window resets on **each user message**, not on the session; a message typed while the agent is
+The window resets on **each user message**, not on the session (which is what the in-context ticks
+now say); a message typed while the agent is
 already running also resets it, because it is queued as a user message. A `pi -p` child sees one user message, so its cap is its whole run:
 
 ```bash
