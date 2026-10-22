@@ -1,6 +1,10 @@
 # Local Qwen3.6-35B-A3B: a LAN endpoint + autonomous loops on homeserver-edt
 
-Status: **draft** — research done, no code written, nothing deployed.
+Status: **in progress** — the endpoint (`localLlm`, `modules/nixos/llama-cpp.nix`)
+and the task-queue worker (`scripts/qwen-loop.sh`) are implemented and pass
+`nix flake check --no-build`. Nothing is deployed, D2 (Vulkan vs ROCm) is
+unmeasured, the Q4_K_M/IQ4_XS A/B has not run, and the worker ships disabled.
+The index row in `plans/README.md` still says draft.
 
 Two deliverables, deliberately separate:
 
