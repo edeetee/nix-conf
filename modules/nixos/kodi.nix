@@ -62,12 +62,20 @@ in
 
   # Kodi's JSON-RPC + web UI ("Chorus2"), spoken by the free Official Kodi
   # Remote (iOS, Kodi Foundation) and Kore (Android). Chorus2 also works from any
-  # phone browser at http://<host>:8080 with no app at all.
+  # phone browser at http://<host>:8081 with no app at all.
   #
-  # Plain HTTP, and unauthenticated unless a user is set in guisettings, so this
-  # belongs on the LAN and must never be forwarded. 8096 (Jellyfin) is gone with
-  # the service; nothing else on this host listens on 8080.
-  networking.firewall.allowedTCPPorts = [ 8080 ];
+  # **8081, not the default 8080**: 8080 belongs to `localLlm` (llama-server),
+  # and the collision is silent — Kodi logs only "JSONRPC Server: Failed to
+  # create serversocket(s)" and carries on with the remote dead, which reads as
+  # "Kodi needs a password" in the app. If that service moves, this can move back.
+  #
+  # The port itself is GUI state (`services.webserverport` in guisettings), so
+  # this rule and that setting have to be kept in step by hand.
+  #
+  # Plain HTTP, unauthenticated (authentication is off for exactly that reason —
+  # it was asking for a password nobody set), so this belongs on the LAN and must
+  # never be forwarded. 8096 (Jellyfin) is gone with the service.
+  networking.firewall.allowedTCPPorts = [ 8081 ];
 
   # Starts with the session, the way jellyfin-desktop used to.
   #
