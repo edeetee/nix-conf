@@ -26,6 +26,8 @@ RPC="${KODI_SYNC_RPC:-http://127.0.0.1:8081/jsonrpc}"
 DRY="${KODI_SYNC_DRY:-0}"
 
 changed=0
+shows_changed=()
+movies_changed=0
 
 # Movies stay on the importer: it turns a release name into `Title (Year)`, which
 # is what makes the film match unambiguous. It is still hands-off — the timer
@@ -34,7 +36,7 @@ changed=0
 MI="${KODI_SYNC_MOVIE_IMPORT:-}"
 if [ -n "$MI" ] && [ -x "$MI" ] && [ "$DRY" != 1 ]; then
   out=$("$MI" --min-mb 100 --apply 2>&1 || true)
-  printf '%s\n' "$out" | grep -qE 'linked [1-9]' && changed=1
+  printf '%s\n' "$out" | grep -qE 'linked [1-9]' && { changed=1; movies_changed=1; }
 fi
 
 link() {
@@ -42,6 +44,11 @@ link() {
   [ -e "$target" ] && return 0
   echo "link: ${target#"$LIB"/}  <-  ${src#"$DL"/}"
   changed=1
+  # Remember which show folder was touched: scans are per directory, because a
+  # whole-source scan mis-matches the show name (see the scan section below).
+  case "$target" in
+    "$LIB"/shows/*/*) shows_changed+=("$(printf '%s' "${target#"$LIB"/shows/}" | cut -d/ -f1)") ;;
+  esac
   [ "$DRY" = 1 ] && return 0
   mkdir -p "$(dirname "$target")"
   ln -sf "$src" "$target"
@@ -114,15 +121,34 @@ done < <(find "$DL" -mindepth 1 -maxdepth 1 -type d -print0)
 # also link the raw release folders — that produced every film twice.
 
 # ── Scan, only if the library actually changed ──────────────────────────────
-# Kodi aborts a running scan when a new one starts, and a full scan costs ~12 s
-# of TMDb lookups per new item, so this is deliberately not unconditional.
-if [ "$changed" = 1 ] && [ "$DRY" != 1 ]; then
-  if curl -sf -m 10 -H 'Content-Type: application/json' -X POST \
-    -d '{"jsonrpc":"2.0","id":1,"method":"VideoLibrary.Scan"}' "$RPC" >/dev/null; then
-    echo "scan triggered"
-  else
-    echo "kodi not answering on $RPC; library links left in place, scan skipped" >&2
-  fi
+# Per directory, never a whole-source scan. Measured: a plain
+# `VideoLibrary.Scan` (no directory) makes the TV scraper match the *source*
+# folder name -- `shows/` became "Your Show of Shows" -- while scanning
+# `shows/<Show>/` matches the show. Kodi also aborts a running scan when a new
+# one starts, so the calls are serialised with a wait between them.
+scan_dir() {
+  curl -sf -m 60 -H 'Content-Type: application/json' -X POST \
+    -d "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"VideoLibrary.Scan\",\"params\":{\"directory\":\"$1\"}}" \
+    "$RPC" >/dev/null
+}
+
+if [ "$DRY" = 1 ]; then
+  echo "dry run: nothing triggered"
 elif [ "$changed" = 0 ]; then
   echo "nothing new"
+else
+  if ! curl -sf -m 10 -H 'Content-Type: application/json' -X POST \
+    -d '{"jsonrpc":"2.0","id":1,"method":"JSONRPC.Ping"}' "$RPC" >/dev/null; then
+    echo "kodi not answering on $RPC; links left in place, scan skipped" >&2
+    exit 0
+  fi
+  if [ "$movies_changed" = 1 ]; then
+    scan_dir "$LIB/movies/" && echo "scanned movies"
+  fi
+  for d in "${shows_changed[@]:-}"; do
+    [ -n "$d" ] || continue
+    # A scan takes ~12 s per new item and a new scan aborts the running one.
+    sleep 45
+    scan_dir "$LIB/shows/$d/" && echo "scanned shows/$d"
+  done
 fi
