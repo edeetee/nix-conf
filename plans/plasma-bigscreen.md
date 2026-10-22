@@ -1,13 +1,34 @@
 # Plasma Bigscreen as the TV session (with a switch back to Plasma)
 
-Status: **in progress, and questioned** — the session switcher, Plezy as the TV app and the
-removal of the `jellyfin-desktop` autostart are implemented (§3). **Update 2026-10-21: the
-§9.1 overlay was built and deployed and Bigscreen 6.7.5 is running on the box** — see §9.4
-and §9.5 for what it took and what it measured. The older status note follows: Bigscreen
-itself was not in the pinned nixpkgs (§9) at the time this was written. §10 lists the
-non-Plasma-coupled options, and one of them (`jellyfin-mpv-shim`) solves the actual problem
-— remote control of the TV — with no new shell at all. Read §10 before spending anything
-more on the Bigscreen path.
+Status: **rejected and removed** — superseded by [`kodi-tv.md`](./kodi-tv.md).
+
+The code this plan produced (`tv-session.nix`, `bigscreen-overlay.nix`, Plezy,
+`jellyfin-desktop`) was deleted in commit `0e90749`, together with Jellyfin
+itself: Kodi is now the TV UI, fullscreen inside Plasma, and quitting it is the
+way back to the desktop — so the session switcher, the state file and the SDDM
+`Relogin` it needed no longer have a job. This document is kept as the record of
+what the Bigscreen path cost and why it was abandoned, not as instructions.
+
+The short version of what it measured: Bigscreen is not in the pinned nixpkgs,
+so it had to be transcribed from a newer tree and overlaid onto a Plasma 6.6
+stack (§9.1, §9.4); it is a KWin/plasmashell shell and must match the running
+Plasma major, which makes that overlay a permanent liability; and §10 already
+noted that `jellyfin-mpv-shim` solved the actual problem — remote control of the
+TV — with no new shell at all. Kodi is the same conclusion, one step further.
+
+---
+
+The rest of this file is the original plan, unedited below this line.
+
+~~Status: **in progress, and questioned**~~ — the session switcher, Plezy as the
+TV app and the removal of the `jellyfin-desktop` autostart are implemented (§3).
+**Update 2026-10-21: the §9.1 overlay was built and deployed and Bigscreen 6.7.5
+is running on the box** — see §9.4 and §9.5 for what it took and what it
+measured. The older status note follows: Bigscreen itself was not in the pinned
+nixpkgs (§9) at the time this was written. §10 lists the non-Plasma-coupled
+options, and one of them (`jellyfin-mpv-shim`) solves the actual problem —
+remote control of the TV — with no new shell at all. Read §10 before spending
+anything more on the Bigscreen path.
 
 ## 1. Why
 
