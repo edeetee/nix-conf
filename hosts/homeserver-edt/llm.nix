@@ -37,11 +37,18 @@ in
     contextSize = 16384;
     # Roughly a third of the routed experts in RAM. Tune with llama-bench:
     # raise on a VRAM OOM, lower when prefill is too slow.
-    cpuMoeLayers = lib.mkDefault 16;
+    cpuMoeLayers = lib.mkDefault 24;
     # Available on demand rather than resident: 5 minutes after the last token
     # the server sleeps, so the GPU goes back to the TV. The first prompt after
     # that pays a reload (~1-3 min from the HDD for 16.5 GiB).
     sleepIdleSeconds = lib.mkDefault 300;
+    # ubatch 512 needs an ~858 MiB compute buffer, which is what tipped the card
+    # over (cudaMalloc failed during sched_reserve). 256 halves it for a few
+    # percent of prefill throughput.
+    extraArgs = [
+      "--ubatch-size"
+      "256"
+    ];
   };
 
   # The host firewall is currently disabled, so this only documents intent (and
