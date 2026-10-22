@@ -63,6 +63,23 @@ show_name() {
     sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//'
 }
 
+# Folder for a show, reusing an existing one that differs only in case. Measured:
+# the loose files are 'silo.s03e05...' and 'Silo.S03E04...', which produced two
+# sibling folders (ext4 is case-sensitive) and therefore two library entries for
+# one show.
+show_dir() {
+  local want=$1 ex bn
+  for ex in "$LIB"/shows/*/; do
+    [ -d "$ex" ] || continue
+    bn=$(basename "$ex")
+    if [ "${bn,,}" = "${want,,}" ]; then
+      printf '%s' "$bn"
+      return
+    fi
+  done
+  printf '%s' "$want"
+}
+
 # ── TV: loose episode files in the download root ────────────────────────────
 # Kodi needs Show[/ (Year)]/Season NN/, not just a folder per show: measured,
 # a flat Shows/Silo/*.mkv made the scraper match the *source* folder name.
@@ -70,7 +87,7 @@ while IFS= read -r -d '' f; do
   b=$(basename "$f")
   se=$(printf '%s' "$b" | grep -oiE 'S[0-9]{2}E[0-9]{2}' | head -1 | tr '[:lower:]' '[:upper:]' || true)
   [ -n "$se" ] || continue
-  show=$(show_name "$b")
+  show=$(show_dir "$(show_name "$b")")
   [ -n "$show" ] || continue
   link "$f" "$LIB/shows/$show/Season ${se:1:2}/$b"
 done < <(find "$DL" -maxdepth 1 -type f \( -iname '*.mkv' -o -iname '*.mp4' -o -iname '*.avi' \) -print0)
@@ -85,28 +102,16 @@ while IFS= read -r -d '' d; do
     b=$(basename "$f")
     se=$(printf '%s' "$b" | grep -oiE 'S[0-9]{2}E[0-9]{2}' | head -1 | tr '[:lower:]' '[:upper:]' || true)
     [ -n "$se" ] || continue
-    show=$(show_name "$base")
+    show=$(show_dir "$(show_name "$base")")
     [ -n "$show" ] || continue
     link "$f" "$LIB/shows/$show/Season ${se:1:2}/$b"
   done < <(find "$d" -maxdepth 2 -type f \( -iname '*.mkv' -o -iname '*.mp4' -o -iname '*.avi' \) -print0)
 done < <(find "$DL" -mindepth 1 -maxdepth 1 -type d -print0)
 
-# ── Movies: everything else, raw name kept ──────────────────────────────────
-# A directory that produced no episodes above is a film; a video file with no
-# SxxEyy is a film. Linked as a whole directory so Kodi sees the release folder
-# exactly as Transmission left it.
-while IFS= read -r -d '' e; do
-  base=$(basename "$e")
-  case "$base" in .* | .incomplete) continue ;; esac
-  if [ -d "$e" ]; then
-    find "$e" -maxdepth 2 -type f -iname '*.mkv' -print0 2>/dev/null |
-      tr '\0' '\n' | grep -qiE 'S[0-9]{2}E[0-9]{2}' && continue
-  else
-    printf '%s' "$base" | grep -qiE 'S[0-9]{2}E[0-9]{2}' && continue
-  fi
-  link "$e" "$LIB/movies/$base"
-done < <(find "$DL" -mindepth 1 -maxdepth 1 \( -type d -o -type f \) \
-  \( -iname '*.mkv' -o -iname '*.mp4' -o -iname '*.avi' -o -type d \) -print0)
+# Movies are the importer's job (see the KODI_SYNC_MOVIE_IMPORT block above):
+# it turns a release name into `Title (Year)`, which is what makes the film
+# match unambiguous, and it is idempotent. This script deliberately does NOT
+# also link the raw release folders — that produced every film twice.
 
 # ── Scan, only if the library actually changed ──────────────────────────────
 # Kodi aborts a running scan when a new one starts, and a full scan costs ~12 s
