@@ -32,6 +32,11 @@ let
       vulkan = {
         VK_ICD_FILENAMES = "${pkgs.mesa}/share/vulkan/icd.d/radeon_icd.${pkgs.stdenv.hostPlatform.parsed.cpu.name}.json";
         LD_LIBRARY_PATH = "/run/opengl-driver/lib";
+        # This host sets nixpkgs.config.rocmSupport, which puts HIP into the
+        # Vulkan package too; llama.cpp then picks ROCm0 and skips the Vulkan
+        # device as a duplicate id. gfx1031 is not a supported ROCm target, so
+        # the override is needed whichever "backend" was chosen.
+        HSA_OVERRIDE_GFX_VERSION = "10.3.0";
       };
       rocm = {
         # gfx1031 (RX 6700 XT) is not a supported ROCm target: it only runs by
@@ -78,6 +83,15 @@ let
   ++ lib.optionals (cfg.modelAlias != null) [
     "--alias"
     cfg.modelAlias
+  ]
+  # --fit (on by default) aborts instead of adapting when --n-cpu-moe has set
+  # tensor buft overrides and its 1 GiB VRAM margin cannot be met:
+  #   common_fit_params: failed to fit params to free device memory:
+  #   model_params::tensor_buft_overrides already set by user, abort
+  # So the split below is the plan, and the fitter stays out of it.
+  ++ lib.optionals (cfg.cpuMoeLayers != null) [
+    "--fit"
+    "off"
   ]
   ++ lib.optionals (cfg.cpuMoeLayers != null) [
     "--n-cpu-moe"
