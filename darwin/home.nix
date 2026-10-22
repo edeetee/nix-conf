@@ -14,17 +14,22 @@ let
   # Every file under darwin/pi-agent/skills/ (cmux, cmux-workspace,
   # cmux-browser, cmux-markdown, cmux-settings — upstream manaflow-ai/cmux)
   # symlinked into ~/.pi/agent/skills/ with the same relative layout.
+  #
+  # The tree is walked through the *in-repo* path (under a flake evaluation that
+  # is the store copy), because `builtins.readDir` on an absolute host path is
+  # forbidden in pure evaluation mode — which is what `darwin-rebuild switch
+  # --flake` uses, and it broke the build. Only the symlink targets point back at
+  # the live checkout, through mkOutOfStoreSymlink, so edits still apply without
+  # a rebuild.
   piSkillEntries = let
     skillsRoot = "${nixConfDir}/darwin/pi-agent/skills";
-    rel = p: builtins.substring (builtins.stringLength skillsRoot + 1) (builtins.stringLength p) p;
-    walk = dir: builtins.concatLists (map (name: let
-      p = "${dir}/${name}";
-      t = (builtins.readDir dir).${name};
-    in if t == "directory"
-       then walk p
-       else [ { name = ".pi/agent/skills/${rel p}"; value = { source = config.lib.file.mkOutOfStoreSymlink p; }; } ])
+    walk = dir: rel: builtins.concatLists (map (name: let
+      childRel = if rel == "" then name else "${rel}/${name}";
+    in if (builtins.readDir dir).${name} == "directory"
+       then walk (dir + "/${name}") childRel
+       else [ { name = ".pi/agent/skills/${childRel}"; value = { source = config.lib.file.mkOutOfStoreSymlink "${skillsRoot}/${childRel}"; }; } ])
       (builtins.attrNames (builtins.readDir dir)));
-  in builtins.listToAttrs (walk skillsRoot);
+  in builtins.listToAttrs (walk ../darwin/pi-agent/skills "");
 in
 {
   home.username = lib.mkForce username;
