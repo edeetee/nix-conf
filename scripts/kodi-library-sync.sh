@@ -47,11 +47,19 @@ link() {
   ln -sf "$src" "$target"
 }
 
-# Show name from a file name: everything before the SxxEyy marker, with the
-# release's dots and underscores turned back into spaces.
+# Show name from a release name: drop a leading site tag, everything from the
+# season/episode marker on, and the release tokens that follow. Measured against
+# the real download names: 'silo.s03e05.1080p.web.h264-cakes[EZTVx.to].mkv' ->
+# Silo, 'Modern.Family.S06.Season.6.COMPLETE.1080p.WEB-DL...' -> Modern Family
+# (the marker is a bare S06 there, no episode), '[ www.torrenting.com ] - Peppa
+# Pig S01-S04 Complete' -> Peppa Pig.
 show_name() {
-  printf '%s' "$1" | sed -E 's/[._]+/ /g' |
-    sed -E 's/[[:space:]]*[Ss][0-9]{2}[Ee][0-9]{2}.*$//' |
+  printf '%s' "$1" |
+    sed -E 's/[._]+/ /g' |
+    sed -E 's/^\[[^]]*\][[:space:]]*-?[[:space:]]*//' |
+    sed -E 's/^www [^ ]*[[:space:]]*-[[:space:]]*//' |
+    sed -E 's/[[:space:]]*[Ss][0-9]{2}([Ee][0-9]{2})?.*$//' |
+    sed -E 's/[[:space:]]*(COMPLETE|REPACK|PROPER|EXTENDED|1080p|720p|2160p|WEB ?DL|WEBRip|BluRay|BDRip|HDTV|x264|x265|HEVC|H 264|DDP? ?[0-9] ?[0-9]|DTS|AAC).*$//' |
     sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//'
 }
 
