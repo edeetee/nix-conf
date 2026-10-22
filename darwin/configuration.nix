@@ -64,6 +64,11 @@ in
   security.pam.services.sudo_local.touchIdAuth = true;
 
   environment.shellAliases = {
+    # pi against the local Qwen on homeserver-edt. The wrapper exists because the
+    # prompt is a real cost on a 32k window: stock pi sends ~9.3k tokens of
+    # system prompt and tool catalogue, this sends ~3.9k (measured, see
+    # plans/local-qwen.md §4.1).
+    piq = "/Users/edeetee/dev/nix-conf/darwin/pi-agent/piq.sh";
     nixrs = "sudo darwin-rebuild switch --flake ~/dev/nix-conf/";
     nixe = "v ~/dev/nix-conf/";
     nixcd = "cd ~/dev/nix-conf/";
