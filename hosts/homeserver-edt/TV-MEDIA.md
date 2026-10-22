@@ -56,6 +56,59 @@ Decisions worth remembering:
   already-running user manager, so after the first `nixup` that adds `kodi-tv` it
   must be started by hand once, or the box rebooted.
 
+## 1a. The library: what is scanned, and why it is shaped that way
+
+Sources (Kodi ▸ Videos ▸ Files, `~/.kodi/userdata/sources.xml`), with the
+content type set on the first two — that assignment lives in
+`~/.kodi/userdata/Database/MyVideos131.db`, table `path`, not in `sources.xml`:
+
+| Source | Content | Scraper |
+| --- | --- | --- |
+| `/mnt/hdd/media/library/movies/` | Movies | `metadata.themoviedb.org.python` |
+| `/mnt/hdd/media/library/shows/` | TV shows | `metadata.tvshows.themoviedb.org.python` |
+| `/mnt/hdd/downloads/` | *none* — browsable, not scraped | — |
+
+The two library trees hold **symlinks** into `/mnt/hdd/downloads`, so nothing is
+copied and Transmission keeps seeding. Hardlinks are impossible: the files are
+owned by `transmission`, and `fs.protected_hardlinks` refuses them (`EPERM`).
+`scripts/jellyfin-movie-import.sh` builds the movie tree; the shows tree was
+linked by hand.
+
+**The layout is load-bearing**, measured the hard way:
+
+- Movies need `Movies/<Title> (<Year>)/<Title> (<Year>).<ext>`. Without the year
+  the scraper picks the wrong film — `Wallace and Gromit The Curse of the Were
+  Rabbit` matched a *making-of* documentary until it was renamed.
+- Shows need `Shows/<Show> (<Year>)/Season NN/SxxExx…`. A flat
+  `Shows/Silo/*.mkv` does **not** scrape the folder name: Kodi matched the source
+  directory itself, so every episode landed under "Your Show of Shows" (a 1950s
+  series). With the canonical structure, `Silo` → TMDb id 125988.
+- The library directories must be owned by `edeetee` — they were `root:169` with
+  a gid that no longer exists, and every import failed with `EACCES`. The rule is
+  in `hosts/homeserver-edt/services.nix` (`systemd.tmpfiles.rules`).
+
+**Scanning is serial and slow.** A *new* `VideoLibrary.Scan` aborts the one in
+flight, so queuing several means only the last is honoured. Each film costs
+~12 s of TMDb lookups; the full library takes 3–4 minutes. Drive it over
+JSON-RPC on port 8081 and poll, rather than firing and forgetting:
+
+```bash
+c(){ curl -s -H 'Content-Type: application/json' -X POST \
+  -d "$1" http://homeserver-edt.local:8081/jsonrpc; }
+c '{"jsonrpc":"2.0","id":1,"method":"VideoLibrary.Scan","params":{"directory":"/mnt/hdd/media/library/movies/"}}'
+c '{"jsonrpc":"2.0","id":2,"method":"VideoLibrary.GetMovies"}'      # "total":9
+c '{"jsonrpc":"2.0","id":3,"method":"VideoLibrary.GetEpisodes"}'    # "total":29
+```
+
+Two things are GUI state and will not come back from a rebuild: this scan
+database, and `~/.kodi/addons/`, which holds **newer** versions of both scrapers
+(3.2.2 / 1.7.13) that override the bundled ones (1.3.1 / 1.6.0) — Kodi updates
+them itself.
+
+Known gap: **Peppa Pig** is not in the library — its collection folder nests
+seasons in a way the season-directory pattern above does not match. It still
+plays from the Downloads source.
+
 ## 1b. Driving Kodi from the phone
 
 | Input | Works? | Notes |
