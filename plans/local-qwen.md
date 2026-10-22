@@ -203,6 +203,32 @@ enforce — the guard is wall-clock and GPU occupancy, not money.
 | concurrency | 1 (`-np 1`) | many |
 | marginal cost | **€0** (~180 W × 8 h ≈ €0.43/session) | $0.022–0.044/prompt |
 
+### 4.1 Measured on the box (2026-10-23)
+
+Real numbers replace the estimates above: `UD-IQ4_XS`, Vulkan package, but see the
+first row — it is not running Vulkan at all.
+
+| | Measured |
+| --- | --- |
+| Actual backend | **ROCm0**, not Vulkan: `amd-gpu.nix` sets `nixpkgs.config.rocmSupport`, so `llama-cpp-vulkan` carries HIP too, and llama.cpp skips the Vulkan device as a duplicate PCI id. Needs `HSA_OVERRIDE_GFX_VERSION=10.3.0` whichever backend is chosen |
+| Prefill | **326 t/s** at 1416 prompt tokens (a 16k prompt ≈ 50 s) |
+| Decode | **11 t/s** (~500 tokens ≈ 45 s) |
+| VRAM loaded | 9.83–9.87 GiB of 11.8 GiB |
+| VRAM asleep | **0.57 GiB** — `--sleep-idle-seconds` really does release the card |
+| Wake from sleep | **132 s** (reload from the HDD) |
+| Split that fits | `--n-cpu-moe 24`, `--ubatch-size 256` |
+
+What got it there, in order: `--fit` had to be turned **off** (with tensor buft
+overrides already set it aborts rather than adapting: `failed to fit params:
+... tensor_buft_overrides already set by user, abort`), then `--n-cpu-moe 16` was
+not enough (858 MiB compute buffer → `cudaMalloc failed: out of memory` in
+`sched_reserve`), so 24 layers of experts went to DRAM and the ubatch halved.
+
+Prefill at 326 t/s makes the 16k window cheap in wall clock, which was the
+assumption the plan was least sure about. Decode at 11 t/s is the number that
+bounds a loop: 500 output tokens per step is ~45 s, so a night is a few hundred
+small tasks, not thousands.
+
 Break-even against hosted is ~20 Flash prompts per 8-hour session; an unattended
 queue of small tasks clears that by an order of magnitude. A single interactive
 question does not.
