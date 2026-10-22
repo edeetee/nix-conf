@@ -38,6 +38,10 @@ in
     # Roughly a third of the routed experts in RAM. Tune with llama-bench:
     # raise on a VRAM OOM, lower when prefill is too slow.
     cpuMoeLayers = lib.mkDefault 16;
+    # Available on demand rather than resident: 5 minutes after the last token
+    # the server sleeps, so the GPU goes back to the TV. The first prompt after
+    # that pays a reload (~1-3 min from the HDD for 16.5 GiB).
+    sleepIdleSeconds = lib.mkDefault 300;
   };
 
   # The host firewall is currently disabled, so this only documents intent (and

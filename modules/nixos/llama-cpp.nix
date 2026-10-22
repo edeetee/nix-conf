@@ -71,6 +71,10 @@ let
     "--mmproj"
     cfg.mmproj
   ]
+  ++ lib.optionals (cfg.sleepIdleSeconds != null) [
+    "--sleep-idle-seconds"
+    (toString cfg.sleepIdleSeconds)
+  ]
   ++ lib.optionals (cfg.modelAlias != null) [
     "--alias"
     cfg.modelAlias
@@ -158,6 +162,17 @@ in
       type = lib.types.str;
       default = "0.0.0.0";
       description = "Bind address. The default is what makes this a LAN endpoint.";
+    };
+
+    sleepIdleSeconds = lib.mkOption {
+      type = lib.types.nullOr lib.types.ints.positive;
+      default = null;
+      description = ''
+        Passed as --sleep-idle-seconds: the server sleeps after this many idle
+        seconds and wakes on the next request. This is the knob that makes the
+        model "available but not running" — the first prompt after a sleep pays
+        a full reload of the weights.
+      '';
     };
 
     port = lib.mkOption {
