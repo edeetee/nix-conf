@@ -20,8 +20,32 @@
 # (snapshot into the repo vs seed-if-absent on activation) is left unimplemented
 # on purpose: the file does not exist until Kodi has run once, so there is
 # nothing to snapshot yet. Capture it after the first run.
-{ pkgs, ... }:
+{ pkgs, lib, ... }:
 let
+  # Toolchain both scripts need on PATH; they are plain bash, so this is the
+  # whole wrapper (writeShellScriptBin rather than writeShellApplication, which
+  # would run shellcheck over them and fail the build on style).
+  syncPath = lib.makeBinPath (
+    with pkgs;
+    [
+      bash
+      coreutils
+      curl
+      findutils
+      gnugrep
+      gnused
+      gawk
+    ]
+  );
+  kodiLibrarySync = pkgs.writeShellScriptBin "kodi-library-sync" ''
+    export PATH=${syncPath}
+    export KODI_SYNC_MOVIE_IMPORT=${movieImport}/bin/movie-import
+    ${builtins.readFile ../../scripts/kodi-library-sync.sh}
+  '';
+  movieImport = pkgs.writeShellScriptBin "movie-import" ''
+    export PATH=${syncPath}
+    ${builtins.readFile ../../scripts/jellyfin-movie-import.sh}
+  '';
   kodi = pkgs.kodi.withPackages (kp: with kp; [
     # Steam in Big Picture from Kodi's home screen (addon 3.7.11, in the pin).
     # Baked in rather than installed through Kodi's GUI store, which writes into
@@ -74,6 +98,32 @@ in
   # Note the repo-wide gotcha: a *new* user unit is enabled but not started for a
   # user manager that is already running, so after the first deploy that adds
   # this, start it by hand once (or reboot).
+  # Downloading a torrent is now the only manual step: the timer runs the movie
+  # importer (release name -> `Title (Year)`), links any new episodes into
+  # `Shows/<Show>/Season NN/`, and asks Kodi to scan — but only when something
+  # actually changed, because a full scan costs ~12 s of TMDb lookups per item.
+  #
+  # It runs as the user who owns the library trees, and needs Kodi up: if the box
+  # is in the desktop with Kodi stopped, links are still made and the scan is
+  # skipped (the next run picks it up).
+  systemd.user.services.kodi-library-sync = {
+    description = "Link new downloads into Kodi's library and scan";
+    after = [ "kodi-tv.service" ];
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStart = "${kodiLibrarySync}/bin/kodi-library-sync";
+    };
+  };
+
+  systemd.user.timers.kodi-library-sync = {
+    description = "Poll Transmission's output for Kodi";
+    wantedBy = [ "timers.target" ];
+    timerConfig = {
+      OnBootSec = "10min";
+      OnUnitActiveSec = "15min";
+    };
+  };
+
   systemd.user.services.kodi-tv = {
     description = "Kodi (TV UI)";
     wantedBy = [ "plasma-plasmashell.service" ];
