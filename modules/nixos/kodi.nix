@@ -35,6 +35,31 @@ in
 {
   environment.systemPackages = [ kodi ];
 
+  # PipeWire's default sink on this box is the 3.5 mm **analog jack**, not the TV.
+  # Measured: `wpctl status` marked "Built-in Audio Analog Stereo" as default, so
+  # anything using the "Default" output — Kodi included, on its first run — sent
+  # sound to a jack with nothing plugged into it and the TV was silent, which
+  # looks exactly like "Kodi has no audio".
+  #
+  # Raising the HDMI sink's priority wins WirePlumber's default-node election on
+  # every boot. `wpctl set-default <id>` is the fix with a short life: it is
+  # runtime state, it does not come back after a reboot, and the sink id changes
+  # when the card is re-enumerated — hence a rule rather than a command (repo
+  # rule: runtime changes get encoded, not just applied).
+  environment.etc."wireplumber/wireplumber.conf.d/51-hdmi-default.conf".text = ''
+    monitor.alsa.rules = [
+      {
+        matches = [ { node.name = "~alsa_output.*hdmi.*" } ]
+        actions = {
+          update-props = {
+            priority.driver = 2000
+            priority.session = 2000
+          }
+        }
+      }
+    ]
+  '';
+
   # Kodi's JSON-RPC + web UI ("Chorus2"), spoken by the free Official Kodi
   # Remote (iOS, Kodi Foundation) and Kore (Android). Chorus2 also works from any
   # phone browser at http://<host>:8080 with no app at all.
