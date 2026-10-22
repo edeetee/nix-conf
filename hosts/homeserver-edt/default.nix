@@ -13,6 +13,7 @@
     ./networking.nix
     ./desktop.nix
     ./services.nix
+    ./llm.nix
     ./packages.nix
     ./unified-remote.nix
     ./home.nix
@@ -24,6 +25,7 @@
     ../../modules/nixos/reboot-to-windows.nix
     ../../modules/nixos/amd-gpu.nix
     ../../modules/nixos/airplay.nix
+    ../../modules/nixos/llama-cpp.nix
     ../../modules/nixos/check-mounts.nix
     ../../modules/nixos/sops.nix
     ../../modules/nixos/pi.nix
