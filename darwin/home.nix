@@ -32,6 +32,11 @@ let
   in builtins.listToAttrs (walk ../darwin/pi-agent/skills "");
 in
 {
+  imports = [
+    # magnet: URLs → `transmission-remote -a` on the homeserver.
+    ./magnet-handler.nix
+  ];
+
   home.username = lib.mkForce username;
   home.homeDirectory = lib.mkForce homeDirectory;
   home.stateVersion = "25.05";
