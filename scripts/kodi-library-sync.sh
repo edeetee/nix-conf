@@ -60,7 +60,7 @@ show_name() {
 # a flat Shows/Silo/*.mkv made the scraper match the *source* folder name.
 while IFS= read -r -d '' f; do
   b=$(basename "$f")
-  se=$(printf '%s' "$b" | grep -oiE 'S[0-9]{2}E[0-9]{2}' | head -1 | tr '[:lower:]' '[:upper:]')
+  se=$(printf '%s' "$b" | grep -oiE 'S[0-9]{2}E[0-9]{2}' | head -1 | tr '[:lower:]' '[:upper:]' || true)
   [ -n "$se" ] || continue
   show=$(show_name "$b")
   [ -n "$show" ] || continue
@@ -75,7 +75,7 @@ while IFS= read -r -d '' d; do
   # the show, stripped of the release's season/quality trailer.
   while IFS= read -r -d '' f; do
     b=$(basename "$f")
-    se=$(printf '%s' "$b" | grep -oiE 'S[0-9]{2}E[0-9]{2}' | head -1 | tr '[:lower:]' '[:upper:]')
+    se=$(printf '%s' "$b" | grep -oiE 'S[0-9]{2}E[0-9]{2}' | head -1 | tr '[:lower:]' '[:upper:]' || true)
     [ -n "$se" ] || continue
     show=$(show_name "$base")
     [ -n "$show" ] || continue
