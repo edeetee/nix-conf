@@ -16,8 +16,8 @@
     # name* (it is in this Mac's preferred-networks list); `username` is the
     # passphrase. An earlier version had them the other way round, which meant the
     # Pi spent its boot scanning for a network that does not exist.
-    ssid = "CHANGEME";
+    ssid = "thepasswordispassword";
     country = "NZ";
-    pskRaw = "0000000000000000000000000000000000000000000000000000000000000000";
+    pskRaw = "3eec8fcf3dac70a7b753c2d0960aefc58c3c44525fa52a3c93b65ba1719920c0";
   };
 }

@@ -12,7 +12,7 @@
   services.desktopManager.plasma6.enable = true;
 
   # ── Never suspend ──────────────────────────────────────────────────────
-  # This machine runs server services (Jellyfin, Cockpit, transmission, ...)
+  # This machine runs server services (Cockpit, transmission, ...)
   # and must stay up. Suspending (KDE Plasma's default idle-suspend) drops the
   # WiFi and, on resume, triggers Avahi to re-probe its hostname and spuriously
   # rename homeserver-edt.local -> homeserver-edt-2.local, breaking mDNS.
@@ -46,32 +46,6 @@
       Type = "oneshot";
       ExecStart = "${pkgs.bluez}/bin/btmgmt power on";
       RemainAfterExit = true;
-    };
-  };
-
-  # ── Jellyfin Desktop: installed, not autostarted; Plezy is the TV app now ──────────────────
-  # It is no longer autostarted. Plezy (packages.nix) is the TV app, launched
-  # from the Plasma Bigscreen launcher or from the phone (KDE Connect run
-  # commands in kde-connect-run-commands.nix). This client stays installed as
-  # the direct-play fallback for AC-3/DTS (AUDIO.md) and is started explicitly:
-  #
-  #   systemctl --user start jellyfin-desktop
-  #
-  # It is NOT a remote-control target, despite what this comment block used to
-  # claim: its sessions report SupportsRemoteControl=false, so the phone app
-  # never lists it in Play On (jellyfin/jellyfin-desktop#1260, open since
-  # 2026-10-07). Autostarting it fullscreen was holding the TV for a use case it
-  # cannot serve. Details and the player comparison: plans/plasma-bigscreen.md.
-  #
-  # Restart=on-failure, deliberately not `always`: a crash comes back, but
-  # quitting stays quit so the desktop can be used.
-  systemd.user.services.jellyfin-desktop = {
-    description = "Jellyfin Desktop (direct-play fallback, manual start)";
-    serviceConfig = {
-      Type = "simple";
-      ExecStart = "${pkgs.jellyfin-desktop}/bin/jellyfin-desktop --fullscreen";
-      Restart = "on-failure";
-      RestartSec = 5;
     };
   };
 

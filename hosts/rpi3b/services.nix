@@ -1,6 +1,6 @@
 # Services for rpi3b
 #
-# The homeserver runs cockpit/jellyfin/transmission/nginx/homepage — none of
+# The homeserver runs cockpit/transmission/nginx/homepage — none of
 # that belongs here. zerotierone lives in networking.nix to mirror the
 # homeserver layout.
 #

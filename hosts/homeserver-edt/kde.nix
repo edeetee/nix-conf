@@ -1,9 +1,10 @@
 # Plasma settings this host owns, declared instead of hand-edited.
 #
 # Both live in ~/.config and were previously only set by clicking around in
-# System Settings — invisible to git, gone on a wipe, and in the KDE Connect
-# case the only record of how to start the Jellyfin TV client from the phone
-# (see desktop.nix).
+# System Settings — invisible to git, gone on a wipe. For KDE Connect that was
+# the only record of how to start the Jellyfin TV client from the phone; the run
+# commands now start and stop Kodi (`kodi-tv`), see
+# kde-connect-run-commands.nix.
 #
 # Two different mechanisms, for a reason:
 #

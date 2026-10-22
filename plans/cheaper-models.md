@@ -6,9 +6,10 @@ Question: the pi sessions on this Mac cost ~$0.05/prompt (median $0.015 over the
 26 sessions, one prompt = 18% of spend). Is there a cheaper hosted model that still
 drives a 20-turn tool loop, and can `homeserver-edt` (RX 6700 XT, 12 GB) serve it?
 
-**Answer: no to both, with one real exception — the current model is already billed
-off-peak at half price half the week, and the fix is turn/context discipline, not a
-model swap.** Numbers below.
+**Answer: no paid model beats it, and local cannot serve it — with two exceptions
+worth knowing: OpenCode Zen's limited-time *free* tiers (below cost, no SLA) and
+DeepSeek's own off-peak window, which halves the bill and is already available. The
+fix for the rest is turn/context discipline, not a model swap.**
 
 ## 1. The measured profile (recomputed, not assumed)
 
@@ -43,8 +44,7 @@ cross-checked against provider docs where noted). Sorted cheapest first.
 | gemini-3.1-flash-lite (google) | 0.25 | 1.50 | 0.025 | 0 | 1 M | yes (native) | 0.114 | **Terminal-Bench Hard 24.2%**, ranked 91/326 (BenchmarkList); 28th SWE-bench, 29th LCB/TB2 (Vals) |
 | gpt-5-mini (openai) | 0.25 | 2.00 | 0.025 | 0 | 400 k | yes | 0.122 | not verified this pass |
 | deepseek-v4-flash (openrouter) | 0.03 | 1.28 | 0.03 | 0 | 1 M | yes | 0.124 | *same weights*, 2.8× cost: OpenRouter has no DeepSeek cache discount |
-| gemini-3.5-flash-lite (google) | 0.30 | 2.50 | 0.03 | 0 | 1 M | yes | 0.148 | weaker tier than 3.1-lite's sibling; unverified |
-| devstral-2512 (mistral) | 0.40 | 2.00 | 0.04 | 0 | 262 k | yes | 0.176 | SWE-bench figure unverified |
+| gemini-3.5-flash-lite · devstral-2512 | 0.30/0.40 | 2.50/2.00 | 0.03/0.04 | 0 | 1 M/262 k | yes | 0.148/0.176 | unverified |
 | MiniMax-M3 (minimax) | 0.30 | 1.20 | 0.06 | 0 | 1 M | yes | 0.232 | Terminal-Bench 2.1 **66%**, LCB 82.2% (AnotherWrapper) |
 | deepseek-v4-pro (deepseek, peak) | 1.32 | 3.96 | 0.044 | 0 | 1 M | reliable | 0.236 | **#1 SWE-bench Verified 96.4%** (vals.ai) |
 | qwen3.8-27b (openrouter) | 0.425 | 2.55 | 0.085 | 0.53 | 1 M | yes | 0.351 | Terminal-Bench 2.1 **73%**, LCB 84% |
@@ -112,12 +112,57 @@ pi wiring, for the record (`docs/llama-cpp.md`): `llama-server --models-dir ~/mo
 
 ## 4. Ranked recommendation
 
+Update 2026‑10‑20 — re-check of OpenCode Zen (`opencode` / `opencode-go` in the pi
+catalog, <https://opencode.ai/v2/docs/console/models/>) for anything *below* DeepSeek
+Flash. Zen resells the same models at the same prices, so the paid rows do not move
+(its DeepSeek row is peak-priced, no off-peak), but it adds:
+
+| Option | in / out / cacheRead $/M | $/prompt | verdict |
+| --- | --- | --- | --- |
+| **`opencode/deepseek-v4.1-flash-free`** (also `glm-5.3-flash-free`, `minimax-m3.1-flash-free`, `nemotron-3-ultra-free`, `big-pickle`, `mimo-*-free`) | 0 / 0 / 0 | **0.000** | strictly cheaper. Limited-time promo; no published rate limit, retention or SLA — scratch and non-sensitive work only |
+| deepseek-flash direct, off-peak | 0.15 / 0.60 / 0.003 | 0.022 | the paid option everyone else must beat |
+| `opencode/gpt-6-luna` ≤272 K | 0.10 / 0.50 / 0.01 (+0.125 write) | 0.044 | *same* price as DeepSeek **peak** for a premium-lab model; doubles past 272 K, and our p90 is 436 K |
+| `opencode/claude-haiku-5-5` ≤100 K | 0.10 / 0.50 / 0.01 (+0.125 write) | 0.044 | tier trap: above 100 K tokens it is 5× on input/cache → **$0.19**/prompt, and our median is 134 K |
+| `qwen3.8-flash` · `glm-5.3-flash` | 0.15/0.47/0.016 · 0.15/0.50/0.03 | 0.065 · 0.115 | no |
+| GLM Coding Plan Lite $16.2/mo · Qwen Token Plan Lite $6–8/mo (CN region) · Kimi Plus+ | flat, credit + 5-hour windows | break-even ≈ 370 / 140 / ? prompts per month | we run ~160 prompts/mo ≈ **$7/mo** peak (≈$3.5 off-peak), so most subscriptions cost more; quotas are credit-based, a 19-turn 140 K loop burns them fast, and z.ai limits plan usage to a list of supported tools |
+| Gemini Flash-Lite free (15 RPM/1000 RPD) · Cerebras free (1 M tok/day, **8 K context cap**) · Groq free (8 K TPM) | 0 | 0 in theory | unusable: an 8 K cap cannot send a 140 K turn, and Google may train on free-tier prompts |
+
+So the only **strictly** cheaper option is a promo free tier, the only *sustainable*
+cheaper option is running off-peak, and the equal-price options (Haiku 5.5, GPT 6
+Luna) are a quality upgrade that pays for itself only if they cut turns — A/B those
+before considering any plan swap.
+
+**Nemotron, checked specifically (550B‑A55B Ultra / 120B‑A12B Super / 3.5‑Lightning 30B‑A3B):**
+
+| Route | in / out / cacheRead $/M | $/prompt | note |
+| --- | --- | --- | --- |
+| `opencode/nemotron-3-ultra-free`, `openrouter nvidia/nemotron-3-ultra-550b-a55b:free`, `nemotron-3-super-120b-a12b:free`, `nemotron-3.5-lightning:free` | 0 / 0 / 0 | 0.000 | reported broken in exactly our use case: Zen returns *"model not supported"* / *"Upstream request failed"* and streaming dies mid-task once a loop makes several tool calls (opencode issues #30951, #38028, #38051) |
+| `nvidia/nemotron-3.5-lightning-30b-a3b`, `nano-omni-30b`, `ultra-253b-v1`, `llama-3.1-nemotron-70b` (NIM) | 0 / 0 / 0 | 0.000 | catalogued at zero, presumably NIM free-tier credits — rate limits unverified |
+| `nemotron-3.5-lightning` (fireworks, vercel-ai-gateway) | 0.05 / 0.20 / 0.01 | **0.039** | the only *paid* model found that undercuts DeepSeek **peak** ($0.044); still 1.8× off-peak, and a 3B-active model will likely pay for it in extra turns |
+| `nemotron-3-nano-30b-a3b` (vercel) · `3.5-lightning` (openrouter) | 0.05/0.20/0.025 · 0.049/0.14/0.0245 | 0.091 · 0.088 | no |
+| `nemotron-3-ultra-550b-a55b` (openrouter · NIM · fireworks/baseten) | 0.5/2.2/0.10 · 0.5/2.5/0.15 · 0.6/2.4/0.12 | 0.390 · 0.569 · 0.464 | 9–13× the off-peak price |
+| `@cf/nvidia/nemotron-3-120b-a12b` (Cloudflare) | 0.5 / 1.5 / none | 1.771 | no caching → every cached token billed as input |
+
+Quality, from NVIDIA's own model card and technical report: Ultra 550B‑A55B scores
+**SWE-bench Verified 71.9** (BF16) / 69.7 (NVFP4), **Terminal-Bench 2.1 56.4 / 53.9**,
+τ²‑bench v3 avg 70.9, BrowseComp 44.4. Strong for an open model, but *below* the
+frontier tier (DeepSeek V4 Pro: 96.4 SWE-bench Verified) and below Qwen3.8‑27B on
+Terminal-Bench (73 %), so it is not a quality upgrade over the current model — and it
+is a reasoning-first MoE that always emits a thinking trace, which inflates the part
+of the bill that is already 41 %.
+
+Verdict: **Nemotron is not the escape hatch.** Its free routes are the ones that fail
+visibly in multi-tool-call loops, its paid routes cost 1.8–13× the off-peak price, and
+its benchmarks do not buy back the difference. The one honest experiment is paid
+`nemotron-3.5-lightning` ($0.039) as a cheap-turn workhorse and watching whether the
+turn count holds at 19.
+
 | # | Option | $/prompt | Quality change | When |
 | --- | --- | --- | --- | --- |
 | 1 | **Keep `deepseek/deepseek-flash`, direct API — and stop paying peak** | 0.022–0.044 | none | always |
 | 2 | Keep the same model, **cut turns × context**: compaction earlier, no 140 k+ reads, `thinkingLevel` low for mechanical edits (output is 41% of spend, 60% of it reasoning) | 0.015–0.030 | slightly worse on hard reasoning | always |
 | 3 | Escalate to `deepseek/deepseek-v4-pro` for the ~10 % of prompts that fail twice | 0.236 (that prompt only) | better (#1 SWE-bench) | on demand |
-| — | Rejected: gemini-3.1-flash-lite (2.6× cost, Terminal-Bench Hard 24%), MiniMax-M3 (5×), qwen3.8-27b (8×), anything on OpenRouter/Cerebras/Groq (no cache discount), local (see §3) | | | |
+| — | Rejected: gemini-3.1-flash-lite (2.6× cost, Terminal-Bench Hard 24%), MiniMax-M3 (5×), qwen3.8-27b (8×), anything on OpenRouter/Cerebras/Groq (no cache discount), local (see §3), every flat-rate coding plan at our ~160 prompts/month | | | |
 
 Escalating the 10% hard prompts costs ~1.2× total spend; swapping *everything* to a
 2.6× model costs 2.6×. That is the whole argument for a null result.

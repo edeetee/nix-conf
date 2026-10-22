@@ -1,5 +1,8 @@
 # Services for homeserver-edt
-# Cockpit, Jellyfin, Transmission, Homepage dashboard, nginx reverse proxy
+# Cockpit, Transmission, Homepage dashboard, nginx reverse proxy
+#
+# Jellyfin used to live here too; it was retired with the whole TV client stack
+# in favour of Kodi reading /mnt/hdd directly (plans/kodi-tv.md).
 { config, pkgs, lib, ... }:
 let
   host = "${config.networking.hostName}.local";
@@ -18,11 +21,6 @@ in
         Origins = lib.mkForce "http://${host}:* https://${host}:* http://localhost:* https://localhost:*";
       };
     };
-  };
-
-  services.jellyfin = {
-    enable = true;
-    openFirewall = true;
   };
 
   services.transmission = {
@@ -60,21 +58,6 @@ in
     listenPort = 8082;
     openFirewall = true;
     services = [
-      {
-        "Media" = [
-          {
-            "Jellyfin" = {
-              icon = "jellyfin.svg";
-              href = "http://${host}:8096";
-              description = "Media server";
-              widget = {
-                type = "jellyfin";
-                url = "http://127.0.0.1:8096";
-              };
-            };
-          }
-        ];
-      }
       {
         "System" = [
           {
@@ -121,13 +104,6 @@ in
         "System" = [
           {
             "Cockpit" = [{ abbr = "CP"; href = "http://${host}:9090"; }];
-          }
-        ];
-      }
-      {
-        "Media" = [
-          {
-            "Jellyfin" = [{ abbr = "JF"; href = "http://${host}:8096"; }];
           }
         ];
       }

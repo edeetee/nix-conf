@@ -84,10 +84,12 @@
   # even when upstream is dead, which is exactly what makes this confusing), and
   # whether its firewall drops outbound ICMPv6 (that alone would not stop TCP).
   #
-  # Meanwhile it is expensive here: this host resolves AAAA first, so jellyfin
-  # spent the full 100 s HttpClient timeout on *every* TMDb lookup (one `Error
+  # Meanwhile it is expensive here: this host resolves AAAA first. That is why
+  # Jellyfin (retired since — plans/kodi-tv.md) spent the full 100 s HttpClient
+  # timeout on *every* TMDb lookup (one `Error
   # while performing a library operation` per 100 s in its journal; a scan ran 46
-  # minutes and was cancelled). With IPv6 off those connects fail immediately and
+  # minutes and was cancelled). The disable below is *kept*: it fixes AAAA-first
+  # for every client on this box, not just that server. With IPv6 off those connects fail immediately and
   # .NET falls back to IPv4, where the same request answers in 0.6 s.
   #
   # `networking.enableIPv6 = false` is what nixpkgs uses for this: it sets

@@ -1,7 +1,11 @@
 # Kodi as the TV client (JellyCon / Jellyfin for Kodi), and whether Jellyfin stays
 
-Status: **draft** — nothing built. Three decisions are open (§6), and one of them
-(whether Jellyfin is retired) is the user's call, not a technical one.
+Status: **superseded by [`kodi-tv.md`](./kodi-tv.md)** — nothing here was built.
+The questions this file left open are now decided there: the scope narrowed to
+"one TV, one box, local files", so Jellyfin is retired rather than kept, and
+JellyCon is dropped in favour of Kodi's own library. Read this file only for the
+JellyCon-vs-Jellyfin-for-Kodi comparison (§2), which is why that option set is
+recorded at all.
 
 ## 1. Why this is on the table
 

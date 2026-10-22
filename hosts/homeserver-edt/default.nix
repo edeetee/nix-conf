@@ -12,10 +12,6 @@
     ./boot.nix
     ./networking.nix
     ./desktop.nix
-    ./tv-session.nix
-    ./bigscreen-overlay.nix
-    ./plezy-overlay.nix
-    ./plezy-fullscreen.nix
     ./services.nix
     ./packages.nix
     ./unified-remote.nix
@@ -23,6 +19,7 @@
     ./mac-share.nix
     ./deploy.nix
     ../../modules/nixos/steam.nix
+    ../../modules/nixos/kodi.nix
     ../../modules/nixos/samba.nix
     ../../modules/nixos/reboot-to-windows.nix
     ../../modules/nixos/amd-gpu.nix

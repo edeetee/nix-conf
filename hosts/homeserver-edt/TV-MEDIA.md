@@ -5,87 +5,76 @@ onto the Sony TV that this box drives:
 
 | Want | Mechanism | Needs the phone? |
 | --- | --- | --- |
-| A TV-shaped UI on the box (couch launcher, remote navigation) | Plasma Bigscreen shell, swapped in place with `plasma-bigscreen-swap-session` | No |
-| Drive that TV UI from the phone | **Unified Remote arrow keys** (measured working), or KDE Connect remote-input | Yes |
-| Browse a library, cast to the TV, control playback from the phone | Jellyfin **web** client on the TV (a controllable session) — *not* Jellyfin Desktop, see §1 | Yes |
+| A TV-shaped UI on the box (couch launcher, library, player) | **Kodi** (`modules/nixos/kodi.nix`), fullscreen inside Plasma, autostarted with the session | No |
+| Drive Kodi from the phone | **Official Kodi Remote** (iOS, free) or Kore (Android) over `:8080`, or Unified Remote arrows → Kodi's own keyboard navigation | Yes |
+| Launch games from the TV UI | Kodi's **Steam Launcher** addon, or a controller press → `steam-on-demand` | No |
 | Play/pause/volume for mpv (or anything else on MPRIS) from the phone | Unified Remote's free Media remote + mpv-mpris | Yes |
-| Relaunch/stop a TV app, or swap the TV UI, from the phone without walking over | KDE Connect run commands | Yes |
+| Send Kodi back to the TV, or drop to the desktop, from the phone | KDE Connect run commands (`TV UI`, `Desktop`) | Yes |
 | Play a file that lives on the Mac | `/mnt/mac` (cifs automount) or `vlc smb://…` | No |
-| Let Jellyfin serve Mac media | a library on `/mnt/mac/<folder>` | Yes |
 
 AirPlay (audio + screen mirroring) is a fifth, unrelated path — that one is in
 `AIRPLAY.md`.
 
-## 1. **Not** a cast target: Jellyfin Desktop
+## 1. Kodi is the TV app
 
-There is no standalone "Jellyfin remote" app: remote control is a feature of
-every Jellyfin client, and it can only control a client that (a) is running and
-logged in and (b) **advertises `SupportsRemoteControl`**. Jellyfin Desktop does
-not — its sessions report the capability as false
-([jellyfin-desktop#1260](https://github.com/jellyfin/jellyfin-desktop/issues/1260),
-open), which is why it never appears in the phone's Play On list while a
-browser session does. It therefore no longer autostarts: it is the manual
-direct-play fallback for AC-3/DTS (`AUDIO.md`), started with
-`systemctl --user start jellyfin-desktop` or the "Jellyfin TV" KDE Connect
-command. What is installed as the TV app instead is **Plezy** (`packages.nix`),
-launched from the Bigscreen launcher.
+The box is a TV: SDDM autologins to Plasma, Plasma is invisible behind **Kodi**,
+and quitting Kodi is how you get to the desktop. `modules/nixos/kodi.nix` owns
+that; the design and the history it replaced are in `plans/kodi-tv.md`. Before
+this the TV was a Plezy + plasma-bigscreen + Jellyfin stack — all three are gone
+and this document no longer describes them.
 
-For casting *playback* control, run the **Jellyfin web** client on the TV — e.g.
-`plasma-bigscreen-webapp --name Jellyfin http://localhost:8096`, or Firefox from
-the launcher — and the phone's Play On works. Design notes and the whole player
-comparison: `plans/plasma-bigscreen.md`.
+Why Kodi rather than what was there: it is in the pinned nixpkgs (21.3, GPL, no
+overlay, no second nixpkgs input, no 2 GiB Flutter SDK), it plays the files
+directly instead of streaming them from a server on the same box, and it has an
+official free remote.
+
+```bash
+# status / control (over ssh)
+ssh homeserver-edt.local 'XDG_RUNTIME_DIR=/run/user/1000 systemctl --user status kodi-tv'
+ssh homeserver-edt.local 'XDG_RUNTIME_DIR=/run/user/1000 systemctl --user start kodi-tv'  # back to the TV
+ssh homeserver-edt.local 'XDG_RUNTIME_DIR=/run/user/1000 systemctl --user stop kodi-tv'   # leave the desktop
+```
 
 Decisions worth remembering:
 
-- **Plezy is the TV app; Jellyfin Desktop is manual.** `desktop.nix` keeps the
-  service (for AC-3/DTS direct play) but with no `wantedBy`, so it starts only
-  when asked. `--fullscreen` is enough now that nothing else needs the screen
-  back: quitting still stays quit, because `Restart=on-failure` is deliberate
-  (a crash comes back, a quit does not).
-- **The permission that still gates remote control** of any session: Dashboard →
-  Users → `edeetee` → **"Allow remote control of other users"** (or "Allow
-  remote control of shared devices"). Without one of those the phone's cast UI
-  stays hidden, which looks identical to "the client isn't running".
-- **Login state is just a device token.** Any Jellyfin client on this box keeps
-  it in its own profile directory (`~/.local/share/jellyfin-desktop/profiles/…`
-  for Jellyfin Desktop, `~/.var/app/…` or `~/.local/share/plezy` for Plezy). It
-  is lost by revoking the device in Dashboard → Devices, by "sign out of all
-  devices", or by wiping that directory — not by rebooting.
+- **`Restart=on-failure`, not `always`.** A crash comes back; quitting stays
+  quit. That is the entire "way back to the desktop" mechanism now — there is no
+  session switcher, no state file and no SDDM relogin any more.
+- **Content is `/mnt/hdd/downloads`** (the transmission folder), scraped by Kodi
+  itself. `scripts/jellyfin-movie-import.sh` hardlinks films into
+  `/mnt/hdd/media/library/movies` as `<Title> (<Year>)`, which any scraper matches
+  more reliably than `www.UIndex.org - …1080p…`. Pointing Kodi at both is
+  reasonable; the tree is scraper-neutral even though the script was written for
+  Jellyfin.
+- **Kodi's settings are GUI state**, in `~/.kodi/userdata/`. Display mode, audio
+  device, passthrough toggles and the library source are not in the nix config
+  and are not reproducible; `plans/kodi-tv.md` D3 records what to do about it.
+- **Audio passthrough** is set once in Settings ▸ System ▸ Audio: the HDMI/PipeWire
+  sink, allow passthrough, AC3/EAC3/DTS/TrueHD. `AUDIO.md` covers the stack;
+  verify with a DD5.1 title and `pactl list sinks | grep -i iec958`.
+- **Note the deploy rule** (AGENTS.md): a *new* user unit is not started for an
+  already-running user manager, so after the first `nixup` that adds `kodi-tv` it
+  must be started by hand once, or the box rebooted.
 
-```bash
-# status / manual control (over ssh)
-ssh homeserver-edt.local 'XDG_RUNTIME_DIR=/run/user/1000 systemctl --user status jellyfin-desktop'
-ssh homeserver-edt.local 'XDG_RUNTIME_DIR=/run/user/1000 systemctl --user start jellyfin-desktop'
-```
-
-Note the AGENTS.md deploy rule: a *new* user unit is not started on an
-already-running user manager, so after the first `nixup` that adds this unit it
-must be started by hand once (or by rebooting).
-
-## 1b. Controlling the Bigscreen shell itself
-
-Measured options, best first (2026-10-21):
+## 1b. Driving Kodi from the phone
 
 | Input | Works? | Notes |
 | --- | --- | --- |
-| **Unified Remote arrows/enter** | **yes, and it feels native** | Same uinput chain as §4 — `urserver` synthesises key events, KWin delivers them to the Bigscreen shell. The free "Keyboard"/*custom arrow* remote is enough; no mpv/mpris involvement |
-| KDE Connect remote input | yes | Trackpad + keyboard, paired iPhone. Fine for clicking, fiddly for lists |
-| Gamepad (DualShock) | supported, none connected as of that date | Bigscreen's `inputhandler` drives SDL controllers; `/dev/input/js0` here is the ASRock RGB controller, not a pad |
-| TV remote over HDMI-CEC | **no hardware** | Bigscreen has full CEC support (`cecEnabled`, `isCecControllerConnected`, `sendActiveSource/Standby` on `org.kde.plasma.bigscreen.inputhandler`), but there is no `/dev/cec*` — RDNA2 has no CEC and no Pulse-Eight dongle is attached. That dongle is the only path to the Sony remote driving this UI |
-| Scripted/D-Bus navigation | no | The inputhandler's D-Bus interface is controller-oriented only; it exposes no "send key" method |
+| **Official Kodi Remote** (iOS) | yes, the rich one | Free, Kodi Foundation, App Store. Speaks Kodi's JSON-RPC: library browsing, artwork, now-playing, seek. Needs Settings ▸ Services ▸ Control ▸ "Allow remote control via HTTP" (port 8080) |
+| Kore (Android) | yes | The same API on Android |
+| Chorus2 (any phone browser) | yes | Ships with Kodi: `http://homeserver-edt.local:8080` — no app, no pairing |
+| **Unified Remote arrows/enter** | yes | The §4 uinput chain. Kodi navigates by keyboard natively, so no API is involved: `urserver` injects events and KWin delivers them to the focused window |
+| Gamepad (DualShock) | supported, none connected as of 2026-10-21 | Kodi drives SDL controllers itself; `/dev/input/js0` here is the ASRock RGB controller, not a pad |
+| TV remote over HDMI-CEC | **no hardware** | Kodi links `libcec`, but there is no `/dev/cec*` — RDNA2 has no CEC and no Pulse-Eight dongle is attached. That dongle is the only path to the Sony remote driving this UI |
 
-Switching between the TV UI and the desktop:
+Port 8080 is plain HTTP and unauthenticated unless a user is set in guisettings,
+so it is a LAN port: do not forward it.
 
-```bash
-plasma-bigscreen-swap-session   # toggles: shell swapped in place, windows kept
-tv-session bigscreen|plasma     # changes what SDDM autologins into (survives reboot)
-tv-session status
-```
-
-The first is the day-to-day one and is also a KDE Connect run command ("Swap TV
-UI"). The second ends the graphical session, so SDDM must be willing to
-re-autologin — `sddm.settings.Autologin.Relogin = true` in `tv-session.nix` is
-what makes that true; without it the box comes back with no session at all.
+Launching games from the TV UI: Kodi's **Steam Launcher** addon (baked into
+`modules/nixos/kodi.nix`) starts Steam in Big Picture, and a controller press
+still starts `steam-on-demand` independently (`steam.nix`). Both depend on the
+Plasma session underneath — which is exactly why Kodi is not a standalone
+session.
 
 ## 2. Phone side: KDE Connect run commands
 
@@ -97,12 +86,13 @@ Two commands are registered for the paired phone:
 
 | Name | Command |
 | --- | --- |
-| `Jellyfin TV` | `systemctl --user start jellyfin-desktop` |
-| `Jellyfin TV (stop)` | `systemctl --user stop jellyfin-desktop` |
+| `TV UI` | `systemctl --user start kodi-tv` |
+| `Desktop` | `systemctl --user stop kodi-tv` |
 
-`start` is idempotent — tapping it while the client runs is a no-op, whereas
-launching the binary again would open a second window. That is why these go
-through systemd rather than executing `jellyfin-desktop`.
+`start` is idempotent — tapping it while Kodi runs is a no-op, whereas launching
+the binary again would open a second window. That is why these go through
+systemd rather than executing `kodi`. Neither needs root, and `stop` leaves Kodi
+quit until the next login, which is what makes the desktop usable.
 
 **These are per-device application state, not NixOS config.** The plugin stores
 them per paired device, as a KConfig file with a JSON blob:
@@ -145,14 +135,17 @@ unless it is embedded as `smb://user:pass@host/…`.
 ### With a mount: `/mnt/mac` (mac-share.nix)
 
 One cifs automount of the whole home share, **world-readable** (`0444/0755`, and
-`ro`), so any local account can read it — Jellyfin included. Two facts force
+`ro`), so any local account can read it — Jellyfin included (now retired,
+`plans/kodi-tv.md`). Two facts force
 that shape: a `nounix` cifs mount has exactly one owner, and the nixpkgs Jellyfin
 module sets `PrivateUsers=yes`, which makes the mount's owner render as `nobody`
 to jellyfin, so only the `other` bits are ever consulted. The price is that
 `~/.ssh` and the sops age key under `~/Library/Application Support/sops/age/`
 are readable by every service account on this box; narrow it by mounting a
 `subpath` with `fileMode = "0600"/dirMode = "0700"` if that ever matters more
-than the convenience.
+than the convenience. **Now that Kodi runs as `edeetee`, that forcing condition
+is gone** — pinning `0444/0755` existed only for Jellyfin's `PrivateUsers` — so
+`0400/0700` works and is step 5 of `plans/kodi-tv.md`.
 
 It is lazy: nothing is mounted at boot, and the first read of the path triggers
 the connection. If the Mac is asleep the read fails
@@ -226,15 +219,14 @@ and re-arms it. Manual equivalent, if ever needed:
 ssh homeserver-edt.local 'sudo systemctl restart mnt-mac.automount'
 ```
 
-### Jellyfin libraries
+### Pointing Kodi at the Mac (don't)
 
-Point a library at `/mnt/mac/<folder>` and it works: the mount is readable by
-any local account now, and jellyfin re-arms it on first access (verified inside
-jellyfin's sandbox). The caveat that remains is the Mac itself — a library rooted
-on a share that comes and goes makes Jellyfin mark items missing on every scan
-that lands while the Mac is asleep, and mangles resume state. That is why the
-general advice is still to sync Mac media to `/mnt/hdd` (rsync/Syncthing) if it
-should behave like a permanent library. Also note that if the Mac sleeps
+Kodi *can* take `/mnt/mac/<folder>` as a video source: the mount is readable by
+`edeetee`, and it re-arms on first access. Don't. A library rooted on a share
+that comes and goes makes Kodi mark items missing on every scan that lands while
+the Mac is asleep, and mangles resume state — the same problem Jellyfin had, and
+it was never a Kodi-specific one. Sync Mac media to `/mnt/hdd` (rsync/Syncthing)
+if it should behave like a permanent library. And if the Mac sleeps
 mid-playback, playback stalls: that is inherent to pulling from a Mac, mount or
 not (`caffeinate -i` on the Mac avoids it).
 

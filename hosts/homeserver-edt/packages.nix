@@ -9,12 +9,8 @@
     rocmPackages.rocm-smi
     nvtopPackages.amd
     pkgsRocm.blender
-    jellyfin-desktop
-    # TV app for the Plasma Bigscreen session (see plans/plasma-bigscreen.md):
-    # mpv-based playback, TV-shaped UI, and unlike jellyfin-desktop a client
-    # that may be controllable from the phone. In the pinned nixpkgs at 1.30.0;
-    # `nix flake update nixpkgs` or the already-enabled flatpak gets a newer one.
-    plezy
+    # mpv-based playback, TV-shaped UI — replaced by Kodi
+    # (modules/nixos/kodi.nix); jellyfin-desktop went with the server.
     kdePackages.kdeconnect-kde
     # mpv sits next to VLC for exactly the files VLC mangles: AC-3/DTS (e.g.
     # "DD5.1" releases). VLC bitstreams those instead of decoding, and a
@@ -33,7 +29,7 @@
 
   # Firefox: a real browser in the TV session. Plasma's own options (Konqueror
   # is not installed, Falkon is a toy) are no use from the couch, and the web
-  # players — Jellyfin, YouTube, a streaming site — are the usual reason to want
+  # players — YouTube, a streaming site — are the usual reason to want
   # one here. Declared as `programs.firefox` rather than a bare package so the
   # standard NixOS wrapper and /etc/firefox policy files come with it, and so
   # `firefox` is on PATH for every user rather than one profile.

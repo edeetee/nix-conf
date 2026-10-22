@@ -1,3 +1,10 @@
+# nixarr (WIP) — NOT imported by any host.
+#
+# Stale as of plans/kodi-tv.md: this module's shape is "nixarr brings its own
+# Jellyfin", and Jellyfin is retired on this repo's only NixOS media host (Kodi
+# reads /mnt/hdd directly). Kept only as an aspiration for the *media directory*
+# layout it implies (/mnt/hdd/media, /mnt/hdd/media/.state); if it is ever
+# adopted, the Jellyfin half has to be dropped first. Decision D4 in the plan.
 {
   config,
   pkgs,

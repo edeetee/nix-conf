@@ -2,13 +2,6 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
 
-    # Source tree only — never added to the package set. Plasma Bigscreen is not
-    # in the pinned nixpkgs (Plasma 6.6); hosts/homeserver-edt/bigscreen-overlay.nix
-    # takes its *build machinery* (generated project metadata) from here and
-    # builds the v6.7.5 sources against the pinned KDE scope. See
-    # plans/plasma-bigscreen.md §9.1.
-    nixpkgs-bigscreen.url = "github:nixos/nixpkgs/nixpkgs-unstable";
-
     # NixOS-specific
     flamenco.url = "github:edeetee/flamenco-nix";
     nixos-hardware.url = "github:NixOS/nixos-hardware";
@@ -104,7 +97,6 @@
       sops-nix,
       nixos-hardware,
       plasma-manager,
-      nixpkgs-bigscreen,
       ...
     }:
     let
@@ -161,9 +153,6 @@
       # ── NixOS ──────────────────────────────────────────────────────────
 
       nixosConfigurations.homeserver-edt = nixpkgs.lib.nixosSystem {
-        # Only this host needs to see a flake input besides nixpkgs — the
-        # bigscreen overlay reads nixpkgs-bigscreen.
-        specialArgs = { inherit nixpkgs-bigscreen; };
         modules = commonModules ++ [
           ./hosts/homeserver-edt
           nixvim.nixosModules.nixvim

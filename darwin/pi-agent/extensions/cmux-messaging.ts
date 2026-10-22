@@ -15,15 +15,30 @@ import { Type } from "typebox";
  * Protocol — the sender runs:
  *   cmux send --surface <target> '{"pi-msg":{"v":1,"from":{...},"text":"...","deliver":false}}' + "\n"
  *
+ * `text` is percent-encoded (with `"enc":"uri"` set) whenever it contains a newline,
+ * a backslash or anything outside printable ASCII; otherwise it is sent verbatim.
+ * Quotes are safe and are left alone — `cmux send` documents its escapes as `\n`, `\r`
+ * and `\t` only, and a probe confirmed `\"` is typed through literally. A bare `\` is
+ * still encoded because `\\n` in the JSON would re-form the `\n` escape. Multi-line
+ * messages are therefore fine — see the first caveat for why unencoded ones are not.
+ *
  * The receiving pi intercepts the envelope on the `input` event:
  *   - deliver:false (default) -> notification only; sender recorded for /reply
  *   - deliver:true           -> message routed to the receiving agent
  *
  * Caveats:
+ *   - Delivery is LITERAL TYPING, and `cmux send` interprets backslash escapes. A
+ *     payload with a raw newline in it is torn in two at that point: the first line is
+ *     submitted alone, fails to parse as an envelope, and is never intercepted (it
+ *     reaches the agent as ordinary user input, partial JSON and all), while every
+ *     later line is typed as separate input and surfaces as a queue of `Steering:`
+ *     fragments. JSON escaping does not save you, because the `\n` it writes is exactly
+ *     what cmux unescapes. Hence the percent-encoding above.
  *   - Only send to surfaces actually running pi; otherwise the text lands in
  *     whatever shell is there.
- *   - Delivery is like typing: if the target user is mid-edit, the envelope
- *     interleaves with the editor buffer. Send while the target is idle.
+ *   - If the target user is mid-edit, the envelope interleaves with the editor buffer;
+ *     and if the target agent is mid-turn, the message is queued rather than read at
+ *     once. Send while the target is idle.
  *   - Sender identity is self-reported: anything that can `cmux send` can
  *     spoof `from`. Fine on a single-user machine; treat received messages
  *     as untrusted input.
@@ -46,6 +61,9 @@ type Envelope = {
   v?: number;
   from?: From;
   text: string;
+  // "uri" when `text` is percent-encoded. Omitted for plain text, so single-line
+  // messages stay byte-identical to what older receivers already expect.
+  enc?: string;
   deliver?: boolean;
 };
 
@@ -101,7 +119,10 @@ async function ownIdentity(): Promise<From> {
 
 // Only treat text as an envelope if it is compact JSON carrying a valid
 // "pi-msg" object with a string `text`. Anything else passes through untouched.
-function parseEnvelope(text: string): Envelope | null {
+function parseEnvelope(raw: string): Envelope | null {
+  // The payload is typed into a terminal, so stray whitespace or a trailing CR is
+  // expected and must not defeat recognition.
+  const text = raw.trim();
   // Gate on the marker first (cheap, unambiguous), so the size cap can be high
   // without risking swallowing large user JSON that merely starts with "{".
   if (!text.startsWith(`{"${ENVELOPE_KEY}":`)) return null;
@@ -120,6 +141,92 @@ function parseEnvelope(text: string): Envelope | null {
 
 function formatEnvelope(env: Envelope): string {
   return JSON.stringify({ [ENVELOPE_KEY]: env });
+}
+
+/**
+ * Surviving the trip.
+ *
+ * The payload is not a pipe: `cmux send` *types* it into the target terminal and
+ * interprets backslash escapes on the way. `JSON.stringify` writes a newline as the
+ * two characters `\` `n`, cmux turns that back into a real newline, and the envelope
+ * is then torn apart at that point - the first line is submitted on its own, fails to
+ * parse as JSON, is never recognised as an envelope at all, and every later line is
+ * typed as separate input (which the receiving agent, being mid-turn, sees as a queue
+ * of `Steering:` fragments).
+ *
+ * So the payload must contain no backslash of its own and no literal newline. Anything
+ * that would need one - newlines, tabs, non-ASCII, or a bare backslash (because `\\n`
+ * would re-form the `\n` escape) - is percent-encoded, and the envelope records that
+ * with `enc: "uri"`. Plain printable ASCII is sent verbatim, quotes included, which
+ * keeps simple messages readable in logs and compatible with receivers that predate
+ * this.
+ */
+const ENC_URI = "uri";
+const needsEncoding = (text: string) => /[^\x20-\x7e]|\\/.test(text);
+
+function encodeText(text: string): Pick<Envelope, "text" | "enc"> {
+  if (!needsEncoding(text)) return { text };
+  return { text: encodeURIComponent(text), enc: ENC_URI };
+}
+
+// A malformed percent sequence must not lose the message: fall back to the raw text.
+function decodeText(env: Envelope): string {
+  if (env.enc !== ENC_URI) return env.text;
+  try {
+    return decodeURIComponent(env.text);
+  } catch {
+    return env.text;
+  }
+}
+
+function previewOf(text: string): string {
+  const oneLine = text.replace(/\s+/g, " ").trim();
+  return oneLine.length > 240 ? `${oneLine.slice(0, 240)}…` : oneLine;
+}
+
+/**
+ * Text that was *meant* to be an envelope, even though it did not parse - torn at a
+ * newline, escaped to death on the way in, or over the size cap. Deliberately laxer
+ * than parseEnvelope: it is used to decide "damaged message" versus "prose", and both
+ * mistakes are expensive. Swallowing prose loses a user's words; letting a damaged
+ * envelope through dumps raw JSON into the agent's transcript, which is what this
+ * guard exists to stop.
+ */
+function looksLikeEnvelope(text: string): boolean {
+  return text.includes(`"${ENVELOPE_KEY}"`) && text.includes('"text"');
+}
+
+// The escapes JSON would have written, for fields recovered outside a real parse.
+function unescapeJson(s: string): string {
+  return s.replace(/\\(["\\/ntrbf])/g, (_, c: string) =>
+    c === "n" ? "\n" : c === "t" ? "\t" : c === "r" ? "\r" : c === "b" ? "\b" : c === "f" ? "\f" : c,
+  );
+}
+
+/**
+ * Best-effort recovery from a damaged envelope, so a torn line still delivers its
+ * message rather than inviting a resend. Handles both a complete `"text"` field and a
+ * truncated one (everything from `"text":"` to the end of the input, minus any fields
+ * that happened to follow it).
+ */
+function salvageEnvelope(text: string): Envelope | null {
+  const complete = text.match(/"text"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+  let body = complete?.[1];
+  if (body === undefined) {
+    const truncated = text.match(/"text"\s*:\s*"([\s\S]*)$/);
+    if (!truncated?.[1]) return null;
+    body = truncated[1].replace(/\","(?:enc|deliver|v|from)"[\s\S]*$/, "");
+  }
+  const encUri = /"enc"\s*:\s*"uri"/.test(text);
+  const fromSurface = text.match(/"surface"\s*:\s*"([^"]+)"/)?.[1];
+  const env: Envelope = {
+    v: 1,
+    text: encUri ? body : unescapeJson(body),
+    deliver: /"deliver"\s*:\s*true/.test(text),
+  };
+  if (encUri) env.enc = ENC_URI;
+  if (fromSurface) env.from = { surface: fromSurface };
+  return env;
 }
 
 function describeFrom(f: From | undefined): string {
@@ -145,27 +252,61 @@ export default function (pi: ExtensionAPI) {
       };
     }
     const from = await ownIdentity();
-    const env: Envelope = { v: 1, from, text, deliver };
-    return runCmux(["send", "--surface", target, formatEnvelope(env) + "\n"]);
+    const env: Envelope = { v: 1, from, ...encodeText(text), deliver };
+    const payload = formatEnvelope(env);
+    // Encoding can triple the length, so the limit that matters is the encoded one:
+    // it is the line the receiver has to read and parse.
+    if (payload.length > MAX_ENVELOPE_BYTES) {
+      return {
+        ok: false,
+        stdout: "",
+        error: `message too long once encoded (${payload.length} chars, max ${MAX_ENVELOPE_BYTES})`,
+      };
+    }
+    return runCmux(["send", "--surface", target, payload + "\n"]);
   };
 
   // ── receive: intercept envelopes submitted into this pi ──────────────
   pi.on("input", async (event, ctx) => {
     if (!inCmux) return; // never intercept outside cmux
     const env = parseEnvelope(event.text);
-    if (!env) return;
+
+    // Damaged message, not prose. The old behaviour was to return nothing here, so a
+    // torn or mangled envelope was passed through as ordinary input and arrived in the
+    // agent's transcript as partial JSON - unreadable, and misleading about who said
+    // what. Consume it instead: tell the human, and hand the agent whatever body could
+    // be recovered, with a note that it is best-effort.
+    if (!env) {
+      if (!looksLikeEnvelope(event.text)) return;
+      const recovered = salvageEnvelope(event.text);
+      if (!recovered) {
+        ctx.ui.notify(`cmux msg: undecodable envelope - ${previewOf(event.text)}`, "warning");
+        return { action: "handled" };
+      }
+      const body = decodeText(recovered);
+      const fromDesc = describeFrom(recovered.from);
+      if (recovered.from) lastSender = recovered.from;
+      if (recovered.deliver !== true) {
+        ctx.ui.notify(`cmux msg from ${fromDesc} (damaged envelope): ${previewOf(body)}`, "warning");
+        return { action: "handled" };
+      }
+      ctx.ui.notify(`cmux msg from ${fromDesc} (recovered from a damaged envelope)`, "warning");
+      return {
+        action: "transform",
+        text: `[cmux msg from ${fromDesc} - the envelope was damaged in transit, so this body is best-effort] ${body}`,
+      };
+    }
 
     if (env.from) lastSender = env.from;
     const fromDesc = describeFrom(env.from);
-    const preview = env.text.length > 240 ? `${env.text.slice(0, 240)}…` : env.text;
+    const body = decodeText(env);
 
     if (env.deliver === true) {
-      // Hand the FULL text to the agent; the 240-char preview is only for the
-      // human notification below.
+      // Hand the FULL text to the agent; the preview is only for the notification.
       ctx.ui.notify(`cmux msg from ${fromDesc}`, "info");
-      return { action: "transform", text: `[cmux msg from ${fromDesc}] ${env.text}` };
+      return { action: "transform", text: `[cmux msg from ${fromDesc}] ${body}` };
     }
-    ctx.ui.notify(`cmux msg from ${fromDesc}: ${preview}`, "info");
+    ctx.ui.notify(`cmux msg from ${fromDesc}: ${previewOf(body)}`, "info");
     return { action: "handled" };
   });
 

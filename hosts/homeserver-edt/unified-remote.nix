@@ -1,12 +1,12 @@
 # Unified Remote — the phone remote for mpv, and for the TV UI.
 #
 # Two users of the same chain. The media keys drive mpv through MPRIS (§4 of
-# TV-MEDIA.md); the *arrow keys* drive the Plasma Bigscreen shell, which is the
-# measured-best way to control the TV UI from the phone — Bigscreen has no
-# D-Bus "send key" API, nothing here speaks X11, and `urserver` already injects
-# kernel-level input events that KWin delivers to whatever has focus. See
-# TV-MEDIA.md §1b for the alternatives that were checked (CEC: no hardware;
-# gamepad: none connected; KDE Connect: works, fiddlier).
+# TV-MEDIA.md); the *arrow keys* drive whatever window has focus — which since
+# plans/kodi-tv.md means Kodi itself, not the retired Plasma Bigscreen shell.
+# Kodi navigates by keyboard natively, so nothing here needs a D-Bus "send key"
+# API: `urserver` injects kernel-level input events and KWin delivers them to the
+# focused window. Kodi's own remote (§1b) is the richer option — it speaks Kodi's
+# JSON-RPC and can browse the library — and this chain is what still drives mpv.
 #
 # Why this exists at all: the iOS KDE Connect app has no MPRIS/media plugin
 # (its whole plugin set is Battery, Clipboard, FindMyPhone, Ping, Presenter,

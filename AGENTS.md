@@ -277,8 +277,8 @@ hosts/
     hardware-configuration.nix
     boot.nix               — kernel, loader, plymouth
     networking.nix         — hostname, avahi, zerotier, ssh, firewall
-    desktop.nix            — display manager, plasma, bluetooth, jellyfin TV client
-    services.nix           — cockpit, jellyfin, transmission, homepage, nginx
+    desktop.nix            — display manager, plasma, bluetooth, power/sleep
+    services.nix           — cockpit, transmission, homepage, nginx
     packages.nix           — system packages, fonts, users (pinned uid), shell (nixup/nixrs)
     mac-share.nix          — the Mac's SMB share as an on-demand cifs automount at /mnt/mac
     unified-remote.nix      — Unified Remote (phone → media keys), plus mpv-mpris
@@ -314,6 +314,7 @@ modules/
   nixvim/                  — nixvim config
   nixos/                   — reusable NixOS modules
     steam.nix
+    kodi.nix               — Kodi as the TV UI (fullscreen in Plasma) + Steam Launcher addon
     samba.nix
     reboot-to-windows.nix
     amd-gpu.nix

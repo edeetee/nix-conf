@@ -28,22 +28,14 @@ let
   # file rots.
   commands = {
     "shutdown" = "shutdown now";
-    # Two different mechanisms, both here because they fail differently:
-    #
-    #   * `plasma-bigscreen-swap-session` swaps the *shell* in place (it reads
-    #     PLASMA_BIGSCREEN_LAUNCH_REASON from the session environment and
-    #     toggles). Instant, keeps every window and the running session — this
-    #     is the one to use day to day.
-    #   * `tv-session` changes which session *SDDM autologins into* and ends the
-    #     current graphical session, so it survives a reboot. Slower, and it
-    #     needs SDDM's Autologin.Relogin (set in tv-session.nix) to come back.
-    "Swap TV UI" = "plasma-bigscreen-swap-session";
-    "TV mode (restart)" = "tv-session bigscreen";
-    "Desktop mode (restart)" = "tv-session plasma";
-    # Jellyfin Desktop is no longer autostarted; it is the direct-play fallback
-    # (AC-3/DTS) and not a remote-control target — see desktop.nix.
-    "Jellyfin TV" = "systemctl --user start jellyfin-desktop";
-    "Jellyfin TV (stop)" = "systemctl --user stop jellyfin-desktop";
+    # Kodi is the TV UI (modules/nixos/kodi.nix, plans/kodi-tv.md). One mechanism
+    # now instead of two: there is no second shell to swap in place and no
+    # session file to rewrite, because SDDM always autologins into Plasma.
+    # `stop` leaves the desktop, and nothing brings Kodi back until the next
+    # login — that is what makes "quit stays quit" work, so `start` is the way
+    # back to the TV.
+    "TV UI" = "systemctl --user start kodi-tv";
+    "Desktop" = "systemctl --user stop kodi-tv";
   };
 
   # KDE's own ids have the shape 8_4_4_4_12 below an md5, e.g.

@@ -50,6 +50,7 @@ let
   # Avahi resolves this on this host (networking.nix sets `nssmdns4 = true`).
   macHost = "Edwards-MacBook-Max.local";
 
+
   # macOS shares each user's home directory as a share named after the short
   # username, and once every folder is made shareable it also offers the whole
   # volume as "Macintosh HD". Using the home share means the mounts below can
@@ -192,6 +193,18 @@ in
     mode = "0400";
   };
 
+  # IPv4 preferred over IPv6 in getaddrinfo for *every* lookup on this box, which
+  # is what keeps a fresh mount from picking the Mac's AAAA record while IPv6 is
+  # switched off here (networking.nix) — the address resolves fine, the connect
+  # then has no route, and cifs retries into that dead end. Written as precedence
+  # rather than pinning `ip=` in the mount options on purpose: the Mac's lease
+  # changes, and mount.cifs resolves once per mount, so any address baked into
+  # the config is stale the day DHCP hands out a different one. With this, each
+  # mount resolves the *name* and prefers the v4 answer.
+  environment.etc."gai.conf".text = ''
+    precedence ::ffff:0:0/96  100
+  '';
+
   systemd.mounts = map (s: s.mount) shares;
   systemd.automounts = map (s: s.automount) shares;
 
@@ -211,12 +224,40 @@ in
     serviceConfig = {
       Type = "oneshot";
     };
+    # Second half: a *live but dead* mount. The cifs session is built from a
+    # resolved address once, at mount time, and then survives every address
+    # change — the Mac's DHCP lease, or the IPv6 address this box stopped having
+    # when `networking.enableIPv6` went off (see networking.nix). The unit stays
+    # `active (mounted)` while every syscall on it blocks for `echo_interval` and
+    # then fails: that is "Dolphin freezes when I open the Mac's files".
+    # `systemctl restart mnt-mac.mount` does NOT recover it — `umount` returns
+    # `target is busy`, because plasmashell/kio/Dolphin hold the directory open,
+    # and a GUI keeps polling, so the automount's TimeoutIdleSec never fires and
+    # the stale mount is never dropped on its own.
+    #
+    # So probe it, and detach with `umount -l` when it does not answer: lazy, so
+    # it succeeds while busy, and the next open of /mnt/mac re-triggers the
+    # automount, which resolves the name again and builds a fresh session. The
+    # probe only runs when the mount unit claims to be up, so an idle box (no
+    # mount, nothing to check) never gets pulled into connecting.
     script = ''
       for unit in ${lib.concatMapStringsSep " " (u: "'${u}'") automountUnits}; do
         if ! ${config.systemd.package}/bin/systemctl is-active --quiet "$unit"; then
           echo "$unit is not active (failed: start limit), re-arming"
           ${config.systemd.package}/bin/systemctl reset-failed "$unit" "''${unit%.automount}.mount" || true
           ${config.systemd.package}/bin/systemctl start "$unit"
+        fi
+      done
+
+      set -- ${lib.concatMapStringsSep " " (s: "'${s.mountUnit}' '${s.mountPoint}'") shares}
+      while [ "$#" -ge 2 ]; do
+        unit="$1"; where="$2"; shift 2
+        ${config.systemd.package}/bin/systemctl is-active --quiet "$unit" || continue
+        if ! ${pkgs.coreutils}/bin/timeout 30 ${pkgs.coreutils}/bin/stat -c %d "$where" >/dev/null 2>&1; then
+          echo "$unit is active but unresponsive, detaching $where"
+          ${pkgs.util-linux}/bin/umount -l "$where" || true
+          ${config.systemd.package}/bin/systemctl reset-failed "$unit" "''${unit%.mount}.automount" || true
+          ${config.systemd.package}/bin/systemctl start "''${unit%.mount}.automount" || true
         fi
       done
     '';
