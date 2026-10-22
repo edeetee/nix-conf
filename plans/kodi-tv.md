@@ -261,12 +261,21 @@ Then on the box, in order:
 
 | Cost | Detail |
 | --- | --- |
-| **Kodi is not in the binary cache here** | `cache.nixos.org` returns 404 for `kodi-21.3` and `kodi-jellycon-0.9.1`; `nix build --dry-run` wants **19 derivations built from source**. Expect a 20–40 min first build on the 12-core box, and the same on any pin bump that touches kodi/kodiPackages. The Mac cannot help (no x86_64-linux builder). This is the one thing that is genuinely *worse* than the current stack, which installs from cache |
+| ~~Kodi is not in the binary cache~~ **— disproved** | Measured 2026-10-22: `nix log` for the `kodi-21.3` derivation reports the log **fetched from `cache.nixos.org`**, and its narinfo answers **200**. The full system closure (`nixos-rebuild build`) built in **44 s / 26 s CPU**. The earlier 404s for `kodi-21.3` were a transient miss — do not repeat that claim without re-checking: `curl -s -o /dev/null -w '%{http_code}\n' https://cache.nixos.org/$(basename $(nix eval --raw .#nixosConfigurations.homeserver-edt.pkgs.kodi.outPath)).narinfo`. The residual risk is only that a pin bump *ahead of Hydra* could require a source build, which is the same as for any package |
 | **GUI-state config** | settings/sources/scrapers live in `~/.kodi/`, so the box is less reproducible than now. Snapshot (§4.1) or accept |
 | **Plasma stays resident** | shape A keeps the desktop underneath Kodi. Acceptable on a box that already runs it; this is the argument for B later, not now |
 | **Watch state resets** | Jellyfin's resume points live in its DB and are lost. One TV, one viewer — low value, but say it out loud |
 | **Scraping messy names** | the downloads are scene names (`www.SceneTime.com - Wallace and Gromit …`); Kodi's scrapers handle these, but expect a few manual matches |
 | **Still no CEC** | unchanged: no `/dev/cec*` on RDNA2, no Pulse-Eight dongle. The phone remains the remote |
+
+**The plan is therefore cheaper than written.** With Kodi substitutable, removing Jellyfin
+and the client stack is a net *reduction* on every axis that was measured: ~375 lines and a
+flake input deleted, no new build cost, and 8096 closed with only 8080 opened. The single
+remaining unknown is audio passthrough (§6), which is a settings question, not a build one.
+
+The store on the box is now warm: `nixos-rebuild build` for this commit succeeded and
+produced `nixos-system-homeserver-edt-26.05.20260501.c6d6588`. What is left is §8 step 0
+(passthrough, needs the TV) and the switch itself, which needs root/`nixup`.
 
 ## 11. Decisions taken during implementation
 
