@@ -51,6 +51,22 @@ in
   systemd.tmpfiles.rules = [
     "d /mnt/hdd/downloads 0777 edeetee users -"
     "d /mnt/hdd/downloads/.incomplete 0777 edeetee users -"
+
+    # Kodi's library trees (plans/kodi-tv.md). Two roots, because Kodi cannot
+    # scrape one directory as both Movies and TV shows, and /mnt/hdd/downloads
+    # is a mix of film folders, loose episodes and season folders.
+    #
+    # Owned by edeetee for a measured reason: /mnt/hdd/media was root:169, a gid
+    # that no longer exists in the group database, so no user could write there
+    # and every hardlink import failed with EACCES. `d` also corrects the
+    # ownership of the existing empty directories, which is the point here.
+    #
+    # Deliberately NOT /mnt/hdd/media itself: that is shared with transmission
+    # (`torrents/`) and `.state/` — see the AGENTS.md warning about tmpfiles
+    # rules taking ownership of shared mounts.
+    "d /mnt/hdd/media/library 0775 edeetee users -"
+    "d /mnt/hdd/media/library/movies 0775 edeetee users -"
+    "d /mnt/hdd/media/library/shows 0775 edeetee users -"
   ];
 
   services.homepage-dashboard = {
