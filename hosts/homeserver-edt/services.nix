@@ -147,10 +147,23 @@ in
 
   services.udisks2.enable = true;
 
-  nix.optimise.automatic = true;
+  # Store size is bounded by the generation cutoff, not by the GC schedule. This box is
+  # rebuilt several times a day, so `--delete-older-than 30d` kept 38 system generations
+  # and grew /nix/store to 67G.
   nix.gc = {
     automatic = true;
-    dates = "weekly";
-    options = "--delete-older-than 30d";
+    dates = "daily";
+    options = "--delete-older-than 1d";
+  };
+  nix.optimise.automatic = true;
+  nix.settings = {
+    # Hardlink identical files as they are added, rather than only in the weekly pass:
+    # successive generations of the same package then share one copy on disk.
+    auto-optimise-store = true;
+    # Safety net for the small (182G) disk: let the daemon GC dead paths itself when free
+    # space drops under min-free, and keep trimming until max-free is reached. Only
+    # unreachable paths are removed, so nothing in the current or kept generations goes.
+    min-free = "8G";
+    max-free = "24G";
   };
 }

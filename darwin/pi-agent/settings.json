@@ -8,5 +8,6 @@
   "hideThinkingBlock": true,
   "defaultProvider": "deepseek",
   "defaultModel": "deepseek-flash",
-  "tuiMode": "fullscreen"
+  "tuiMode": "fullscreen",
+  "defaultThinkingLevel": "medium"
 }
