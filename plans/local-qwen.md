@@ -215,7 +215,8 @@ first row — it is not running Vulkan at all.
 | Decode | **11 t/s** (~500 tokens ≈ 45 s) |
 | VRAM loaded | 9.83–9.87 GiB of 11.8 GiB |
 | VRAM asleep | **0.57 GiB** — `--sleep-idle-seconds` really does release the card |
-| Wake from sleep | **132 s** (reload from the HDD) |
+| Wake from sleep | **30 s** with the model on the NVMe, **127–140 s** on the HDD (two consecutive wakes measured, so not page-cache noise) |
+| Why caching could not fix it | an mmap'd 16.5 GiB file cannot stay in 15 GiB of RAM: every wake re-read it at ~133 MB/s from the spinning disk. Not a cache-tuning problem |
 | Split that fits | `--n-cpu-moe 24`, `--ubatch-size 256` |
 
 What got it there, in order: `--fit` had to be turned **off** (with tensor buft
