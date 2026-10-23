@@ -26,8 +26,11 @@ in
     # roughly double the context and keeps real RAM free. A/B them
     # (plans/local-qwen.md §5.10) before deciding this is the keeper:
     #   model = "/mnt/hdd/models/Qwen3.6-35B-A3B-UD-Q4_K_M.gguf";
-    model = "/mnt/hdd/models/Qwen3.6-35B-A3B-UD-IQ4_XS.gguf";
-    mmproj = "/mnt/hdd/models/mmproj-F16.gguf";
+    # On the NVMe, not /mnt/hdd: the whole file is bigger than RAM, so page cache
+    # cannot keep it and every reload was a 16.5 GiB read off the spinning disk
+    # (~130 MB/s, measured 127-140 s per wake). See plans/local-qwen.md §5.
+    model = "/var/lib/llama/models/Qwen3.6-35B-A3B-UD-IQ4_XS.gguf";
+    mmproj = "/var/lib/llama/models/mmproj-F16.gguf";
 
     port = 8080;
     # Stable id for clients; the pi configs use the same string.
