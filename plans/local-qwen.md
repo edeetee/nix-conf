@@ -218,6 +218,8 @@ first row — it is not running Vulkan at all.
 | Wake from sleep | **30 s** with the model on the NVMe, **127–140 s** on the HDD (two consecutive wakes measured, so not page-cache noise) |
 | Why caching could not fix it | an mmap'd 16.5 GiB file cannot stay in 15 GiB of RAM: every wake re-read it at ~133 MB/s from the spinning disk. Not a cache-tuning problem |
 | Split that fits | `--n-cpu-moe 24`, `--ubatch-size 256` |
+| Full 262144 window | works: `n_ctx = n_ctx_train = 262144`, VRAM 10.57 GiB. KV is cheap (~9 KiB/token, ~2.3 GiB) but VRAM ends up at the edge, so parts of the graph fall back to the CPU — **decode drops 11 → 5 t/s** and 8k prefill 326 → 174 t/s (graph splits at bs=1: 34 → 62). The cost of the window is compute placement, not memory |
+| Window vs speed | 32k: 11 t/s · full 262k: 5 t/s. A middle setting (64-128k) is untested and is where the sweet spot probably is |
 
 What got it there, in order: `--fit` had to be turned **off** (with tensor buft
 overrides already set it aborts rather than adapting: `failed to fit params:
