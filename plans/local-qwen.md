@@ -220,6 +220,7 @@ first row — it is not running Vulkan at all.
 | Split that fits | `--n-cpu-moe 24`, `--ubatch-size 256` |
 | Full 262144 window | works: `n_ctx = n_ctx_train = 262144`, VRAM 10.57 GiB. KV is cheap (~9 KiB/token, ~2.3 GiB) but VRAM ends up at the edge, so parts of the graph fall back to the CPU — **decode drops 11 → 5 t/s** and 8k prefill 326 → 174 t/s (graph splits at bs=1: 34 → 62). The cost of the window is compute placement, not memory |
 | Window vs speed | 32k: 11 t/s · full 262k: 5 t/s. A middle setting (64-128k) is untested and is where the sweet spot probably is |
+| Window sweep (measured) | 32k: 11 t/s, 326 t/s prefill, ~7.9 GiB · **64k: 8 t/s, 327 t/s, 8.34 GiB** · **128k: 8 t/s, 326 t/s, 9.01 GiB** · 262k: 5 t/s, 174 t/s, 10.57 GiB. 64k and 128k are identical in speed and differ only in VRAM, so **131072 is the default** — same throughput as 64k, twice the window, ~3 GiB of headroom |
 
 What got it there, in order: `--fit` had to be turned **off** (with tensor buft
 overrides already set it aborts rather than adapting: `failed to fit params:

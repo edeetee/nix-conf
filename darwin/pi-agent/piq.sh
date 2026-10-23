@@ -8,8 +8,10 @@
 # plans/local-qwen.md §4.1.
 #
 # Deliberately dropped: extensions (the skill list is large), MCP, and every tool
-# except read/bash/edit/write. Add flags on the command line if you need them
-# back; the last flag wins.
+# except read/bash/edit/write. Thinking is off by default: it is generated at
+# ~8 t/s, so a few hundred reasoning tokens cost more wall clock than the answer,
+# and at small max_tokens it consumed the whole budget and returned empty
+# content. Override with PIQ_THINKING=low/high or --thinking on the command line.
 set -euo pipefail
 
 exec pi \
@@ -19,4 +21,5 @@ exec pi \
   --tools read,bash,edit,write \
   --no-extensions \
   --no-mcp \
+  --thinking "${PIQ_THINKING:-off}" \
   "$@"

@@ -37,7 +37,12 @@ in
     modelAlias = "qwen3.6-35b-a3b";
     # 16k is what a ~24 GB weights+KV pool affords at 4-bit; pi sessions using
     # this endpoint declare the same window.
-    contextSize = 65536;
+    # Swept 32k/64k/128k/262k (plans/local-qwen.md §4.1): 64k and 128k are
+    # identical in speed (8 t/s decode, 326 t/s prefill) and differ only in VRAM
+    # (8.34 vs 9.01 GiB), so 128k is strictly better. 262k halves prefill and
+    # drops decode to 5 t/s, because VRAM ends up at the edge and the graph
+    # falls back to the CPU.
+    contextSize = 131072;
     # Roughly a third of the routed experts in RAM. Tune with llama-bench:
     # raise on a VRAM OOM, lower when prefill is too slow.
     cpuMoeLayers = lib.mkDefault 30;
