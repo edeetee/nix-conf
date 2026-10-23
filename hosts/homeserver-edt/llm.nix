@@ -37,7 +37,7 @@ in
     modelAlias = "qwen3.6-35b-a3b";
     # 16k is what a ~24 GB weights+KV pool affords at 4-bit; pi sessions using
     # this endpoint declare the same window.
-    contextSize = 262144;
+    contextSize = 131072;
     # Roughly a third of the routed experts in RAM. Tune with llama-bench:
     # raise on a VRAM OOM, lower when prefill is too slow.
     cpuMoeLayers = lib.mkDefault 30;
