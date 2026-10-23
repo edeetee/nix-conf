@@ -37,7 +37,7 @@ in
     modelAlias = "qwen3.6-35b-a3b";
     # 16k is what a ~24 GB weights+KV pool affords at 4-bit; pi sessions using
     # this endpoint declare the same window.
-    contextSize = 32768;
+    contextSize = 262144;
     # Roughly a third of the routed experts in RAM. Tune with llama-bench:
     # raise on a VRAM OOM, lower when prefill is too slow.
     cpuMoeLayers = lib.mkDefault 30;
@@ -51,6 +51,10 @@ in
     extraArgs = [
       "--ubatch-size"
       "256"
+      # Checkpoint state scales with the window; 32 of them at 262k would dwarf
+      # the KV cache itself. A few is enough to make pi's prefix reuse work.
+      "--ctx-checkpoints"
+      "4"
     ];
   };
 
